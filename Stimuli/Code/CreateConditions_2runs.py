@@ -100,9 +100,12 @@ array_run2 = {'Conditions': Conditions2,
               }
 
 # save dictionary to pickle
-folderpath = '/media/sf_D_DRIVE/PacMan/PsychoPyScripts/Pacman_Scripts/PacMan_Pilot3_20161220/ModBasedMotLoc/Conditions'
-filename1 = os.path.join(folderpath, 'Conditions_run05.pickle')
-filename2 = os.path.join(folderpath, 'Conditions_run06.pickle')
+str_path_parent_up = os.path.abspath(
+    os.path.join(os.path.dirname(__file__), '..'))
+filename1 = os.path.join(str_path_parent_up, 'Conditions',
+                         'Conditions_run01.pickle')
+filename2 = os.path.join(str_path_parent_up, 'Conditions',
+                         'Conditions_run02.pickle')
 
 with open(filename1, 'wb') as handle:
     pickle.dump(array_run1, handle)

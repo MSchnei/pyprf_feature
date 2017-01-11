@@ -16,13 +16,11 @@ Created on Tue Jul 19 11:27:49 2016
 
 from __future__ import division  # so that 1/3=0.333 instead of 1/3=0
 import numpy as np
-import matplotlib.pyplot as plt
-from psychopy import monitors, misc
 import itertools
 import pickle
 import os
 
-#%%
+# %%
 """ (0) set general parameters"""
 
 varSupSmp = 1
@@ -31,7 +29,7 @@ nsplits = 8
 xpix = 1024
 ypix = 1024
 
-#%%
+# %%
 """define a circular aperture for all the following stimuli"""
 minOfXY = np.minimum(xpix, ypix)
 radius = minOfXY/2
@@ -45,11 +43,8 @@ R = np.sqrt(np.square(X)+np.square(Y))
 aperture = np.zeros(R.shape)
 aperture[R < radius] = 1
 
-#test1 = aperture
-#imgplot = plt.imshow(test1)
 
-
-#%%
+# %%
 """ (1a) bar apertures in cardinal orientation"""
 
 # get indices to divide along width dimension in n equally szied segments
@@ -73,12 +68,9 @@ for idx in np.arange(nsplits):
     msk = np.logical_and(msk, aperture)
     mskH[:, :, idx] = msk
 
-#test1 = mskV[:, :, 3]
-#imgplot = plt.imshow(test1)
-
 mskBarCard = np.concatenate((mskV, mskH), axis=2)
 
-#%%
+# %%
 """ (1b) bar apertures in diagonal orientation"""
 
 # get number of diagonals
@@ -117,10 +109,6 @@ for i, (idx1, idx2) in enumerate(zip(splitIdx1, splitIdx2)):
     mskObli1[:, :, i] = msk
     mskObli2[:, :, i] = np.fliplr(msk)
 
-#test1 = mskObli1[:, :, 1]
-#imgplot = plt.imshow(test1)
-#plt.colorbar()
-
 mskBarObli = np.concatenate((mskObli1, mskObli2), axis=2)
 
 mskBar = np.concatenate((mskBarCard, mskBarObli), axis=2)
@@ -128,7 +116,7 @@ mskBar = np.concatenate((mskBarCard, mskBarObli), axis=2)
 mskBar = np.dstack((np.zeros((xpix, ypix)), mskBar))
 
 
-#%%
+# %%
 """ (2a) square apertures in cardinal orientation"""
 
 # get indices to divide along width dimension in n equally szied segments
@@ -155,10 +143,7 @@ for i, (idx1, idx2) in enumerate(Conditions):
 
     mskSquareCard[:, :, i] = msk
 
-#test1 = mskSquareCard[:, :, 5]
-#imgplot = plt.imshow(test1)
-
-#%%
+# %%
 """ (2b) square apertures in oblique orientation"""
 
 # get number of diagonals
@@ -217,15 +202,12 @@ for i, (idx1, idx2) in enumerate(Conditions):
 
     mskSquareObli[:, :, i] = msk
 
-#test1 = mskSquareObli[:, :, 15]
-#imgplot = plt.imshow(test1)
-
 mskSquare = np.concatenate((mskSquareCard, mskSquareObli), axis=2)
 # add first image, which will be zero-only image
 mskSquare = np.dstack((np.zeros((xpix, ypix)), mskSquare))
 
 
-#%%
+# %%
 """ (3a) circle apertures in cardinal orientation"""
 
 # 1st step: define 4 quadrant apertures
@@ -284,11 +266,8 @@ for i, (idx1, idx2) in enumerate(Conditions):
 
     mskCircleCard[:, :, i] = msk
 
-#test1 = mskCircleCard[:, :, 8]
-#imgplot = plt.imshow(test1)
 
-
-#%%
+# %%
 """ (3b) circle apertures in oblique orientation"""
 
 # 1st step: define 4 quadrant apertures (this time rotated by 45 degrees)
@@ -376,9 +355,6 @@ for i, (idx1, idx2) in enumerate(Conditions):
 
     mskCircleObli[:, :, i] = msk
 
-#test1 = mskCircleObli[:, :, 1]
-#imgplot = plt.imshow(test1)
-
 mskCircle = np.concatenate((mskCircleCard, mskCircleObli), axis=2)
 # add first image, which will be zero-only image
 mskCircle = np.dstack((np.zeros((xpix, ypix)), mskCircle))
@@ -444,9 +420,6 @@ for i, (idx1, idx2) in enumerate(Conditions):
     msk = np.logical_and(msk1, msk2)
 
     mskCircleBarCard[:, :, i] = msk
-
-#test1 = mskCircleCard[:, :, 8]
-#imgplot = plt.imshow(test1)
 
 
 """ (4b) circle bar apertures in oblique orientation"""
@@ -529,88 +502,88 @@ for i, (idx1, idx2) in enumerate(Conditions):
 
     mskCircleBarObli[:, :, i] = msk
 
-#test1 = mskCircleBarObli[:, :, 15]
-#imgplot = plt.imshow(test1)
-
 mskCircleBar = np.concatenate((mskCircleBarCard, mskCircleBarObli), axis=2)
 # add first image, which will be zero-only image
 mskCircleBar = np.dstack((np.zeros((xpix, ypix)), mskCircleBar))
 
 
 """ (5a) inverted circle bar apertures in cardinal orientation"""
-## 1st step: define 4 hemifield apertures
-#mskHalf = np.empty((xpix, ypix, 4), dtype='int')
-## combine conditions
-#Cond = [(0, 1), (1, 0)]
-#
-#for i, cond in enumerate(Cond):
-#    m = np.empty((xpix, ypix), dtype='int')
-#    # set one side of array to 0
-#    m[:m.shape[0]/2, :m.shape[1]] = cond[0]
-#    # set other side of array to 1
-#    m[m.shape[0]/2:, :m.shape[1]] = cond[1]
-#    # transpose image to get vertical version
-#    m2 = np.transpose(m)
-#    # save to mskHalf
-#    mskHalf[:, :, 2*i] = m
-#    mskHalf[:, :, 2*i+1] = m2
-#
-## 2nd step: define inverted ring apertures
-#circleSplits = 4
-#rmin = np.minimum(xpix, ypix)/2
-#
-#X, Y = np.meshgrid(
-#    np.arange(xpix) - xpix/2+0.5,
-#    np.arange(ypix) - ypix/2+0.5
-#    )
-#
-#R = np.sqrt(np.square(X)+np.square(Y))
-#
-#splitIdx1 = np.arange(0, rmin, rmin/circleSplits)
-#splitIdx2 = np.arange(0, rmin, rmin/circleSplits) + rmin/circleSplits
-#
-#mskRings = np.empty([xpix, ypix, circleSplits])
-#for i, (idx1, idx2) in enumerate(zip(splitIdx1, splitIdx2)):
-#    aperture = np.zeros(R.shape)
-#    aperture[np.logical_and(R >= idx1, R < idx2)] = 1
-#    mskRings[:, :, i] = aperture
-#
-#mskCircleBarCard = np.empty([xpix, ypix, 2*2*circleSplits])
-#
-## 3rd steps combine conditions (halves and rings)
-#iterables = [np.arange(2*2).astype(int),
-#             np.arange(circleSplits).astype(int)]
-#Conditions = list(itertools.product(*iterables))
-#
-## cross the single diagonal masks to obtain diagonal squares
-#for i, (idx1, idx2) in enumerate(Conditions):
-#    # zero all elements above diagonal
-#    msk1 = mskHalf[:, :, idx1]
-#    # zero all elements below diagonal
-#    msk2 = mskRings[:, :, idx2]
-#    # combine masks
-#    msk = np.logical_and(msk1, msk2)
-#
-#    mskCircleBarCard[:, :, i] = msk
-#
-## 4th step: roll back to invert
-#fraction = 100
-#mskInvCircleBarCard = np.empty((xpix, ypix,16))
-#elem = np.hstack((np.tile([0], 4), np.tile([1], 4)))
-#Conditions = np.tile(elem,2)
-#for i, cond in enumerate(Conditions):
-#    temp = mskCircleBarCard[:, :, i]
-#    mskInvCircleBarCard[:, :, i] = np.roll(temp, 600 + fraction, axis=cond)
+# 1st step: define 4 hemifield apertures
+mskHalf = np.empty((xpix, ypix, 4), dtype='int')
+# combine conditions
+Cond = [(0, 1), (1, 0)]
+
+for i, cond in enumerate(Cond):
+    m = np.empty((xpix, ypix), dtype='int')
+    # set one side of array to 0
+    m[:m.shape[0]/2, :m.shape[1]] = cond[0]
+    # set other side of array to 1
+    m[m.shape[0]/2:, :m.shape[1]] = cond[1]
+    # transpose image to get vertical version
+    m2 = np.transpose(m)
+    # save to mskHalf
+    mskHalf[:, :, 2*i] = m
+    mskHalf[:, :, 2*i+1] = m2
+
+# 2nd step: define inverted ring apertures
+circleSplits = 4
+rmin = np.minimum(xpix, ypix)/2
+
+X, Y = np.meshgrid(
+    np.arange(xpix) - xpix/2+0.5,
+    np.arange(ypix) - ypix/2+0.5
+    )
+
+R = np.sqrt(np.square(X)+np.square(Y))
+
+splitIdx1 = np.arange(0, rmin, rmin/circleSplits)
+splitIdx2 = np.arange(0, rmin, rmin/circleSplits) + rmin/circleSplits
+
+mskRings = np.empty([xpix, ypix, circleSplits])
+for i, (idx1, idx2) in enumerate(zip(splitIdx1, splitIdx2)):
+    aperture = np.zeros(R.shape)
+    aperture[np.logical_and(R >= idx1, R < idx2)] = 1
+    mskRings[:, :, i] = aperture
+
+mskCircleBarCard = np.empty([xpix, ypix, 2*2*circleSplits])
+
+# 3rd steps combine conditions (halves and rings)
+iterables = [np.arange(2*2).astype(int),
+             np.arange(circleSplits).astype(int)]
+Conditions = list(itertools.product(*iterables))
+
+# cross the single diagonal masks to obtain diagonal squares
+for i, (idx1, idx2) in enumerate(Conditions):
+    # zero all elements above diagonal
+    msk1 = mskHalf[:, :, idx1]
+    # zero all elements below diagonal
+    msk2 = mskRings[:, :, idx2]
+    # combine masks
+    msk = np.logical_and(msk1, msk2)
+
+    mskCircleBarCard[:, :, i] = msk
+
+# 4th step: roll back to invert
+fraction = 100
+mskInvCircleBarCard = np.empty((xpix, ypix, 16))
+elem = np.hstack((np.tile([0], 4), np.tile([1], 4)))
+Conditions = np.tile(elem, 2)
+for i, cond in enumerate(Conditions):
+    temp = mskCircleBarCard[:, :, i]
+    mskInvCircleBarCard[:, :, i] = np.roll(temp, 600 + fraction, axis=cond)
 
 
-#%%
+# %%
 """Save in a pickle"""
+str_path_parent_up = os.path.abspath(
+    os.path.join(os.path.dirname(__file__), '..'))
+
 print "start saving arrays..."
-folderpath = '/home/marian/Documents/Testing/gif_aperture'
-np.save(os.path.join(folderpath, 'mskBar'), mskBar)
-np.save(os.path.join(folderpath, 'mskSquare'), mskSquare)
-np.save(os.path.join(folderpath, 'mskCircle'), mskCircle)
-np.save(os.path.join(folderpath, 'mskCircleBar'), mskCircleBar)
+np.save(os.path.join(str_path_parent_up, "Masks", "mskBar"), mskBar)
+np.save(os.path.join(str_path_parent_up, "Masks", "mskSquare"), mskSquare)
+np.save(os.path.join(str_path_parent_up, "Masks", "mskCircle"), mskCircle)
+np.save(os.path.join(str_path_parent_up, "Masks", "mskCircleBar"),
+        mskCircleBar)
 
 print "saving arrays done"
 
@@ -625,10 +598,7 @@ pickleArray = {
     }
 
 # save dictionary to pickle
-picklePath = os.path.join(folderpath, 'pRFMasks.pickle')
+picklePath = os.path.join(str_path_parent_up, "Masks", 'pRFMasks.pickle')
 with open(picklePath, 'wb') as handle:
     pickle.dump(pickleArray, handle)
 print "pickling done"
-
-#test1 = mskSquare[:, :, 2]
-#imgplot = plt.imshow(test1)
