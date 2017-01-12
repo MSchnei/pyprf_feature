@@ -45,9 +45,9 @@ if varNumCmdArgs == 0:
     # import the default cfg file
     import pRF_config as cfg
 else:
-    print "import custom cfg file"
+    print "------Imported custom cfg file"
     # determine the type of aperture
-    strCfgFile = str(sys.argv[1])
+    strCfgFile = str(sys.argv[0])
     strCfgFilePath = os.path.dirname(strCfgFile)
     strCfgFileName = os.path.split(strCfgFile)[1]
     strCfgFileName = os.path.splitext(strCfgFileName)[0]
@@ -547,12 +547,8 @@ affMsk = niiMask.affine
 # Load the data into memory:
 aryMask = niiMask.get_data().astype('bool')
 
-# Number of non-zero voxels in mask (i.e. number of voxels for which pRF
-# finding will be performed):
-varNumVoxInc = int(np.count_nonzero(aryMask))
-
 # prepare aryFunc for functional data
-aryFunc = np.empty((varNumVoxInc, 0), dtype='float32')
+aryFunc = np.empty((np.sum(aryMask), 0), dtype='float32')
 for idx in np.arange(len(cfg.lstNiiFls)):
     print('------------Loading run: ' + str(idx+1))
     # Load 4D nii data:

@@ -58,7 +58,7 @@ varNumVol = 688
 varIntCtf = -100.0
 
 # Number of processes to run in parallel:
-varPar = 8
+varPar = 10
 
 # Size of high-resolution visual space model in which the pRF models are
 # created (x- and y-dimension). The x and y dimensions specified here need to
@@ -69,20 +69,20 @@ varPar = 8
 tplVslSpcHighSze = (200, 200)
 
 # Parent path to functional data
-strPathNiiFunc = '/media/sf_D_DRIVE/PacMan/Analysis/P3/Distorted/04_SmoothSpat1SmoothTmp1Demean'
+strPathNiiFunc = '/media/sf_D_DRIVE/PacMan/Analysis/P3/UndistortedMotCor/03_SmoothSpat1SmoothTmp1Demean'
 # list of nii files in parent directory (all nii files together need to have
 # same number of volumes as there are PNGs):
-lstNiiFls = ['zs1_1rprf_01_hpf.nii',
-             'zs1_1rprf_02_hpf.nii',
-             'zs1_1rprf_03_hpf.nii',
-             'zs1_1rprf_04_hpf.nii',
+lstNiiFls = ['zs1_1func_07_hpf.nii',
+             'zs1_1rprf_08_hpf.nii',
+             'zs1_1rprf_09_hpf.nii',
+             'zs1_1rprf_10_hpf.nii',
              ]
 
 # Path of mask (to restrict pRF model finding):
 strPathNiiMask = '/media/sf_D_DRIVE/PacMan/Analysis/P3/UndistortedMotCor/Struct/Mask.nii'
 
 # Output basename:
-strPathOut = '/media/sf_D_DRIVE/PacMan/Analysis/P3/Distorted/FitResults/MotionNoXval'
+strPathOut = '/media/sf_D_DRIVE/PacMan/Analysis/P3/UndistortedMotCor/FitResults/MotionNoXval'
 
 # Use cython (i.e. compiled code) for faster performance? (Requires cython to
 # be installed.)
@@ -119,14 +119,14 @@ if lgcCrteMdl:
     # Basename of the 'binary stimulus files'. The files need to be in png
     # format and number in the order of their presentation during the
     # experiment.
-    strPathPng = '/media/sf_D_DRIVE/PacMan/Analysis/P3/Distorted/PrfPngs/Ima_'
+    strPathPng = '/media/sf_D_DRIVE/PacMan/Analysis/P3/UndistortedMotCor/PrfPngs/Ima_'
 
     # Output path for pRF time course models file (without file extension):
-    strPathMdl = '/media/sf_D_DRIVE/PacMan/Analysis/P3/Distorted/FitResults/pRF_model_mtn_tc'
+    strPathMdl = '/media/sf_D_DRIVE/PacMan/Analysis/P3/UndistortedMotCor/FitResults/pRF_model_mtn_tc'
 
 else:
     # provide number of motion directions
     varNumMtDrctn = 5
     # If we use existing pRF time course models, the path to the respective
     # file has to be provided (including file extension, i.e. '*.npy'):
-    strPathMdl = '/media/sf_D_DRIVE/PacMan/Analysis/P3/Distorted/FitResults/pRF_model_mtn_tc.npy'
+    strPathMdl = '/media/sf_D_DRIVE/PacMan/Analysis/P3/UndistortedMotCor/FitResults/pRF_model_mtn_tc.npy'
