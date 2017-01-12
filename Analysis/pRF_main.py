@@ -1,7 +1,7 @@
 # -*- coding: utf-8 -*-
 """Find best fitting model time courses for population receptive fields."""
 
-# Part of py_pRF_mapping library
+# Part of py_pRF_motion library
 # Copyright (C) 2016  Ingo Marquardt
 #
 # This program is free software: you can redistribute it and/or modify
@@ -20,9 +20,7 @@
 print('---pRF analysis')
 
 
-# *****************************************************************************
-# *** Import modules
-
+# %% Import modules
 import os
 os.chdir(os.path.abspath(os.path.dirname(__file__)))
 import numpy as np
@@ -32,15 +30,13 @@ import time
 import pickle
 import multiprocessing as mp
 from scipy.interpolate import griddata
-
 from pRF_funcFindPrf import funcFindPrf, funcFindPrfXval
-from pRF_filtering import funcLnTrRm, funcSmthSpt, funcSmthTmp
+from pRF_filtering import funcSmthTmp
 from pRF_utilities import funcGauss, funcHrf, funcConvPar, funcPrfTc
 from pRF_calcR2_getBetas import getBetas
 import sys
-# *****************************************************************************
 
-# get some parameters from command line
+# %% get some parameters from command line
 sys.argv = sys.argv[1:]
 varNumCmdArgs = len(sys.argv)
 print 'Argument List:', str(sys.argv)
@@ -60,43 +56,10 @@ else:
     cfg = __import__(strCfgFileName, globals(), locals(), [])
     del sys.path[0]
 
-
-
-
-# *****************************************************************************
-# *** Check time
+# %% Check time
 varTme01 = time.time()
-# *****************************************************************************
 
-
-# *****************************************************************************
-# *** Determine CPU access
-
-# Get the process PID:
-# varPid = os.getpid()
-# Prepare command:
-# strTmp = ('taskset -cp 0-' + str(cfg.varPar) + ' ' + str(varPid))
-# Issue command:
-# os.system(strTmp)
-# affinity.set_process_affinity_mask(varPid, 2**cfg.varPar)
-# *****************************************************************************
-
-
-# *****************************************************************************
-# *** Preparations
-
-# Convert preprocessing parameters (for temporal and spatial smoothing) from
-# SI units (i.e. [s] and [mm]) into units of data array:
-cfg.varSdSmthTmp = np.divide(cfg.varSdSmthTmp, cfg.varTr)
-cfg.varSdSmthSpt = np.divide(cfg.varSdSmthSpt, cfg.varVoxRes)
-
-# Compile cython code:
-# ...
-# *****************************************************************************
-
-
-# *****************************************************************************
-# *** Create new pRF time course models, or load existing models
+# %% Create new pRF time course models, or load existing models
 
 if cfg.lgcCrteMdl:
 
@@ -333,8 +296,7 @@ if cfg.lgcCrteMdl:
             # The sampling interval for the creation of the super-sampled pixel
             # data (complex numbers are used as a convention for inclusive
             # intervals in "np.mgrid()").:
-            # varStpSzeX = float(cfg.tplPngSize[0]) / float(cfg.tplVslSpcHighSze[0])
-            # varStpSzeY = float(cfg.tplPngSize[1]) / float(cfg.tplVslSpcHighSze[1])
+
             varStpSzeX = np.complex(cfg.tplVslSpcHighSze[0])
             varStpSzeY = np.complex(cfg.tplVslSpcHighSze[1])
 
@@ -551,9 +513,7 @@ if cfg.lgcCrteMdl:
     # *************************************************************************
 
 else:
-
-    # *************************************************************************
-    # *** Load existing pRF time course models
+    # %% Load existing pRF time course models
 
     print('------Load pRF time course models')
 
@@ -564,229 +524,278 @@ else:
     vecPrfTcShp = aryPrfTc.shape
 
     # Logical test for correct dimensions:
-    lgcDim = ((vecPrfTcShp[0] == cfg.varNumX)
-              and
-              (vecPrfTcShp[1] == cfg.varNumY)
-              and
-              (vecPrfTcShp[2] == cfg.varNumPrfSizes)
-              and
-              (vecPrfTcShp[3] == cfg.varNumMtDrctn)
-              and
-              (vecPrfTcShp[4] == cfg.varNumVol))
-# *****************************************************************************
+    strErrMsg = ('Dimensions of specified pRF time course models ' +
+                 'do not agree with specified model parameters')
+    print(strErrMsg)
+    assert vecPrfTcShp[0] == cfg.varNumX and \
+        vecPrfTcShp[1] == cfg.varNumY and \
+        vecPrfTcShp[2] == cfg.varNumPrfSizes and \
+        vecPrfTcShp[3] == cfg.varNumMtDrctn and \
+        vecPrfTcShp[4] == cfg.varNumVol, strErrMsg
 
+# %% Find pRF models for voxel time courses
 
-# *****************************************************************************
-# *** Find pRF models for voxel time courses
+print('------Find pRF models for voxel time courses')
 
-# Only fit pRF models if dimensions of pRF time course models are correct:
-if lgcDim:
+print('---------Loading nii data')
+# Load mask (to restrict model fining):
+niiMask = nb.load(cfg.strPathNiiMask)
+# Get nii header of mask:
+hdrMsk = niiMask.header
+# Get nii 'affine':
+affMsk = niiMask.affine
+# Load the data into memory:
+aryMask = niiMask.get_data().astype('bool')
 
-    print('------Find pRF models for voxel time courses')
+# Number of non-zero voxels in mask (i.e. number of voxels for which pRF
+# finding will be performed):
+varNumVoxInc = int(np.count_nonzero(aryMask))
 
-    print('---------Loading nii data')
-
+# prepare aryFunc for functional data
+aryFunc = np.empty((varNumVoxInc, 0), dtype='float32')
+for idx in np.arange(len(cfg.lstNiiFls)):
+    print('------------Loading run: ' + str(idx+1))
     # Load 4D nii data:
-    niiFunc = nb.load(cfg.strPathNiiFunc)
+    niiFunc = nb.load(os.path.join(cfg.strPathNiiFunc,
+                                   cfg.lstNiiFls[idx]))
     # Load the data into memory:
-    aryFunc = niiFunc.get_data()
-    aryFunc = np.array(aryFunc)
+    aryFuncTemp = niiFunc.get_data()
+    aryFunc = np.append(aryFunc, aryFuncTemp[aryMask, :], axis=1)
 
-    # Load mask (to restrict model fining):
-    niiMask = nb.load(cfg.strPathNiiMask)
-    # Get nii header of mask:
-    hdrMsk = niiMask.header
-    # Get nii 'affine':
-    affMsk = niiMask.affine
-    # Load the data into memory:
-    aryMask = niiMask.get_data()
-    aryMask = np.array(aryMask)
+# remove unneccary array
+del(aryFuncTemp)
 
-    # Perform spatial smoothing on fMRI data (reduced parallelisation over
-    # volumes because this function is very memory intense):
-#    if 0.0 < cfg.varSdSmthSpt:
-#        print('---------Spatial smoothing on fMRI data')
-#        print('SD spt smooth is: ' + str(cfg.varSdSmthSpt))
-#        aryFunc = funcSmthSpt(aryFunc,
-#                              cfg.varSdSmthSpt,
-#                              )
+# Take mean over time of functional nii data:
+aryFuncMean = np.mean(aryFunc, axis=1)
+# Logical test for voxel inclusion: is the mean of functional time series
+# above the cutoff value?
+aryLgc = np.greater(aryFuncMean, cfg.varIntCtf)
+# update 3D mask accordingly
+aryMask[aryMask] = np.copy(aryLgc)
 
-#    # Perform temporal smoothing on fMRI data:
-#    if 0.0 < cfg.varSdSmthTmp:
-#        print('---------Temporal smoothing on fMRI data')
-#        print('SD tmp smooth is: ' + str(cfg.varSdSmthTmp))
-#        aryFunc = funcSmthTmp(aryFunc,
-#                              cfg.varSdSmthTmp,
-#                              )
+# Array with functional data for which conditions (cutoff value)
+# are fullfilled:
+aryFunc = aryFunc[aryLgc, :]
+# Number of voxels for which pRF finding will be performed:
+varNumVoxInc = aryFunc.shape[0]
 
-    # Perform temporal smoothing on pRF time course models:
-    if 0.0 < cfg.varSdSmthTmp:
-        print('---------Temporal smoothing on pRF time course models')
-        print('SD tmp smooth is: ' + str(cfg.varSdSmthTmp))
-        aryPrfTc = funcSmthTmp(aryPrfTc,
-                               cfg.varSdSmthTmp,
-                               )
+# Convert preprocessing parameters (for temporal and spatial smoothing) from
+# SI units (i.e. [s] and [mm]) into units of data array:
+cfg.varSdSmthTmp = np.divide(cfg.varSdSmthTmp, cfg.varTr)
 
-    # Number of non-zero voxels in mask (i.e. number of voxels for which pRF
-    # finding will be performed):
-    varNumMskVox = int(np.count_nonzero(aryMask))
+# Perform temporal smoothing on pRF time course models:
+if 0.0 < cfg.varSdSmthTmp:
+    print('---------Temporal smoothing on pRF time course models')
+    print('------------SD tmp smooth is: ' + str(cfg.varSdSmthTmp))
+    aryPrfTc = funcSmthTmp(aryPrfTc,
+                           cfg.varSdSmthTmp,
+                           )
 
-    # Dimensions of nii data:
-    vecNiiShp = aryFunc.shape
+print('---------Preparing parallel pRF model finding')
 
-    print('---------Preparing parallel pRF model finding')
+# Vector with the moddeled x-positions of the pRFs:
+vecMdlXpos = np.linspace(cfg.varExtXmin,
+                         cfg.varExtXmax,
+                         cfg.varNumX,
+                         endpoint=True)
 
-    # Vector with the moddeled x-positions of the pRFs:
-    vecMdlXpos = np.linspace(cfg.varExtXmin,
-                             cfg.varExtXmax,
-                             cfg.varNumX,
-                             endpoint=True)
+# Vector with the moddeled y-positions of the pRFs:
+vecMdlYpos = np.linspace(cfg.varExtYmin,
+                         cfg.varExtYmax,
+                         cfg.varNumY,
+                         endpoint=True)
 
-    # Vector with the moddeled y-positions of the pRFs:
-    vecMdlYpos = np.linspace(cfg.varExtYmin,
-                             cfg.varExtYmax,
-                             cfg.varNumY,
-                             endpoint=True)
+# Vector with the moddeled standard deviations of the pRFs:
+vecMdlSd = np.linspace(cfg.varPrfStdMin,
+                       cfg.varPrfStdMax,
+                       cfg.varNumPrfSizes,
+                       endpoint=True)
 
-    # Vector with the moddeled standard deviations of the pRFs:
-    vecMdlSd = np.linspace(cfg.varPrfStdMin,
-                           cfg.varPrfStdMax,
-                           cfg.varNumPrfSizes,
-                           endpoint=True)
+# Empty list for results (parameters of best fitting pRF model):
+lstPrfRes = [None] * cfg.varPar
 
-    # Empty list for results (parameters of best fitting pRF model):
-    lstPrfRes = [None] * cfg.varPar
+# Empty list for processes:
+lstPrcs = [None] * cfg.varPar
 
+# Counter for parallel processes:
+varCntPar = 0
+
+# Counter for output of parallel processes:
+varCntOut = 0
+
+# Create a queue to put the results in:
+queOut = mp.Queue()
+
+print('---------Number of voxels on which pRF finding will be ' +
+      'performed: ' + str(varNumVoxInc))
+
+if cfg.lgcXval:
+    # get number of time points
+    varNumTP = aryFunc.shape[1]
+    # make sure that the predictors are demeaned
+    aryPrfTc = np.subtract(aryPrfTc, np.mean(aryPrfTc, axis=4)[
+        :, :, :, :, None])
+    # make sure that the data is demeaned
+    aryFunc = np.subtract(aryFunc, np.mean(aryFunc, axis=1)[:, None])
+    # prepare cross validation
+    vecXval = np.arange(cfg.varNumXval)
+    lsSplit = np.array(np.split(np.arange(varNumTP),
+                                np.cumsum(cfg.vecRunLngth)))
+    # get rid of last element, which is empty
+    lsSplit = lsSplit[:-1]
+    # put the pRF models into different training and test folds
+    lstPrfMdlsTrn = []
+    lstPrfMdlsTst = []
+    for ind in vecXval:
+        idx1 = np.where(ind != vecXval)[0]
+        idx2 = np.where(ind == vecXval)[0]
+        lstPrfMdlsTrn.append(aryPrfTc[:, :, :, :,
+                                      np.hstack(lsSplit[idx1])])
+        lstPrfMdlsTst.append(aryPrfTc[:, :, :, :,
+                                      np.hstack(lsSplit[idx2])])
+
+    # put the functional data into different training and test folds
+    lstFunc = np.array_split(aryFunc, cfg.varPar)
+
+    lstFuncTrn = [[] for x in xrange(cfg.varPar)]
+    lstFuncTst = [[] for x in xrange(cfg.varPar)]
+    for ind1 in np.arange(len(lstFunc)):
+        # take voxels for ind1 paralelization
+        aryFuncTemp = lstFunc[ind1]
+        lstFuncTrnSplit = []
+        lstFuncTstSplit = []
+        for ind2 in vecXval:
+            # create ind2-fold for xvalidation
+            idx1 = np.where(ind2 != vecXval)[0]
+            idx2 = np.where(ind2 == vecXval)[0]
+            lstFuncTrnSplit.append(
+                aryFuncTemp[:, np.hstack(lsSplit[idx1])])
+            lstFuncTstSplit.append(
+                aryFuncTemp[:, np.hstack(lsSplit[idx2])])
+        lstFuncTrn[ind1] = lstFuncTrnSplit
+        lstFuncTst[ind1] = lstFuncTstSplit
+
+    del(lsSplit)
+    del(lstFunc)
+    del(lstFuncTrnSplit)
+    del(lstFuncTstSplit)
+    # save aryFunc so we can load it later for R2 determination, but for now
+    # we delete it to save memory
+    np.save(cfg.strPathOut + '_aryFunc', aryFunc)
+    del(aryFunc)
+
+else:
+    # Put functional data into chunks:
+    lstFunc = np.array_split(aryFunc, cfg.varPar)
+    # We don't need the original array with the functional data anymore:
+    del(aryFunc)
+
+print('---------Creating parallel processes')
+
+# Create processes:
+if cfg.lgcXval:
+    for idxPrc in range(0, cfg.varPar):
+        lstPrcs[idxPrc] = mp.Process(target=funcFindPrfXval,
+                                     args=(idxPrc,
+                                           vecMdlXpos,
+                                           vecMdlYpos,
+                                           vecMdlSd,
+                                           lstFuncTrn[idxPrc],
+                                           lstFuncTst[idxPrc],
+                                           lstPrfMdlsTrn,
+                                           lstPrfMdlsTst,
+                                           cfg.lgcCython,
+                                           cfg.varNumXval,
+                                           queOut)
+                                     )
+        # Daemon (kills processes when exiting):
+        lstPrcs[idxPrc].Daemon = True
+else:
+    for idxPrc in range(0, cfg.varPar):
+        lstPrcs[idxPrc] = mp.Process(target=funcFindPrf,
+                                     args=(idxPrc,
+                                           vecMdlXpos,
+                                           vecMdlYpos,
+                                           vecMdlSd,
+                                           lstFunc[idxPrc],
+                                           aryPrfTc,
+                                           cfg.lgcCython,
+                                           queOut)
+                                     )
+        # Daemon (kills processes when exiting):
+        lstPrcs[idxPrc].Daemon = True
+
+# Start processes:
+for idxPrc in range(0, cfg.varPar):
+    lstPrcs[idxPrc].start()
+
+# Collect results from queue:
+for idxPrc in range(0, cfg.varPar):
+    lstPrfRes[idxPrc] = queOut.get(True)
+
+# Join processes:
+for idxPrc in range(0, cfg.varPar):
+    lstPrcs[idxPrc].join()
+
+print('---------Prepare pRF finding results for export')
+
+
+# Put fitting results into list, in correct order:
+lstPrfRes = sorted(lstPrfRes)
+
+# Concatenate output vectors (into the same order as the voxels that were
+# included in the fitting):
+aryBstXpos = np.zeros(0)
+aryBstYpos = np.zeros(0)
+aryBstSd = np.zeros(0)
+if not cfg.lgcXval:
+    aryBstR2 = np.zeros(0)
+    aryBstBetas = np.zeros((0, cfg.varNumMtDrctn+1))
+for idxRes in range(0, cfg.varPar):
+    aryBstXpos = np.append(aryBstXpos, lstPrfRes[idxRes][1])
+    aryBstYpos = np.append(aryBstYpos, lstPrfRes[idxRes][2])
+    aryBstSd = np.append(aryBstSd, lstPrfRes[idxRes][3])
+    if not cfg.lgcXval:
+        aryBstR2 = np.append(aryBstR2, lstPrfRes[idxRes][4])
+        aryBstBetas = np.concatenate((aryBstBetas, lstPrfRes[idxRes][5]),
+                                     axis=0)
+
+# Delete unneeded large objects:
+del(lstPrfRes)
+
+# %%
+# if we did model finding with cross validation, we never estimated
+# the betas and R square for the full model. Do that now:
+if cfg.lgcXval:
+    print('------Find best betas and R2 values')
+    # prepare list for results
+    lstBetaRes = [None] * cfg.varPar
     # Empty list for processes:
     lstPrcs = [None] * cfg.varPar
+    # get an array that shows best x, y, sigma for every voxel
+    aryBstMdls = np.array([aryBstXpos, aryBstYpos, aryBstSd]).T
+    # divide this ary in parts and put parts in list
+    lstBstMdls = np.array_split(aryBstMdls, cfg.varPar)
+    # put functional data into list
+    aryFunc = np.load(cfg.strPathOut + '_aryFunc.npy')
+    lstFunc = np.array_split(aryFunc, cfg.varPar)
+    # delete aryFunc from memory and from disk
+    del(aryFunc)
+    os.remove(cfg.strPathOut + '_aryFunc.npy')
 
-    # Counter for parallel processes:
-    varCntPar = 0
-
-    # Counter for output of parallel processes:
-    varCntOut = 0
-
-    # Create a queue to put the results in:
-    queOut = mp.Queue()
-
-    # Total number of voxels:
-    varNumVoxTlt = (vecNiiShp[0] * vecNiiShp[1] * vecNiiShp[2])
-
-    # Reshape functional nii data:
-    aryFunc = np.reshape(aryFunc, [varNumVoxTlt, vecNiiShp[3]])
-
-    # Reshape mask:
-    aryMask = np.reshape(aryMask, varNumVoxTlt)
-
-    # Take mean over time of functional nii data:
-    aryFuncMean = np.mean(aryFunc, axis=1)
-
-    # Logical test for voxel inclusion: is the voxel value greater than zero in
-    # the mask, and is the mean of the functional time series above the cutoff
-    # value?
-    aryLgc = np.multiply(np.greater(aryMask, 0),
-                         np.greater(aryFuncMean, cfg.varIntCtf))
-
-    # Array with functional data for which conditions (mask inclusion and
-    # cutoff value) are fullfilled:
-    aryFunc = aryFunc[aryLgc, :]
-
-    # Number of voxels for which pRF finding will be performed:
-    varNumVoxInc = aryFunc.shape[0]
-
-    print('---------Number of voxels on which pRF finding will be ' +
-          'performed: ' + str(varNumVoxInc))
-
-    if cfg.lgcXval:
-        # get number of time points
-        varNumTP = aryFunc.shape[1]
-        # make sure that the predictors are demeaned
-        aryPrfTc = np.subtract(aryPrfTc, np.mean(aryPrfTc, axis=4)[
-            :, :, :, :, None])
-        # make sure that the data is demeaned
-        aryFunc = np.subtract(aryFunc, np.mean(aryFunc, axis=1)[:, None])
-        # prepare cross validation
-        vecXval = np.arange(cfg.varNumXval)
-        lsSplit = np.array(np.split(np.arange(varNumTP),
-                                    np.cumsum(cfg.vecRunLngth)))
-        # get rid of last element, which is empty
-        lsSplit = lsSplit[:-1]
-        # put the pRF models into different training and test folds
-        lstPrfMdlsTrn = []
-        lstPrfMdlsTst = []
-        for ind in vecXval:
-            idx1 = np.where(ind != vecXval)[0]
-            idx2 = np.where(ind == vecXval)[0]
-            lstPrfMdlsTrn.append(aryPrfTc[:, :, :, :,
-                                          np.hstack(lsSplit[idx1])])
-            lstPrfMdlsTst.append(aryPrfTc[:, :, :, :,
-                                          np.hstack(lsSplit[idx2])])
-
-        # put the functional data into different training and test folds
-        lstFunc = np.array_split(aryFunc, cfg.varPar)
-
-        lstFuncTrn = [[] for x in xrange(cfg.varPar)]
-        lstFuncTst = [[] for x in xrange(cfg.varPar)]
-        for ind1 in np.arange(len(lstFunc)):
-            # take voxels for ind1 paralelization
-            aryFuncTemp = lstFunc[ind1]
-            lstFuncTrnSplit = []
-            lstFuncTstSplit = []
-            for ind2 in vecXval:
-                # create ind2-fold for xvalidation
-                idx1 = np.where(ind2 != vecXval)[0]
-                idx2 = np.where(ind2 == vecXval)[0]
-                lstFuncTrnSplit.append(
-                    aryFuncTemp[:, np.hstack(lsSplit[idx1])])
-                lstFuncTstSplit.append(
-                    aryFuncTemp[:, np.hstack(lsSplit[idx2])])
-            lstFuncTrn[ind1] = lstFuncTrnSplit
-            lstFuncTst[ind1] = lstFuncTstSplit
-
-        del(lstFunc)
-        del(lstFuncTrnSplit)
-        del(lstFuncTstSplit)
-
-    else:
-        # Put functional data into chunks:
-        lstFunc = np.array_split(aryFunc, cfg.varPar)
-        # We don't need the original array with the functional data anymore:
-        del(aryFunc)
-
-    print('---------Creating parallel processes')
-
-    # Create processes:
-    if cfg.lgcXval:
-        for idxPrc in range(0, cfg.varPar):
-            lstPrcs[idxPrc] = mp.Process(target=funcFindPrfXval,
-                                         args=(idxPrc,
-                                               vecMdlXpos,
-                                               vecMdlYpos,
-                                               vecMdlSd,
-                                               lstFuncTrn[idxPrc],
-                                               lstFuncTst[idxPrc],
-                                               lstPrfMdlsTrn,
-                                               lstPrfMdlsTst,
-                                               cfg.lgcCython,
-                                               cfg.varNumXval,
-                                               queOut)
-                                         )
-            # Daemon (kills processes when exiting):
-            lstPrcs[idxPrc].Daemon = True
-    else:
-        for idxPrc in range(0, cfg.varPar):
-            lstPrcs[idxPrc] = mp.Process(target=funcFindPrf,
-                                         args=(idxPrc,
-                                               vecMdlXpos,
-                                               vecMdlYpos,
-                                               vecMdlSd,
-                                               lstFunc[idxPrc],
-                                               aryPrfTc,
-                                               cfg.lgcCython,
-                                               queOut)
-                                         )
-            # Daemon (kills processes when exiting):
-            lstPrcs[idxPrc].Daemon = True
+    for idxPrc in range(0, cfg.varPar):
+        lstPrcs[idxPrc] = mp.Process(target=getBetas,
+                                     args=(idxPrc,
+                                           vecMdlXpos,
+                                           vecMdlYpos,
+                                           vecMdlSd,
+                                           aryPrfTc,
+                                           lstFunc[idxPrc],
+                                           lstBstMdls[idxPrc],
+                                           queOut)
+                                     )
+        # Daemon (kills processes when exiting):
+        lstPrcs[idxPrc].Daemon = True
 
     # Start processes:
     for idxPrc in range(0, cfg.varPar):
@@ -794,194 +803,77 @@ if lgcDim:
 
     # Collect results from queue:
     for idxPrc in range(0, cfg.varPar):
-        lstPrfRes[idxPrc] = queOut.get(True)
+        lstBetaRes[idxPrc] = queOut.get(True)
 
     # Join processes:
     for idxPrc in range(0, cfg.varPar):
         lstPrcs[idxPrc].join()
 
-    print('---------Prepare pRF finding results for export')
-
-    # Create list for vectors with fitting results, in order to put the results
-    # into the correct order:
-    lstResXpos = [None] * cfg.varPar
-    lstResYpos = [None] * cfg.varPar
-    lstResSd = [None] * cfg.varPar
-    if not cfg.lgcXval:
-        lstResR2 = [None] * cfg.varPar
-        lstResBetas = [None] * cfg.varPar
-
     # Put output into correct order:
+    lstBetaRes = sorted(lstBetaRes)
+
+    # Concatenate output vectors
+    aryBstR2 = np.zeros(0)
+    aryBstBetas = np.zeros((0, cfg.varNumMtDrctn))
     for idxRes in range(0, cfg.varPar):
+        aryBstR2 = np.append(aryBstR2, lstBetaRes[idxRes][1])
+        aryBstBetas = np.concatenate((aryBstBetas, lstBetaRes[idxRes][2]),
+                                     axis=0)
 
-        # Index of results (first item in output list):
-        varTmpIdx = lstPrfRes[idxRes][0]
+# %% Prepare for saving results
 
-        # Put fitting results into list, in correct order:
-        lstResXpos[varTmpIdx] = lstPrfRes[idxRes][1]
-        lstResYpos[varTmpIdx] = lstPrfRes[idxRes][2]
-        lstResSd[varTmpIdx] = lstPrfRes[idxRes][3]
-        if not cfg.lgcXval:
-            lstResR2[varTmpIdx] = lstPrfRes[idxRes][4]
-            lstResBetas[varTmpIdx] = lstPrfRes[idxRes][5]
+# Array for pRF finding results, of the form
+# aryPrfRes[total-number-of-voxels, 0:3], where the 2nd dimension
+# contains the parameters of the best-fitting pRF model for the voxel, in
+# the order (0) pRF-x-pos, (1) pRF-y-pos, (2) pRF-SD, (3) pRF-R2.
+aryPrfRes = np.zeros((niiMask.shape + (6,)))
 
-    # Concatenate output vectors (into the same order as the voxels that were
-    # included in the fitting):
-    aryBstXpos = np.zeros(0)
-    aryBstYpos = np.zeros(0)
-    aryBstSd = np.zeros(0)
-    if not cfg.lgcXval:
-        aryBstR2 = np.zeros(0)
-        aryBstBetas = np.zeros((0, cfg.varNumMtDrctn+1))
-    for idxRes in range(0, cfg.varPar):
-        aryBstXpos = np.append(aryBstXpos, lstResXpos[idxRes])
-        aryBstYpos = np.append(aryBstYpos, lstResYpos[idxRes])
-        aryBstSd = np.append(aryBstSd, lstResSd[idxRes])
-        if not cfg.lgcXval:
-            aryBstR2 = np.append(aryBstR2, lstResR2[idxRes])
-            aryBstBetas = np.concatenate((aryBstBetas, lstResBetas[idxRes]),
-                                         axis=0)
+# Put results form pRF finding into array (they originally needed to be
+# saved in a list due to parallelisation).
+aryPrfRes[aryMask, 0] = aryBstXpos
+aryPrfRes[aryMask, 1] = aryBstYpos
+aryPrfRes[aryMask, 2] = aryBstSd
+aryPrfRes[aryMask, 3] = aryBstR2
 
-    # Delete unneeded large objects:
-    del(lstPrfRes)
-    del(lstResXpos)
-    del(lstResYpos)
-    del(lstResSd)
-    if not cfg.lgcXval:
-        del(lstResR2)
-        del(lstResBetas)
+# Calculate polar angle map:
+aryPrfRes[:, :, :, 4] = np.arctan2(aryPrfRes[:, :, :, 1],
+                                   aryPrfRes[:, :, :, 0])
 
-    # %%
-    # if we did model finding with cross validation, we never estimated
-    # the betas and R square for the full model. Do that now:
-    if cfg.lgcXval:
-        print('------Find best betas and R2 values')
-        # prepare list for results
-        lstBetaRes = [None] * cfg.varPar
-        # Empty list for processes:
-        lstPrcs = [None] * cfg.varPar
-        # get an array that shows best x, y, sigma for every voxel
-        aryBstMdls = np.array([aryBstXpos, aryBstYpos, aryBstSd]).T
-        # divide this ary in parts and put parts in list
-        lstBstMdls = np.array_split(aryBstMdls, cfg.varPar)
-        # put functional data into list
-        lstFunc = np.array_split(aryFunc, cfg.varPar)
+# Calculate eccentricity map (r = sqrt( x^2 + y^2 ) ):
+aryPrfRes[:, :, :, 5] = np.sqrt(np.add(np.power(aryPrfRes[:, :, :, 0],
+                                                2.0),
+                                       np.power(aryPrfRes[:, :, :, 1],
+                                                2.0)))
+# save as npy
+np.save(cfg.strPathOut + '_aryPrfRes', aryPrfRes)
+np.save(cfg.strPathOut + '_aryBstBetas', aryBstBetas)
 
-        for idxPrc in range(0, cfg.varPar):
-            lstPrcs[idxPrc] = mp.Process(target=getBetas,
-                                         args=(idxPrc,
-                                               vecMdlXpos,
-                                               vecMdlYpos,
-                                               vecMdlSd,
-                                               aryPrfTc,
-                                               lstFunc[idxPrc],
-                                               lstBstMdls[idxPrc],
-                                               queOut)
-                                         )
-            # Daemon (kills processes when exiting):
-            lstPrcs[idxPrc].Daemon = True
+# List with name suffices of output images:
+lstNiiNames = ['_x_pos',
+               '_y_pos',
+               '_SD',
+               '_R2',
+               '_polar_angle',
+               '_eccentricity']
 
-        # Start processes:
-        for idxPrc in range(0, cfg.varPar):
-            lstPrcs[idxPrc].start()
+print('---------Exporting results')
 
-        # Collect results from queue:
-        for idxPrc in range(0, cfg.varPar):
-            lstBetaRes[idxPrc] = queOut.get(True)
+# Save nii results:
+for idxOut in range(0, 6):
+    # Create nii object for results:
+    niiOut = nb.Nifti1Image(aryPrfRes[:, :, :, idxOut],
+                            affMsk,
+                            header=hdrMsk
+                            )
+    # Save nii:
+    strTmp = (cfg.strPathOut + lstNiiNames[idxOut] + '.nii')
+    nb.save(niiOut, strTmp)
 
-        # Join processes:
-        for idxPrc in range(0, cfg.varPar):
-            lstPrcs[idxPrc].join()
 
-        # gather the results
-
-        # prepare lists
-        lstResR2 = [None] * cfg.varPar
-        lstResBetas = [None] * cfg.varPar
-        # Put output into correct order:
-        for idxRes in range(0, cfg.varPar):
-            # Index of results (first item in output list):
-            varTmpIdx = lstBetaRes[idxRes][0]
-            lstResR2[varTmpIdx] = lstBetaRes[idxRes][1]
-            lstResBetas[varTmpIdx] = lstBetaRes[idxRes][2]
-
-        # Concatenate output vectors
-        aryBstR2 = np.zeros(0)
-        aryBstBetas = np.zeros((0, cfg.varNumMtDrctn))
-        for idxRes in range(0, cfg.varPar):
-            aryBstR2 = np.append(aryBstR2, lstResR2[idxRes])
-            aryBstBetas = np.concatenate((aryBstBetas, lstResBetas[idxRes]),
-                                         axis=0)
-        # delete unnecessary lists
-        del(lstResR2)
-        del(lstResBetas)
-
-    # Array for pRF finding results, of the form
-    # aryPrfRes[total-number-of-voxels, 0:3], where the 2nd dimension
-    # contains the parameters of the best-fitting pRF model for the voxel, in
-    # the order (0) pRF-x-pos, (1) pRF-y-pos, (2) pRF-SD, (3) pRF-R2.
-    aryPrfRes = np.zeros((varNumVoxTlt, 6))
-
-    # Put results form pRF finding into array (they originally needed to be
-    # saved in a list due to parallelisation).
-    aryPrfRes[aryLgc, 0] = aryBstXpos
-    aryPrfRes[aryLgc, 1] = aryBstYpos
-    aryPrfRes[aryLgc, 2] = aryBstSd
-    aryPrfRes[aryLgc, 3] = aryBstR2
-
-    # Reshape pRF finding results:
-    aryPrfRes = np.reshape(aryPrfRes,
-                           [vecNiiShp[0],
-                            vecNiiShp[1],
-                            vecNiiShp[2],
-                            6])
-
-    # Calculate polar angle map:
-    aryPrfRes[:, :, :, 4] = np.arctan2(aryPrfRes[:, :, :, 1],
-                                       aryPrfRes[:, :, :, 0])
-
-    # Calculate eccentricity map (r = sqrt( x^2 + y^2 ) ):
-    aryPrfRes[:, :, :, 5] = np.sqrt(np.add(np.power(aryPrfRes[:, :, :, 0],
-                                                    2.0),
-                                           np.power(aryPrfRes[:, :, :, 1],
-                                                    2.0)))
-    # save as npy
-    np.save(cfg.strPathOut + '_aryPrfRes', aryPrfRes)
-    np.save(cfg.strPathOut + '_aryBstBetas', aryBstBetas)
-
-    # List with name suffices of output images:
-    lstNiiNames = ['_x_pos',
-                   '_y_pos',
-                   '_SD',
-                   '_R2',
-                   '_polar_angle',
-                   '_eccentricity']
-
-    print('---------Exporting results')
-
-    # Save nii results:
-    for idxOut in range(0, 6):
-        # Create nii object for results:
-        niiOut = nb.Nifti1Image(aryPrfRes[:, :, :, idxOut],
-                                affMsk,
-                                header=hdrMsk
-                                )
-        # Save nii:
-        strTmp = (cfg.strPathOut + lstNiiNames[idxOut] + '.nii')
-        nb.save(niiOut, strTmp)
-    # *************************************************************************
-
-else:
-    # Error message:
-    strErrMsg = ('---Error: Dimensions of specified pRF time course models ' +
-                 'do not agree with specified model parameters')
-    print(strErrMsg)
-
-# *****************************************************************************
+# %%
 # *** Report time
 
 varTme02 = time.time()
 varTme03 = varTme02 - varTme01
 print('-Elapsed time: ' + str(varTme03) + ' s')
 print('-Done.')
-# *****************************************************************************

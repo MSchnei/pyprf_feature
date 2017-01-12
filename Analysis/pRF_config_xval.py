@@ -1,7 +1,7 @@
 # -*- coding: utf-8 -*-
 """Define pRF finding parameters here"""
 
-# Part of py_pRF_mapping library
+# Part of py_pRF_motion library
 # Copyright (C) 2016  Ingo Marquardt
 #
 # This program is free software: you can redistribute it and/or modify

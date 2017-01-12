@@ -1,7 +1,7 @@
 # -*- coding: utf-8 -*-
 """Main function for preprocessing of data & models"""
 
-# Part of py_pRF_mapping library
+# Part of py_pRF_motion library
 # Copyright (C) 2016  Ingo Marquardt
 #
 # This program is free software: you can redistribute it and/or modify
@@ -18,14 +18,11 @@
 # along with this program.  If not, see <http://www.gnu.org/licenses/>.
 
 import numpy as np
-import time
-import multiprocessing as mp
 from scipy.ndimage.filters import gaussian_filter
 from scipy.ndimage.filters import gaussian_filter1d
 
-# *************************************************************************
-# *** Linear trend removal from fMRI data
 
+# %% Linear trend removal from fMRI data
 def funcLnTrRm(aryFuncChnk):
     """
     Perform linear trend removal on the input fMRI data.
@@ -76,11 +73,8 @@ def funcLnTrRm(aryFuncChnk):
     # Output list:
     return aryFuncChnk
 
-# *************************************************************************
 
-# *************************************************************************
-# ***  Spatial smoothing of fMRI data
-
+# %% Spatial smoothing of fMRI data
 def funcSmthSpt(aryFuncChnk, varSdSmthSpt):
     """
     Apply spatial smoothing to the input data.
@@ -116,11 +110,8 @@ def funcSmthSpt(aryFuncChnk, varSdSmthSpt):
     # Output list:
     return aryFuncChnk
 
-# *************************************************************************
 
-# *************************************************************************
-# *** Temporal smoothing of fMRI data & pRF time course models
-
+# %% Temporal smoothing of fMRI data & pRF time course models
 def funcSmthTmp(aryFuncChnk, varSdSmthTmp):
     """
     Apply temporal smoothing to the input data.

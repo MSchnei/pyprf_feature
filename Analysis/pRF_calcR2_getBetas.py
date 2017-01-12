@@ -1,9 +1,21 @@
 # -*- coding: utf-8 -*-
-"""
-Created on Mon Sep 26 17:12:06 2016
 
-@author: marian
-"""
+# Part of py_pRF_motion library
+# Copyright (C) 2016  Marian Schneider
+#
+# This program is free software: you can redistribute it and/or modify
+# it under the terms of the GNU General Public License as published by
+# the Free Software Foundation, either version 3 of the License, or
+# (at your option) any later version.
+#
+# This program is distributed in the hope that it will be useful,
+# but WITHOUT ANY WARRANTY; without even the implied warranty of
+# MERCHANTABILITY or FITNESS FOR A PARTICULAR PURPOSE.  See the
+# GNU General Public License for more details.
+#
+# You should have received a copy of the GNU General Public License
+# along with this program.  If not, see <http://www.gnu.org/licenses/>.
+
 import numpy as np
 
 
@@ -15,6 +27,12 @@ def getBetas(idxPrc,
              aryFuncChnk,
              aryBstMdls,
              queOut):
+    """
+    Calculate betas and R2 for every voxel for the respective best model that
+    was found.
+    This is done after fitting with cross validation, since during the fitting
+    process, we never fit the model to the entire data
+    """
 
     # get number of motion directions
     varNumMtnDrctns = aryPrfTc.shape[3]
@@ -86,7 +104,7 @@ def getBetas(idxPrc,
                                      ' % --- ' +
                                      str(vecStatPrf[varCntSts01]) +
                                      ' pRF models out of ' +
-                                     str(len(aryBstMdls)))
+                                     str(varNumMdls))
 
                         print(strStsMsg)
 
@@ -116,7 +134,9 @@ def getBetas(idxPrc,
                     varCntSts02 = varCntSts02 + 1
 
     # check that every voxel was visited only once
-    assert np.sum(vecLgcCounter) == len(vecLgcCounter)
+    strErrMsg = ('It looks like at least voxel was revisted more than once. ' +
+                 'Check whether the R2 was calculated correctly')
+    assert np.sum(vecLgcCounter) == len(vecLgcCounter), strErrMsg
     # After finding the best fitting model for each voxel, we still have to
     # calculate the coefficient of determination (R-squared) for each voxel. We
     # start by calculating the total sum of squares (i.e. the deviation of the

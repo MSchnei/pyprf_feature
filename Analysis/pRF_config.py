@@ -1,7 +1,7 @@
 # -*- coding: utf-8 -*-
 """Define pRF finding parameters here"""
 
-# Part of py_pRF_mapping library
+# Part of py_pRF_motion library
 # Copyright (C) 2016  Ingo Marquardt
 #
 # This program is free software: you can redistribute it and/or modify
@@ -39,17 +39,14 @@ varPrfStdMax = 7.0
 
 # Volume TR of input data [s]:
 varTr = 2.832
-
 # Voxel resolution of the fMRI data [mm]:
 varVoxRes = 0.8
 
-# Extent of temporal smoothing for fMRI data and pRF time course models
+# Extent of temporal smoothing that has been applied to fMRI data
 # [standard deviation of the Gaussian kernel, in seconds]:
+# the same smotthing will be applied to pRF time course models
+# [set 0 if not desired]
 varSdSmthTmp = 2.832
-
-# Extent of spatial smoothing for fMRI data [standard deviation of the Gaussian
-# kernel, in mm]
-varSdSmthSpt = 0.8
 
 # Number of fMRI volumes and png files to load:
 varNumVol = 688
@@ -71,17 +68,21 @@ varPar = 8
 # y-direction also has to be ten times varNumY. The order is: first x, then y.
 tplVslSpcHighSze = (200, 200)
 
-# Path of functional data (needs to have same number of volumes as there are
-# PNGs):
-strPathNiiFunc = '/media/sf_D_DRIVE/PacMan/Analysis/P3/04_SmoothSpat1SmoothTmp1Demean/zs1_1rprf_run1to4_hpf.nii.gz'
-# '/media/sf_D_DRIVE/MotionLocaliser/Analysis/Pilot1_08112016/05_Demean/demean_raP01_run2to5_hpf_mean.nii.gz'
+# Parent path to functional data
+strPathNiiFunc = '/media/sf_D_DRIVE/PacMan/Analysis/P3/Distorted/04_SmoothSpat1SmoothTmp1Demean'
+# list of nii files in parent directory (all nii files together need to have
+# same number of volumes as there are PNGs):
+lstNiiFls = ['zs1_1rprf_01_hpf.nii',
+             'zs1_1rprf_02_hpf.nii',
+             'zs1_1rprf_03_hpf.nii',
+             'zs1_1rprf_04_hpf.nii',
+             ]
 
 # Path of mask (to restrict pRF model finding):
-strPathNiiMask = '/media/sf_D_DRIVE/PacMan/Analysis/P3/FitResults/TestMask1.nii.gz'
-# '/media/sf_D_DRIVE/PacMan/Analysis/P3/Struct/funcMask.nii.gz'
+strPathNiiMask = '/media/sf_D_DRIVE/PacMan/Analysis/P3/Distorted/FitResults/TestMask2.nii.gz'
 
 # Output basename:
-strPathOut = '/media/sf_D_DRIVE/PacMan/Analysis/P3/FitResults/CythonMtnXvalCosmetics'
+strPathOut = '/media/sf_D_DRIVE/PacMan/Analysis/P3/Distorted/FitResults/Test'
 
 # Use cython (i.e. compiled code) for faster performance? (Requires cython to
 # be installed.)
@@ -100,7 +101,7 @@ vecRunLngth = [172, 172, 172, 172]
 lgcXval = True
 
 if lgcXval:
-    varNumXval = 4  # set nr of xvalidations, can be equal to nr of runs
+    varNumXval = len(lstNiiFls)  # set nr of xvalidations, equal to nr of runs
 
 if lgcCrteMdl:
     # If we create new pRF time course models, the following parameters have to
@@ -118,15 +119,14 @@ if lgcCrteMdl:
     # Basename of the 'binary stimulus files'. The files need to be in png
     # format and number in the order of their presentation during the
     # experiment.
-    strPathPng = '/media/sf_D_DRIVE/PacMan/Analysis/P3/PrfPngs/Ima_'
+    strPathPng = '/media/sf_D_DRIVE/PacMan/Analysis/P3/Distorted/PrfPngs/Ima_'
 
     # Output path for pRF time course models file (without file extension):
-    strPathMdl = '/media/sf_D_DRIVE/PacMan/Analysis/P3/FitResults/pRF_model_mtn_tc'
-
+    strPathMdl = '/media/sf_D_DRIVE/PacMan/Analysis/P3/Distorted/FitResults/pRF_model_mtn_tc'
 
 else:
     # provide number of motion directions
     varNumMtDrctn = 5
     # If we use existing pRF time course models, the path to the respective
     # file has to be provided (including file extension, i.e. '*.npy'):
-    strPathMdl = '/media/sf_D_DRIVE/PacMan/Analysis/P3/FitResults/pRF_model_mtn_tc.npy'
+    strPathMdl = '/media/sf_D_DRIVE/PacMan/Analysis/P3/Distorted/FitResults/pRF_model_mtn_tc.npy'

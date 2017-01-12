@@ -1,7 +1,7 @@
 # -*- coding: utf-8 -*-
 """Main function for pRF finding"""
 
-# Part of py_pRF_mapping library
+# Part of py_pRF_motion library
 # Copyright (C) 2016  Ingo Marquardt
 #
 # This program is free software: you can redistribute it and/or modify
@@ -18,9 +18,6 @@
 # along with this program.  If not, see <http://www.gnu.org/licenses/>.
 
 import numpy as np
-import pRF_config as cfg
-if cfg.lgcCython:
-    from pRF_cython_leastsquares import funcCyLsq
 
 
 # %%
@@ -55,16 +52,10 @@ def funcFindPrf(idxPrc,
     else:
         vecBstBetas = np.zeros((varNumVoxChnk, varNumMtnDrctns+1),
                                dtype='float32')
-        # vecBstR2 = np.zeros(varNumVoxChnk)
-
-    # Vector for best R-square value. For each model fit, the R-square value is
-    # compared to this, and updated if it is lower than the best-fitting
-    # solution so far. We initialise with an arbitrary, high value
-    vecBstRes = np.zeros(varNumVoxChnk, dtype='float32')
-    vecBstRes[:] = np.inf
 
     # Vector that will hold the temporary residuals from the model fitting:
-    # vecTmpRes = np.zeros(varNumVoxChnk).astype(np.float32)
+    vecBstRes = np.zeros(varNumVoxChnk, dtype='float32')
+    vecBstRes[:] = np.inf
 
     # We reshape the voxel time courses, so that time goes down the column,
     # i.e. from top to bottom.
@@ -243,18 +234,13 @@ def funcFindPrfXval(idxPrc,
     vecBstYpos = np.zeros(varNumVoxChnk)
     vecBstSd = np.zeros(varNumVoxChnk)
 
-    # Vector for best R-square value. For each model fit, the R-square value is
-    # compared to this, and updated if it is lower than the best-fitting
-    # solution so far. We initialise with an arbitrary, high value
+    # Vector that will hold the temporary residuals from the model fitting:
     vecBstRes = np.zeros(varNumVoxChnk).astype(np.float32)
     vecBstRes[:] = np.inf
 
     # vector for temporary residuals of cross validation
     vecTmpResXVal = np.zeros((varNumVoxChnk, varNumXval), dtype='float32')
     vecTmpResXVal[:] = np.inf
-
-    # Vector that will hold the temporary residuals from the model fitting:
-    # vecTmpRes = np.zeros(varNumVoxChnk).astype(np.float32)
 
     # We reshape the voxel time courses, so that time goes down the column,
     # i.e. from top to bottom.
