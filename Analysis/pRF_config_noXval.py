@@ -73,9 +73,9 @@ strPathNiiFunc = '/media/sf_D_DRIVE/PacMan/Analysis/P3/UndistortedMotCor/03_Smoo
 # list of nii files in parent directory (all nii files together need to have
 # same number of volumes as there are PNGs):
 lstNiiFls = ['zs1_1func_07_hpf.nii',
-             'zs1_1rprf_08_hpf.nii',
-             'zs1_1rprf_09_hpf.nii',
-             'zs1_1rprf_10_hpf.nii',
+             'zs1_1func_08_hpf.nii',
+             'zs1_1func_09_hpf.nii',
+             'zs1_1func_10_hpf.nii',
              ]
 
 # Path of mask (to restrict pRF model finding):
