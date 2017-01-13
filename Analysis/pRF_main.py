@@ -32,6 +32,7 @@ import multiprocessing as mp
 from scipy.interpolate import griddata
 from pRF_funcFindPrf import funcFindPrf, funcFindPrfXval
 from pRF_filtering import funcSmthTmp
+from pRF_mdlCrt import loadPng, loadPrsOrd, crtPwBoxCarFn, cnvlPwBoxCarFn
 from pRF_utilities import funcGauss, funcHrf, funcConvPar, funcPrfTc
 from pRF_calcR2_getBetas import getBetas
 import sys
@@ -63,53 +64,19 @@ varTme01 = time.time()
 
 if cfg.lgcCrteMdl:
 
-    # Create new pRF time course models
-
-    # *************************************************************************
     # *** Load PNGs
-
-    print('------Load PNGs')
-
-    # Create list of png files to load:
-    lstPngPaths = [None] * cfg.varNumVol
-    for idx01 in range(0, cfg.varNumVol):
-        lstPngPaths[idx01] = (cfg.strPathPng + str(idx01) + '.png')
-
-    # Load png files. The png data will be saved in a numpy array of the
-    # following order: aryPngData[x-pixel, y-pixel, PngNumber]. The
-    # sp.misc.imread function actually contains three values per pixel (RGB),
-    # but since the stimuli are black-and-white, any one of these is sufficient
-    # and we discard the others.
-    aryPngData = np.zeros((cfg.tplPngSize[0],
-                           cfg.tplPngSize[1],
-                           cfg.varNumVol))
-    for idx01 in range(0, cfg.varNumVol):
-        aryPngData[:, :, idx01] = sp.misc.imread(lstPngPaths[idx01])
-
-    # Convert RGB values (0 to 255) to integer ones and zeros:
-    aryPngData = (aryPngData > 0).astype(int)
-    # *************************************************************************
+    aryPngData = loadPng(cfg.varNumVol,
+                         cfg.tplPngSize,
+                         cfg.strPathPng)
 
     # *** Load presentation order of motion directions
-    print('------Load presentation order of motion directions')
-    aryPresOrd = np.empty((0))
-    for idx01 in range(0, len(cfg.vecRunLngth)):
-        # reconstruct file name
-        # ---> consider: some runs were shorter than others(replace next row)
-        filename1 = (cfg.strPathPresOrd + str(cfg.vecVslStim[idx01]) +
-                     '.pickle')
-        # filename1 = (strPathPresOrd + str(idx01+1) + '.pickle')
-        # load array
-        with open(filename1, 'rb') as handle:
-            array1 = pickle.load(handle)
-        tempCond = array1["Conditions"]
-        tempCond = tempCond[:cfg.vecRunLngth[idx01], 1]
-        # add temp array to aryPresOrd
-        aryPresOrd = np.concatenate((aryPresOrd, tempCond), axis=0)
-    aryPresOrd = aryPresOrd.astype(int)
+    aryPresOrd = loadPrsOrd(cfg.vecRunLngth,
+                            cfg.strPathPresOrd,
+                            cfg.vecVslStim)
 
+    # *** if lgcAoM, reduce motion directions from 8 to 4
     if cfg.lgcAoM:
-        print('---------reduce motion directions from 8 to 4')
+        print('------Reduce motion directions from 8 to 4')
         aryPresOrd[aryPresOrd == 5] = 1
         aryPresOrd[aryPresOrd == 6] = 2
         aryPresOrd[aryPresOrd == 7] = 3
@@ -118,148 +85,25 @@ if cfg.lgcCrteMdl:
     vecMtDrctn = np.unique(aryPresOrd)[1:]  # exclude zeros
     cfg.varNumMtDrctn = len(vecMtDrctn)
 
-    aryBoxCar = np.empty(aryPngData.shape[0:2] + (cfg.varNumMtDrctn,) +
-                         (cfg.varNumVol,), dtype='int64')
-    for ind, num in enumerate(vecMtDrctn):
-        aryCondTemp = np.zeros((aryPngData.shape), dtype='int64')
-        lgcTempMtDrctn = [aryPresOrd == num][0]
-        aryCondTemp[:, :, lgcTempMtDrctn] = np.copy(
-            aryPngData[:, :, lgcTempMtDrctn])
-        aryBoxCar[:, :, ind, :] = aryCondTemp
+    # *** create pixel-wise boxcar functions
+    aryBoxCar = crtPwBoxCarFn(cfg.varNumVol,
+                              aryPngData,
+                              aryPresOrd,
+                              vecMtDrctn)
     del(aryPngData)
-    del(aryCondTemp)
+    del(aryPresOrd)
 
-    # *************************************************************************
-    # *** Create pixel-wise HRF model time courses
+    # *** convolve every pixel box car function with hrf function(s)
+    aryBoxCarConv = cnvlPwBoxCarFn(aryBoxCar,
+                                   cfg.varNumVol,
+                                   cfg.varTr,
+                                   cfg.tplPngSize,
+                                   cfg.varNumMtDrctn,
+                                   cfg.switchHrfSet,
+                                   cfg.varPar,
+                                   )
 
-    print('------Create pixel-wise HRF model time courses')
 
-    # Create HRF time course:
-    vecHrf = funcHrf(cfg.varNumVol, cfg.varTr)
-
-    # Empty list for results of convolution (pixel-wise model time courses):
-    lstPixConv = [None] * (cfg.tplPngSize[0] * cfg.tplPngSize[1] * cfg.varNumMtDrctn)
-
-    # Empty list for processes:
-    lstPrcs = [None] * cfg.varPar
-
-    # Counter for parallel processes:
-    varCntPar = 0
-    # Counter for output of parallel processes:
-    varCntOut = 0
-
-    # Create a queue to put the results in:
-    queOut = mp.Queue()
-
-    # Convolve pixel-wise 'design matrix' with HRF. For loops through X and Y
-    # position:
-    for idxX in range(0, cfg.tplPngSize[0]):
-
-        for idxY in range(0, cfg.tplPngSize[1]):
-
-            for idxMtn in range(0, cfg.varNumMtDrctn):
-
-                # Create process:
-                lstPrcs[varCntPar] = mp.Process(target=funcConvPar,
-                                                args=(aryBoxCar[idxX, idxY, idxMtn, :],
-                                                      vecHrf,
-                                                      cfg.varNumVol,
-                                                      idxX,
-                                                      idxY,
-                                                      idxMtn,
-                                                      queOut)
-                                                )
-
-                # Daemon (kills processes when exiting):
-                lstPrcs[varCntPar].Daemon = True
-
-                # Check whether it's time to start & join process (exception
-                # for first volume):
-                if \
-                    np.mod(int(varCntPar + 1), int(cfg.varPar)) == \
-                        int(0) and int(varCntPar) > 1:
-
-                    # Start processes:
-                    for idxPrc in range(0, cfg.varPar):
-                        lstPrcs[idxPrc].start()
-
-                    # Collect results from queue:
-                    for idxPrc in range(0, cfg.varPar):
-                        lstPixConv[varCntOut] = queOut.get(True)
-                        # Increment output counter:
-                        varCntOut = varCntOut + 1
-
-                    # Join processes:
-                    for idxPrc in range(0, cfg.varPar):
-                        lstPrcs[idxPrc].join()
-
-                    # Reset process counter:
-                    varCntPar = 0
-
-                    # Create empty list:
-                    lstPrcs = [None] * cfg.varPar
-                    # queOut = mp.Queue()
-
-                else:
-                    # Increment process counter:
-                    varCntPar = varCntPar + 1
-
-    # Final round of processes:
-    if varCntPar != 0:
-
-        # Start processes:
-        for idxPrc in range(0, varCntPar):
-            lstPrcs[idxPrc].start()
-
-        # Collect results from queue:
-        for idxPrc in range(0, varCntPar):
-            lstPixConv[varCntOut] = queOut.get(True)
-            # Increment output counter:
-            varCntOut = varCntOut + 1
-
-        # Join processes:
-        for idxPrc in range(0, varCntPar):
-            lstPrcs[idxPrc].join()
-
-    # Array for convolved pixel-wise HRF model time courses, of the form
-    # aryPixConv[x-position, y-position, volume]:
-    aryPixConv = np.zeros([cfg.tplPngSize[0],
-                           cfg.tplPngSize[1],
-                           cfg.varNumMtDrctn,
-                           cfg.varNumVol])
-
-    # Put convolved pixel-wise HRF model time courses into array (they
-    # originally needed to be saved in a list due to parallelisation). Each
-    # entry in the list holds three items: the x-position of the respective
-    # pixel, the y-position of  the respective pixel, and a vector with the
-    # model time course.
-    for idxLst in range(0, len(lstPixConv)):
-        # Load the list corresponding to the current voxel from the parent
-        # list:
-        lstTmp = lstPixConv[idxLst]
-        # Access x-position and y-position:
-        varTmpPosX = lstTmp[0]
-        varTmpPosY = lstTmp[1]
-        varTmpMdlId = lstTmp[2]
-        # Put current pixel's model time course into array:
-        aryPixConv[varTmpPosX, varTmpPosY, varTmpMdlId, :] = lstTmp[3]
-
-    # Delete the large pixel time course list:
-    del(lstPixConv)
-
-    # # Debugging feature:
-    # aryPixConv = np.around(aryPixConv, 3)
-    # for idxVol in range(0, cfg.varNumVol):
-    #     strTmp = ('/home/john/Desktop/png_test/png_vol_' +
-    #               str(idxVol) +
-    #               '.png')
-    #     # imsave(strTmp, (aryPixConv[:, :, idxVol] * 100))
-    #     toimage((aryPixConv[:, :, idxVol] * 100),
-    #                cmin=-5,
-    #                cmax=105).save(strTmp)
-    # *************************************************************************
-
-    # *************************************************************************
     # *** Resample pixel-time courses in high-res visual space
     # The Gaussian sampling of the pixel-time courses takes place in the
     # super-sampled visual space. Here we take the convolved pixel-time courses
@@ -290,7 +134,7 @@ if cfg.lgcCrteMdl:
             # The following vector will contain the actual original pixel
             # values:
 
-            vecOrigPixVal = aryPixConv[:, :, idxMtn, idxVol]
+            vecOrigPixVal = aryBoxCarConv[:, :, idxMtn, idxVol]
             vecOrigPixVal = vecOrigPixVal.flatten()
 
             # The sampling interval for the creation of the super-sampled pixel

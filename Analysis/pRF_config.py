@@ -89,7 +89,7 @@ strPathOut = '/media/sf_D_DRIVE/PacMan/Analysis/P3/Distorted/FitResults/Test'
 lgcCython = False
 
 # Create pRF time course models?
-lgcCrteMdl = False
+lgcCrteMdl = True
 
 # reduce presented motion direction from 8 to 4?
 lgcAoM = True
@@ -99,6 +99,13 @@ vecRunLngth = [172, 172, 172, 172]
 
 # cross validate?
 lgcXval = True
+
+# set which set of hrf functions should be used
+# 1: canonical hrf function
+# 2: canonical hrf function and 1st tmp derivative
+# 3: canonical hrf function, 1st tmp and spatial derivative
+switchHrfSet = 1
+strBasis = '_bsSet' + str(switchHrfSet)
 
 if lgcXval:
     varNumXval = len(lstNiiFls)  # set nr of xvalidations, equal to nr of runs
@@ -122,11 +129,11 @@ if lgcCrteMdl:
     strPathPng = '/media/sf_D_DRIVE/PacMan/Analysis/P3/Distorted/PrfPngs/Ima_'
 
     # Output path for pRF time course models file (without file extension):
-    strPathMdl = '/media/sf_D_DRIVE/PacMan/Analysis/P3/Distorted/FitResults/pRF_model_mtn_tc'
+    strPathMdl = '/media/sf_D_DRIVE/PacMan/Analysis/P3/Distorted/FitResults/pRF_model_mtn_tc' + strBasis
 
 else:
     # provide number of motion directions
-    varNumMtDrctn = 5
+    varNumMtDrctn = 5 * switchHrfSet
     # If we use existing pRF time course models, the path to the respective
     # file has to be provided (including file extension, i.e. '*.npy'):
-    strPathMdl = '/media/sf_D_DRIVE/PacMan/Analysis/P3/Distorted/FitResults/pRF_model_mtn_tc.npy'
+    strPathMdl = '/media/sf_D_DRIVE/PacMan/Analysis/P3/Distorted/FitResults/pRF_model_mtn_tc' + strBasis + '.npy'
