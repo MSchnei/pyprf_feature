@@ -19,7 +19,6 @@
 
 import numpy as np
 import scipy as sp
-from scipy.stats import gamma
 
 
 def funcGauss(varSizeX, varSizeY, varPosX, varPosY, varSd):
@@ -42,55 +41,6 @@ def funcGauss(varSizeX, varSizeY, varPosX, varPosY, varSd):
     aryGauss = np.exp(-aryGauss)
 
     return aryGauss
-
-
-def funcHrf(varNumVol, varTr):
-    """Create double gamma function.
-
-    Source:
-    http://www.jarrodmillman.com/rcsds/lectures/convolution_background.html
-    """
-    vecX = np.arange(0, varNumVol, 1)
-
-    # Expected time of peak of HRF [s]:
-    varHrfPeak = 6.0 / varTr
-    # Expected time of undershoot of HRF [s]:
-    varHrfUndr = 12.0 / varTr
-    # Scaling factor undershoot (relative to peak):
-    varSclUndr = 0.35
-
-    # Gamma pdf for the peak
-    vecHrfPeak = gamma.pdf(vecX, varHrfPeak)
-    # Gamma pdf for the undershoot
-    vecHrfUndr = gamma.pdf(vecX, varHrfUndr)
-    # Combine them
-    vecHrf = vecHrfPeak - varSclUndr * vecHrfUndr
-
-    # Scale maximum of HRF to 1.0:
-    vecHrf = np.divide(vecHrf, np.max(vecHrf))
-
-    return vecHrf
-
-
-def funcConvPar(vecDm, vecHrf, varNumVol, idxX, idxY, idxMtn, queOut):
-    """Convolution of pixel-wise 'design matrix' with HRF model."""
-    # In order to avoid an artefact at the end of the time series, we have to
-    # concatenate an empty array to both the design matrix and the HRF model
-    # before convolution.
-    vecZeros = np.zeros([100, 1]).flatten()
-    vecDm = np.concatenate((vecDm, vecZeros))
-    vecHrf = np.concatenate((vecHrf, vecZeros))
-
-    # Convolve design matrix with HRF model:
-    vecConv = np.convolve(vecDm, vecHrf, mode='full')[0:varNumVol]
-
-    # Create list containing the convolved design matrix, and the X and Y pixel
-    # values to which this design matrix corresponds to:
-    lstOut = [idxX, idxY, idxMtn, vecConv]
-
-    # Put output to queue:
-    queOut.put(lstOut)
-
 
 def funcPrfTc(idxPrc, aryMdlParamsChnk, tplVslSpcHighSze, varNumVol,
               aryPngDataHigh,

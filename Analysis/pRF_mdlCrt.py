@@ -7,11 +7,11 @@ Created on Fri Jan 13 11:42:53 2017
 
 import numpy as np
 import scipy as sp
-from scipy.stats import gamma
 import pickle
-import pRF_hrfutils as hrf
+from scipy.interpolate import griddata
+from pRF_hrfutils import spmt, dspmt, ddspmt, cnvlTc
 import multiprocessing as mp
-from pRF_utilities import funcHrf, funcConvPar
+
 
 def loadPng(varNumVol, tplPngSize, strPathPng):
     """
@@ -81,86 +81,6 @@ def crtPwBoxCarFn(varNumVol, aryPngData, aryPresOrd, vecMtDrctn):
     return aryBoxCar
 
 
-
-
-from scipy.interpolate import interp1d
-def cnvlTc(idxPrc,
-           aryBoxCarChunk,
-           lstHrf,
-           varTr,
-           varNumVol,
-           varOvsmpl=10,
-           varHrfLen=32,
-           queOut):
-    """
-    Convolution of time courses with HRF model.
-    """
-
-    # *** prepare hrf time courses for convolution
-    print("---------Prepare hrf time courses for convolution")
-    # get frame times, i.e. start point of every volume in seconds
-    vecFrms = np.arange(0, varTr * varNumVol, varTr)
-    # get supersampled frames times, i.e. start point of every volume in
-    # seconds, since convolution takes place in temp. upsampled space
-    vecFrmTms = np.arange(0, varTr * varNumVol, varTr / varOvsmpl)
-    # get resolution of supersampled frame times
-    varRes = varTr / float(varOvsmpl)
-
-    # prepare empty list that will contain the arrays with hrf time courses
-    lstBse = []
-    for hrfFn in lstHrf:
-        # needs to be a multiple of oversample
-        vecTmpBse = hrfFn(np.linspace(0, varHrfLen,
-                                      (varHrfLen // varTr) * varOvsmpl))
-        lstBse.append(vecTmpBse)
-
-    # *** prepare pixel time courses for convolution
-    print("---------Prepare pixel time courses for convolution")
-
-    # adjust the input, if necessary, such that input is 2D, with last dim time
-    tplInpShp = aryBoxCarChunk.shape
-    aryBoxCarChunk = aryBoxCarChunk.reshape((-1, aryBoxCarChunk.shape[-1]))
-
-    # Prepare an empty array for ouput
-    aryConv = np.zeros((aryBoxCarChunk.shape[0], len(lstHrf),
-                        aryBoxCarChunk.shape[1]))
-
-    print("---------Convolve")
-    # Each time course is convolved with the HRF separately, because the
-    # numpy convolution function can only be used on one-dimensional data.
-    # Thus, we have to loop through time courses:
-    for idxTc in range(0, aryConv.shape[0]):
-
-        # Extract the current time course:
-        vecTc = aryBoxCarChunk[idxTc, :]
-
-        # upsample the pixel time course, so that it matches the hrf time crs
-        vecTcUps = np.zeros(int(varNumVol * varTr/varRes))
-        vecOns = vecFrms[vecTc.astype(bool)]
-        vecInd = np.round(vecOns / varRes).astype(np.int)
-        vecTcUps[vecInd] = 1.
-
-        # *** convolve
-        for indBase, base in enumerate(lstBse):
-            # perform the convolution
-            col = np.convolve(base, vecTcUps, mode='full')[:vecTcUps.size]
-            # get function for downsampling
-            f = interp1d(vecFrmTms, col)
-            # downsample to original space and assign to ary
-            aryConv[idxTc, indBase, :] = f(vecFrms)
-
-    # determine output shape
-    varNumBase
-    tplOutShp = tplInpShp[:-1] + (len(lstHrf), ) + (tplInpShp[-1], )
-
-    # Create list containing the convolved timecourses, and the process ID:
-    lstOut = [idxPrc,
-              aryConv.reshape(tplOutShp)]
-
-    # Put output to queue:
-    queOut.put(lstOut)
-
-
 def cnvlPwBoxCarFn(aryBoxCar,
                    varNumVol,
                    varTr,
@@ -182,11 +102,11 @@ def cnvlPwBoxCarFn(aryBoxCar,
 
     # Create hrf time course function:
     if switchHrfSet == 3:
-        lstHrf = [hrf.spmt, hrf.dspmt, hrf.ddspmt]
+        lstHrf = [spmt, dspmt, ddspmt]
     elif switchHrfSet == 2:
-        lstHrf = [hrf.spmt, hrf.dspmt]
+        lstHrf = [spmt, dspmt]
     elif switchHrfSet == 1:
-        lstHrf = [hrf.spmt]
+        lstHrf = [spmt]
 
     # Reshape png data:
     aryBoxCar = np.reshape(aryBoxCar,
@@ -215,6 +135,7 @@ def cnvlPwBoxCarFn(aryBoxCar,
                                      args=(idxPrc,
                                            lstBoxCar[idxPrc],
                                            lstHrf,
+                                           varTr,
                                            varNumVol,
                                            queOut)
                                      )
@@ -250,8 +171,73 @@ def cnvlPwBoxCarFn(aryBoxCar,
     aryBoxCarConv = np.reshape(aryBoxCarConv,
                                [tplPngSize[0],
                                 tplPngSize[1],
-                                varNumMtDrctn * switchHrfSet,
+                                varNumMtDrctn,
                                 varNumVol])
 
     # Return:
     return aryBoxCarConv
+
+
+def rsmplInHighRes(aryBoxCarConv,
+                   tplPngSize,
+                   tplVslSpcHighSze,
+                   varNumMtDrctn,
+                   varNumVol):
+    """
+    Resample pixel-time courses in high-res visual space.
+
+    The Gaussian sampling of the pixel-time courses takes place in the
+    super-sampled visual space. Here we take the convolved pixel-time courses
+    into this space, for each time point (volume).
+    """
+
+    print('------Resample pixel-time courses in high-res visual space')
+
+    # Array for super-sampled pixel-time courses:
+    aryBoxCarConvHigh = np.zeros((tplVslSpcHighSze[0],
+                                  tplVslSpcHighSze[1],
+                                  varNumMtDrctn,
+                                  varNumVol))
+
+    # Loop through volumes:
+    for idxMtn in range(0, varNumMtDrctn):
+
+        for idxVol in range(0, varNumVol):
+
+            # Range for the coordinates:
+            vecRange = np.arange(0, tplPngSize[0])
+
+            # The following array describes the coordinates of the pixels in
+            # the flattened array (i.e. "vecOrigPixVal"). In other words, these
+            # are the row and column coordinates of the original pizel values.
+            crd2, crd1 = np.meshgrid(vecRange, vecRange)
+            aryOrixPixCoo = np.column_stack((crd1.flatten(), crd2.flatten()))
+
+            # The following vector will contain the actual original pixel
+            # values:
+
+            vecOrigPixVal = aryBoxCarConv[:, :, idxMtn, idxVol]
+            vecOrigPixVal = vecOrigPixVal.flatten()
+
+            # The sampling interval for the creation of the super-sampled pixel
+            # data (complex numbers are used as a convention for inclusive
+            # intervals in "np.mgrid()").:
+
+            varStpSzeX = np.complex(tplVslSpcHighSze[0])
+            varStpSzeY = np.complex(tplVslSpcHighSze[1])
+
+            # The following grid has the coordinates of the points at which we
+            # would like to re-sample the pixel data:
+            aryPixGridX, aryPixGridY = np.mgrid[0:tplPngSize[0]:varStpSzeX,
+                                                0:tplPngSize[1]:varStpSzeY]
+
+            # The actual resampling:
+            aryResampled = griddata(aryOrixPixCoo,
+                                    vecOrigPixVal,
+                                    (aryPixGridX, aryPixGridY),
+                                    method='nearest')
+
+            # Put super-sampled pixel time courses into array:
+            aryBoxCarConvHigh[:, :, idxMtn, idxVol] = aryResampled
+
+            return aryBoxCarConvHigh

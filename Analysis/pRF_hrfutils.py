@@ -10,6 +10,7 @@ from __future__ import division
 from functools import partial
 import numpy as np
 import scipy.stats as sps
+from scipy.interpolate import interp1d
 
 # SPMs HRF
 def spm_hrf_compat(t,
@@ -122,15 +123,129 @@ def ddspmt(t):
     return (spmt(t) - _spm_dd_func(t)) / 0.01
 
 
+def cnvlTc(idxPrc,
+           aryBoxCarChunk,
+           lstHrf,
+           varTr,
+           varNumVol,
+           queOut,
+           varOvsmpl=10,
+           varHrfLen=32,
+           ):
+    """
+    Convolution of time courses with HRF model.
+    """
+
+    # *** prepare hrf time courses for convolution
+    print("---------Prepare hrf time courses for convolution")
+    # get frame times, i.e. start point of every volume in seconds
+    vecFrms = np.arange(0, varTr * varNumVol, varTr)
+    # get supersampled frames times, i.e. start point of every volume in
+    # seconds, since convolution takes place in temp. upsampled space
+    vecFrmTms = np.arange(0, varTr * varNumVol, varTr / varOvsmpl)
+    # get resolution of supersampled frame times
+    varRes = varTr / float(varOvsmpl)
+
+    # prepare empty list that will contain the arrays with hrf time courses
+    lstBse = []
+    for hrfFn in lstHrf:
+        # needs to be a multiple of oversample
+        vecTmpBse = hrfFn(np.linspace(0, varHrfLen,
+                                      (varHrfLen // varTr) * varOvsmpl))
+        lstBse.append(vecTmpBse)
+
+    # *** prepare pixel time courses for convolution
+    print("---------Prepare pixel time courses for convolution")
+
+    # adjust the input, if necessary, such that input is 2D, with last dim time
+    tplInpShp = aryBoxCarChunk.shape
+    aryBoxCarChunk = aryBoxCarChunk.reshape((-1, aryBoxCarChunk.shape[-1]))
+
+    # Prepare an empty array for ouput
+    aryConv = np.zeros((aryBoxCarChunk.shape[0], len(lstHrf),
+                        aryBoxCarChunk.shape[1]))
+
+    print("---------Convolve")
+    # Each time course is convolved with the HRF separately, because the
+    # numpy convolution function can only be used on one-dimensional data.
+    # Thus, we have to loop through time courses:
+    for idxTc in range(0, aryConv.shape[0]):
+
+        # Extract the current time course:
+        vecTc = aryBoxCarChunk[idxTc, :]
+
+        # upsample the pixel time course, so that it matches the hrf time crs
+        vecTcUps = np.zeros(int(varNumVol * varTr/varRes))
+        vecOns = vecFrms[vecTc.astype(bool)]
+        vecInd = np.round(vecOns / varRes).astype(np.int)
+        vecTcUps[vecInd] = 1.
+
+        # *** convolve
+        for indBase, base in enumerate(lstBse):
+            # perform the convolution
+            col = np.convolve(base, vecTcUps, mode='full')[:vecTcUps.size]
+            # get function for downsampling
+            f = interp1d(vecFrmTms, col)
+            # downsample to original space and assign to ary
+            aryConv[idxTc, indBase, :] = f(vecFrms)
+
+    # determine output shape
+    tplOutShp = tplInpShp[:-1] + (len(lstHrf), ) + (tplInpShp[-1], )
+
+    # Create list containing the convolved timecourses, and the process ID:
+    lstOut = [idxPrc,
+              aryConv.reshape(tplOutShp)]
+
+    # Put output to queue:
+    queOut.put(lstOut)
+
+
+# %%
+# The following two functions are old legacy functions
+# They are now replaced by the function cnvlTc
+from scipy.stats import gamma
+
+
+def funcHrf(varNumVol, varTr):
+    """Create double gamma function.
+
+    Source:
+    http://www.jarrodmillman.com/rcsds/lectures/convolution_background.html
+    """
+    vecX = np.arange(0, varNumVol, 1)
+
+    # Expected time of peak of HRF [s]:
+    varHrfPeak = 6.0 / varTr
+    # Expected time of undershoot of HRF [s]:
+    varHrfUndr = 12.0 / varTr
+    # Scaling factor undershoot (relative to peak):
+    varSclUndr = 0.35
+
+    # Gamma pdf for the peak
+    vecHrfPeak = gamma.pdf(vecX, varHrfPeak)
+    # Gamma pdf for the undershoot
+    vecHrfUndr = gamma.pdf(vecX, varHrfUndr)
+    # Combine them
+    vecHrf = vecHrfPeak - varSclUndr * vecHrfUndr
+
+    # Scale maximum of HRF to 1.0:
+    vecHrf = np.divide(vecHrf, np.max(vecHrf))
+
+    return vecHrf
+
+
 def cnvlTcOld(idxPrc,
               aryBoxCarChunk,
-              vecHrf,
+              varTr,
               varNumVol,
               queOut):
     """
     Old version:
     Convolution of time courses with one canonical HRF model.
     """
+    # Create 'canonical' HRF time course model:
+    vecHrf = funcHrf(varNumVol, varTr)
+
     # adjust the input, if necessary, such that input is 2D, with last dim time
     tplInpShp = aryBoxCarChunk.shape
     aryBoxCarChunk = aryBoxCarChunk.reshape((-1, aryBoxCarChunk.shape[-1]))

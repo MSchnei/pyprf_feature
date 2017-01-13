@@ -24,16 +24,14 @@ print('---pRF analysis')
 import os
 os.chdir(os.path.abspath(os.path.dirname(__file__)))
 import numpy as np
-import scipy as sp
 import nibabel as nb
 import time
-import pickle
 import multiprocessing as mp
-from scipy.interpolate import griddata
 from pRF_funcFindPrf import funcFindPrf, funcFindPrfXval
 from pRF_filtering import funcSmthTmp
-from pRF_mdlCrt import loadPng, loadPrsOrd, crtPwBoxCarFn, cnvlPwBoxCarFn
-from pRF_utilities import funcGauss, funcHrf, funcConvPar, funcPrfTc
+from pRF_mdlCrt import (loadPng, loadPrsOrd, crtPwBoxCarFn, cnvlPwBoxCarFn,
+                        rsmplInHighRes)
+from pRF_utilities import funcGauss, funcPrfTc
 from pRF_calcR2_getBetas import getBetas
 import sys
 
@@ -83,7 +81,7 @@ if cfg.lgcCrteMdl:
         aryPresOrd[aryPresOrd == 8] = 4
 
     vecMtDrctn = np.unique(aryPresOrd)[1:]  # exclude zeros
-    cfg.varNumMtDrctn = len(vecMtDrctn)
+    cfg.varNumMtDrctn = len(vecMtDrctn) * cfg.switchHrfSet
 
     # *** create pixel-wise boxcar functions
     aryBoxCar = crtPwBoxCarFn(cfg.varNumVol,
@@ -103,63 +101,17 @@ if cfg.lgcCrteMdl:
                                    cfg.varPar,
                                    )
 
+    # aryBoxCarConv will have shape 128, 128, 15, 688
 
-    # *** Resample pixel-time courses in high-res visual space
-    # The Gaussian sampling of the pixel-time courses takes place in the
-    # super-sampled visual space. Here we take the convolved pixel-time courses
-    # into this space, for each time point (volume).
+    # *** resample pixel-time courses in high-res visual space
+    aryBoxCarConvHigh = rsmplInHighRes(aryBoxCarConv,
+                                       cfg.tplPngSize,
+                                       cfg.tplVslSpcHighSze,
+                                       cfg.varNumMtDrctn,
+                                       cfg.varNumVol)
 
-    print('------Resample pixel-time courses in high-res visual space')
+    # aryBoxCarConvHigh will have shape 200, 200, 15, 688
 
-    # Array for super-sampled pixel-time courses:
-    aryPngDataHigh = np.zeros((cfg.tplVslSpcHighSze[0],
-                               cfg.tplVslSpcHighSze[1],
-                               cfg.varNumMtDrctn,
-                               cfg.varNumVol))
-
-    # Loop through volumes:
-    for idxMtn in range(0, cfg.varNumMtDrctn):
-
-        for idxVol in range(0, cfg.varNumVol):
-
-            # Range for the coordinates:
-            vecRange = np.arange(0, cfg.tplPngSize[0])
-
-            # The following array describes the coordinates of the pixels in
-            # the flattened array (i.e. "vecOrigPixVal"). In other words, these
-            # are the row and column coordinates of the original pizel values.
-            crd2, crd1 = np.meshgrid(vecRange, vecRange)
-            aryOrixPixCoo = np.column_stack((crd1.flatten(), crd2.flatten()))
-
-            # The following vector will contain the actual original pixel
-            # values:
-
-            vecOrigPixVal = aryBoxCarConv[:, :, idxMtn, idxVol]
-            vecOrigPixVal = vecOrigPixVal.flatten()
-
-            # The sampling interval for the creation of the super-sampled pixel
-            # data (complex numbers are used as a convention for inclusive
-            # intervals in "np.mgrid()").:
-
-            varStpSzeX = np.complex(cfg.tplVslSpcHighSze[0])
-            varStpSzeY = np.complex(cfg.tplVslSpcHighSze[1])
-
-            # The following grid has the coordinates of the points at which we
-            # would like to re-sample the pixel data:
-            aryPixGridX, aryPixGridY = np.mgrid[0:cfg.tplPngSize[0]:varStpSzeX,
-                                                0:cfg.tplPngSize[1]:varStpSzeY]
-
-            # The actual resampling:
-            aryResampled = griddata(aryOrixPixCoo,
-                                    vecOrigPixVal,
-                                    (aryPixGridX, aryPixGridY),
-                                    method='nearest')
-
-            # Put super-sampled pixel time courses into array:
-            aryPngDataHigh[:, :, idxMtn, idxVol] = aryResampled
-    # *************************************************************************
-
-    # *************************************************************************
     # *** Create pRF time courses models
     # The pRF time course models are created using the super-sampled model of
     # the pixel time courses.
@@ -257,6 +209,9 @@ if cfg.lgcCrteMdl:
     # separate chunks for parallelisation, using a list of arrays.
     lstMdlParams = np.array_split(aryMdlParams, cfg.varPar)
 
+    # Create a queue to put the results in:
+    queOut = mp.Queue()
+
     # Empty list for results from parallel processes (for pRF model time course
     # results):
     lstPrfTc = [None] * cfg.varPar
@@ -273,7 +228,7 @@ if cfg.lgcCrteMdl:
                                            lstMdlParams[idxPrc],
                                            cfg.tplVslSpcHighSze,
                                            cfg.varNumVol,
-                                           aryPngDataHigh,
+                                           aryBoxCarConvHigh,
                                            queOut)
                                      )
         # Daemon (kills processes when exiting):
