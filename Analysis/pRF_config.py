@@ -2,7 +2,7 @@
 """Define pRF finding parameters here"""
 
 # Part of py_pRF_motion library
-# Copyright (C) 2016  Ingo Marquardt
+# Copyright (C) 2016  Marian Schneider, Ingo Marquardt
 #
 # This program is free software: you can redistribute it and/or modify
 # it under the terms of the GNU General Public License as published by

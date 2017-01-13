@@ -2,7 +2,7 @@
 """Find best fitting model time courses for population receptive fields."""
 
 # Part of py_pRF_motion library
-# Copyright (C) 2016  Ingo Marquardt
+# Copyright (C) 2016  Marian Schneider, Ingo Marquardt
 #
 # This program is free software: you can redistribute it and/or modify
 # it under the terms of the GNU General Public License as published by
@@ -27,11 +27,10 @@ import numpy as np
 import nibabel as nb
 import time
 import multiprocessing as mp
-from pRF_funcFindPrf import funcFindPrf, funcFindPrfXval
-from pRF_filtering import funcSmthTmp
 from pRF_mdlCrt import (loadPng, loadPrsOrd, crtPwBoxCarFn, cnvlPwBoxCarFn,
-                        rsmplInHighRes)
-from pRF_utilities import funcGauss, funcPrfTc
+                        rsmplInHighRes, funcPrfTc)
+from pRF_filtering import funcSmthTmp
+from pRF_funcFindPrf import funcFindPrf, funcFindPrfXval
 from pRF_calcR2_getBetas import getBetas
 import sys
 

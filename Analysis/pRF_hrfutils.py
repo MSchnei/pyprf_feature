@@ -1,10 +1,22 @@
 # -*- coding: utf-8 -*-
-# This module was copied from nipy
-"""
-Created on Fri Jan 13 12:15:40 2017
 
-@author: marian
-"""
+# Part of py_pRF_motion library
+# Copyright (C) 2016  Marian Schneider, Ingo Marquardt
+#
+# Functions spm_hrf_compat, spmt, dspmt, ddspmt were copied from nipy
+#
+# This program is free software: you can redistribute it and/or modify
+# it under the terms of the GNU General Public License as published by
+# the Free Software Foundation, either version 3 of the License, or
+# (at your option) any later version.
+#
+# This program is distributed in the hope that it will be useful,
+# but WITHOUT ANY WARRANTY; without even the implied warranty of
+# MERCHANTABILITY or FITNESS FOR A PARTICULAR PURPOSE.  See the
+# GNU General Public License for more details.
+#
+# You should have received a copy of the GNU General Public License
+# along with this program.  If not, see <http://www.gnu.org/licenses/>.
 
 from __future__ import division
 from functools import partial
@@ -12,7 +24,8 @@ import numpy as np
 import scipy.stats as sps
 from scipy.interpolate import interp1d
 
-# SPMs HRF
+
+# %% Hrf functions for convultion taken from nipy
 def spm_hrf_compat(t,
                    peak_delay=6,
                    under_delay=16,
@@ -20,15 +33,15 @@ def spm_hrf_compat(t,
                    under_disp=1,
                    p_u_ratio=6,
                    normalize=True,
-                  ):
+                   ):
     """ SPM HRF function from sum of two gamma PDFs
 
     This function is designed to be partially compatible with SPMs `spm_hrf.m`
     function.
 
-    The SPN HRF is a *peak* gamma PDF (with location `peak_delay` and dispersion
-    `peak_disp`), minus an *undershoot* gamma PDF (with location `under_delay`
-    and dispersion `under_disp`, and divided by the `p_u_ratio`).
+    The SPN HRF is a *peak* gamma PDF (with location `peak_delay` and
+    dispersion `peak_disp`), minus an *undershoot* gamma PDF (with location
+    `under_delay` and dispersion `under_disp`, and divided by the `p_u_ratio`).
 
     Parameters
     ----------
@@ -123,6 +136,7 @@ def ddspmt(t):
     return (spmt(t) - _spm_dd_func(t)) / 0.01
 
 
+# %% functions for convultion
 def cnvlTc(idxPrc,
            aryBoxCarChunk,
            lstHrf,
