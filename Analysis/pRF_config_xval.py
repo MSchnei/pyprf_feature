@@ -58,7 +58,7 @@ varNumVol = 688
 varIntCtf = -100.0
 
 # Number of processes to run in parallel:
-varPar = 8
+varPar = 10
 
 # Size of high-resolution visual space model in which the pRF models are
 # created (x- and y-dimension). The x and y dimensions specified here need to
