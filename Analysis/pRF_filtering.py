@@ -22,58 +22,6 @@ from scipy.ndimage.filters import gaussian_filter
 from scipy.ndimage.filters import gaussian_filter1d
 
 
-# %% Linear trend removal from fMRI data
-def funcLnTrRm(aryFuncChnk):
-    """
-    Perform linear trend removal on the input fMRI data.
-
-    The variable varSdSmthSpt is not needed, only included for consistency
-    with other functions using the same parallelisation.
-    """
-    # Number of voxels in this chunk:
-    # varNumVoxChnk = aryFuncChnk.shape[0]
-
-    # Number of time points in this chunk:
-    varNumVol = aryFuncChnk.shape[1]
-
-    # We reshape the voxel time courses, so that time goes down the column,
-    # i.e. from top to bottom.
-    aryFuncChnk = aryFuncChnk.T
-
-    # Linear mode to fit to the voxel time courses:
-    vecMdlTc = np.linspace(0,
-                           1,
-                           num=varNumVol,
-                           endpoint=True)
-    # vecMdlTc = vecMdlTc.flatten()
-
-    # We create a design matrix including the linear trend and a
-    # constant term:
-    aryDsgn = np.vstack([vecMdlTc, np.ones(len(vecMdlTc))]).T
-
-    # Calculate the least-squares solution for all voxels:
-    aryLstSqFt = np.linalg.lstsq(aryDsgn, aryFuncChnk)[0]
-
-    # Multiply the linear term with the respective parameters to obtain the
-    # fitted line for all voxels:
-    aryLneFt = np.multiply(vecMdlTc[:, None], aryLstSqFt[0, :])
-
-    # Using the least-square fitted model parameters, we remove the linear
-    # term from the data:
-    aryFuncChnk = np.subtract(aryFuncChnk,
-                              aryLneFt)
-
-    # Using the constant term, we remove the mean from the data:
-    # aryFuncChnk = np.subtract(aryFuncChnk,
-    #                           aryLstSqFt[1, :])
-
-    # Bring array into original order (time from left to right):
-    aryFuncChnk = aryFuncChnk.T
-
-    # Output list:
-    return aryFuncChnk
-
-
 # %% Spatial smoothing of fMRI data
 def funcSmthSpt(aryFuncChnk, varSdSmthSpt):
     """
