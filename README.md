@@ -3,10 +3,14 @@ A free & open python tool for finding best-fitting pRF models and motion paramet
 
 ## Dependencies
 
-- [Python 2.7](https://www.python.org/download/releases/2.7/)
-- [NumPy](http://www.numpy.org/)
-- [SciPy](http://www.scipy.org/)
-- [NiBabel](http://nipy.org/nibabel/)
+## Dependencies
+[**Python 2.7**](https://www.python.org/download/releases/2.7/)
+
+| Package                              | Tested version |
+|--------------------------------------|----------------|
+| [NumPy](http://www.numpy.org/)       | ?              |
+| [SciPy](http://www.scipy.org/)       | ?              |
+| [NiBabel](http://nipy.org/nibabel/)  | ?              |
 
 ## How to use
 Step 1: Record fMRI data
