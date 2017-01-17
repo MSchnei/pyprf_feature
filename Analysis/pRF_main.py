@@ -41,7 +41,7 @@ print 'Argument List:', str(sys.argv)
 
 if varNumCmdArgs == 0:
     # import the default cfg file
-    import pRF_config as cfg
+    import pRF_config_xval as cfg
 else:
     print "------Imported custom cfg file"
     # determine the type of aperture
