@@ -151,7 +151,8 @@ def cnvlTc(idxPrc,
     """
 
     # *** prepare hrf time courses for convolution
-    print("---------Prepare hrf time courses for convolution")
+    print("---------Process " + str(idxPrc) +
+          ": Prepare hrf time courses for convolution")
     # get frame times, i.e. start point of every volume in seconds
     vecFrms = np.arange(0, varTr * varNumVol, varTr)
     # get supersampled frames times, i.e. start point of every volume in
@@ -169,7 +170,8 @@ def cnvlTc(idxPrc,
         lstBse.append(vecTmpBse)
 
     # *** prepare pixel time courses for convolution
-    print("---------Prepare pixel time courses for convolution")
+    print("---------Process " + str(idxPrc) +
+          ": Prepare pixel time courses for convolution")
 
     # adjust the input, if necessary, such that input is 2D, with last dim time
     tplInpShp = aryBoxCarChunk.shape
@@ -178,8 +180,8 @@ def cnvlTc(idxPrc,
     # Prepare an empty array for ouput
     aryConv = np.zeros((aryBoxCarChunk.shape[0], len(lstHrf),
                         aryBoxCarChunk.shape[1]))
-
-    print("---------Convolve")
+    print("---------Process " + str(idxPrc) +
+          ": Convolve")
     # Each time course is convolved with the HRF separately, because the
     # numpy convolution function can only be used on one-dimensional data.
     # Thus, we have to loop through time courses:

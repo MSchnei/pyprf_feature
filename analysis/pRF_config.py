@@ -89,7 +89,7 @@ strPathOut = '/media/sf_D_DRIVE/PacMan/Analysis/P3/Distorted/FitResults/TestBasi
 lgcCython = False
 
 # Create pRF time course models?
-lgcCrteMdl = True
+lgcCrteMdl = False
 
 # reduce presented motion direction from 8 to 4?
 lgcAoM = True
@@ -98,10 +98,10 @@ lgcAoM = True
 vecRunLngth = [172, 172, 172, 172]
 
 # cross validate?
-lgcXval = False
+lgcXval = True
 
 # set which set of hrf functions should be used
-lgcOldSchoolHrf = True
+lgcOldSchoolHrf = False
 if lgcOldSchoolHrf:  # use legacy hrf function
     strBasis = '_oldSch'
     # use only canonical hrf function
@@ -111,7 +111,7 @@ else:  # use hrf basis
     # 1: canonical hrf function
     # 2: canonical hrf function and 1st tmp derivative
     # 3: canonical hrf function, 1st tmp and spatial derivative
-    switchHrfSet = 1
+    switchHrfSet = 3
     strBasis = '_bsSet' + str(switchHrfSet)
 
 if lgcXval:
