@@ -21,7 +21,7 @@ import numpy as np
 import scipy as sp
 import pickle
 from scipy.interpolate import griddata
-from pRF_hrfutils import spmt, dspmt, ddspmt, cnvlTc
+from pRF_hrfutils import spmt, dspmt, ddspmt, cnvlTc, cnvlTcOld
 import multiprocessing as mp
 
 
@@ -100,6 +100,7 @@ def cnvlPwBoxCarFn(aryBoxCar,
                    varPar,
                    switchHrfSet,
                    varNumMtDrctn,
+                   lgcOldSchoolHrf,
                    ):
     """
     Create pixel-wise HRF model time courses.
@@ -141,16 +142,27 @@ def cnvlPwBoxCarFn(aryBoxCar,
 
     print('---------Creating parallel processes')
 
-    # Create processes:
-    for idxPrc in range(0, varPar):
-        lstPrcs[idxPrc] = mp.Process(target=cnvlTc,
-                                     args=(idxPrc,
-                                           lstBoxCar[idxPrc],
-                                           lstHrf,
-                                           varTr,
-                                           varNumVol,
-                                           queOut)
-                                     )
+    if lgcOldSchoolHrf:
+        for idxPrc in range(0, varPar):
+            lstPrcs[idxPrc] = mp.Process(target=cnvlTcOld,
+                                         args=(idxPrc,
+                                               lstBoxCar[idxPrc],
+                                               varTr,
+                                               varNumVol,
+                                               queOut)
+                                         )
+    else:
+        # Create processes:
+        for idxPrc in range(0, varPar):
+            lstPrcs[idxPrc] = mp.Process(target=cnvlTc,
+                                         args=(idxPrc,
+                                               lstBoxCar[idxPrc],
+                                               lstHrf,
+                                               varTr,
+                                               varNumVol,
+                                               queOut)
+                                         )
+
         # Daemon (kills processes when exiting):
         lstPrcs[idxPrc].Daemon = True
 
@@ -252,10 +264,14 @@ def rsmplInHighRes(aryBoxCarConv,
             # Put super-sampled pixel time courses into array:
             aryBoxCarConvHigh[:, :, idxMtn, idxVol] = aryResampled
 
-            return aryBoxCarConvHigh
+    return aryBoxCarConvHigh
 
 
-def funcGauss(varSizeX, varSizeY, varPosX, varPosY, varSd):
+def funcGauss(varSizeX,
+              varSizeY,
+              varPosX,
+              varPosY,
+              varSd):
     """Create 2D Gaussian kernel."""
     varSizeX = int(varSizeX)
     varSizeY = int(varSizeY)
@@ -277,7 +293,10 @@ def funcGauss(varSizeX, varSizeY, varPosX, varPosY, varSd):
     return aryGauss
 
 
-def funcPrfTc(idxPrc, aryMdlParamsChnk, tplVslSpcHighSze, varNumVol,
+def funcPrfTc(idxPrc,
+              aryMdlParamsChnk,
+              tplVslSpcHighSze,
+              varNumVol,
               aryPngDataHigh,
               queOut):
     """Create pRF time course models."""

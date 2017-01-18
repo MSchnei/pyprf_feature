@@ -32,6 +32,7 @@ from pRF_mdlCrt import (loadPng, loadPrsOrd, crtPwBoxCarFn, cnvlPwBoxCarFn,
 from pRF_filtering import funcSmthTmp
 from pRF_funcFindPrf import funcFindPrf, funcFindPrfXval
 from pRF_calcR2_getBetas import getBetas
+from pRF_hrfutils import spmt, dspmt, ddspmt, cnvlTc, cnvlTcOld
 import sys
 
 # %% get some parameters from command line
@@ -41,7 +42,7 @@ print 'Argument List:', str(sys.argv)
 
 if varNumCmdArgs == 0:
     # import the default cfg file
-    import pRF_config_xval as cfg
+    import pRF_config as cfg
 else:
     print "------Imported custom cfg file"
     # determine the type of aperture
@@ -91,15 +92,101 @@ if cfg.lgcCrteMdl:
     del(aryPresOrd)
 
     # *** convolve every pixel box car function with hrf function(s)
-    aryBoxCarConv = cnvlPwBoxCarFn(aryBoxCar,
-                                   cfg.varNumVol,
-                                   cfg.varTr,
-                                   cfg.tplPngSize,
-                                   cfg.varNumMtDrctn,
-                                   cfg.switchHrfSet,
-                                   cfg.varPar,
-                                   )
+#    aryBoxCarConv = cnvlPwBoxCarFn(aryBoxCar,
+#                                   cfg.varNumVol,
+#                                   cfg.varTr,
+#                                   cfg.tplPngSize,
+#                                   cfg.varNumMtDrctn,
+#                                   cfg.switchHrfSet,
+#                                   cfg.varPar,
+#                                   cfg.lgcOldSchoolHrf,
+#                                   )
+    print('------Convolve every pixel box car function with hrf function(s)')
 
+    # Create hrf time course function:
+    if cfg.switchHrfSet == 3:
+        lstHrf = [spmt, dspmt, ddspmt]
+    elif cfg.switchHrfSet == 2:
+        lstHrf = [spmt, dspmt]
+    elif cfg.switchHrfSet == 1:
+        lstHrf = [spmt]
+
+    # Reshape png data:
+    aryBoxCar = np.reshape(aryBoxCar,
+                           ((aryBoxCar.shape[0] * aryBoxCar.shape[1] *
+                            aryBoxCar.shape[2]), aryBoxCar.shape[3]))
+
+    # Put input data into chunks:
+    lstBoxCar = np.array_split(aryBoxCar, cfg.varPar)
+    # We don't need the original array with the input data anymore:
+    del(aryBoxCar)
+
+    # Create a queue to put the results in:
+    queOut = mp.Queue()
+
+    # Empty list for processes:
+    lstPrcs = [None] * cfg.varPar
+
+    # Empty list for results of parallel processes:
+    lstConv = [None] * cfg.varPar
+
+    print('---------Creating parallel processes')
+
+    if cfg.lgcOldSchoolHrf:
+        for idxPrc in range(0, cfg.varPar):
+            lstPrcs[idxPrc] = mp.Process(target=cnvlTcOld,
+                                         args=(idxPrc,
+                                               lstBoxCar[idxPrc],
+                                               cfg.varTr,
+                                               cfg.varNumVol,
+                                               queOut)
+                                         )
+    else:
+        # Create processes:
+        for idxPrc in range(0, cfg.varPar):
+            lstPrcs[idxPrc] = mp.Process(target=cnvlTc,
+                                         args=(idxPrc,
+                                               lstBoxCar[idxPrc],
+                                               lstHrf,
+                                               cfg.varTr,
+                                               cfg.varNumVol,
+                                               queOut)
+                                         )
+
+        # Daemon (kills processes when exiting):
+        lstPrcs[idxPrc].Daemon = True
+
+    # Start processes:
+    for idxPrc in range(0, cfg.varPar):
+        lstPrcs[idxPrc].start()
+
+    # Collect results from queue:
+    for idxPrc in range(0, cfg.varPar):
+        lstConv[idxPrc] = queOut.get(True)
+
+    # Join processes:
+    for idxPrc in range(0, cfg.varPar):
+        lstPrcs[idxPrc].join()
+
+    print('---------Collecting results from parallel processes')
+
+    # Put output into correct order:
+    lstConv = sorted(lstConv)
+
+    # Concatenate convolved pixel time courses (into the same order as they
+    # were entered into the analysis):
+    aryBoxCarConv = np.zeros((0, cfg.switchHrfSet, cfg.varNumVol))
+    for idxRes in range(0, cfg.varPar):
+        aryBoxCarConv = np.concatenate((aryBoxCarConv, lstConv[idxRes][1]),
+                                       axis=0)
+    del(lstConv)
+
+    # Reshape results:
+    aryBoxCarConv = np.reshape(aryBoxCarConv,
+                               [cfg.tplPngSize[0],
+                                cfg.tplPngSize[1],
+                                cfg.varNumMtDrctn,
+                                cfg.varNumVol])
     # aryBoxCarConv will have shape 128, 128, 15, 688
 
     # *** resample pixel-time courses in high-res visual space

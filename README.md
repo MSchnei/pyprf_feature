@@ -2,8 +2,6 @@
 A free & open python tool for finding best-fitting pRF models and motion parameters for fMRI data.
 
 ## Dependencies
-
-## Dependencies
 [**Python 2.7**](https://www.python.org/download/releases/2.7/)
 
 | Package                              | Tested version |

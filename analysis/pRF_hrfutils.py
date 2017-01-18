@@ -287,9 +287,13 @@ def cnvlTcOld(idxPrc,
                                         vecHrf,
                                         mode='full')[0:varNumVol]
 
+    # determine output shape
+    tplOutShp = tplInpShp[:-1] + (1, ) + (tplInpShp[-1], )
+
     # Create list containing the convolved timecourses, and the process ID:
     lstOut = [idxPrc,
-              aryConv.reshape(tplInpShp)]
+              aryConv.reshape(tplOutShp)]
 
     # Put output to queue:
     queOut.put(lstOut)
+

@@ -58,7 +58,7 @@ varNumVol = 688
 varIntCtf = -100.0
 
 # Number of processes to run in parallel:
-varPar = 8
+varPar = 10
 
 # Size of high-resolution visual space model in which the pRF models are
 # created (x- and y-dimension). The x and y dimensions specified here need to
@@ -82,7 +82,7 @@ lstNiiFls = ['zs1_1rprf_01_hpf.nii',
 strPathNiiMask = '/media/sf_D_DRIVE/PacMan/Analysis/P3/Distorted/FitResults/TestMask2.nii.gz'
 
 # Output basename:
-strPathOut = '/media/sf_D_DRIVE/PacMan/Analysis/P3/Distorted/FitResults/Test'
+strPathOut = '/media/sf_D_DRIVE/PacMan/Analysis/P3/Distorted/FitResults/TestBasis'
 
 # Use cython (i.e. compiled code) for faster performance? (Requires cython to
 # be installed.)
@@ -98,14 +98,21 @@ lgcAoM = True
 vecRunLngth = [172, 172, 172, 172]
 
 # cross validate?
-lgcXval = True
+lgcXval = False
 
 # set which set of hrf functions should be used
-# 1: canonical hrf function
-# 2: canonical hrf function and 1st tmp derivative
-# 3: canonical hrf function, 1st tmp and spatial derivative
-switchHrfSet = 1
-strBasis = '_bsSet' + str(switchHrfSet)
+lgcOldSchoolHrf = True
+if lgcOldSchoolHrf:  # use legacy hrf function
+    strBasis = '_oldSch'
+    # use only canonical hrf function
+    switchHrfSet = 1
+else:  # use hrf basis
+    # decide of how many functions the basis set should consist:
+    # 1: canonical hrf function
+    # 2: canonical hrf function and 1st tmp derivative
+    # 3: canonical hrf function, 1st tmp and spatial derivative
+    switchHrfSet = 1
+    strBasis = '_bsSet' + str(switchHrfSet)
 
 if lgcXval:
     varNumXval = len(lstNiiFls)  # set nr of xvalidations, equal to nr of runs
