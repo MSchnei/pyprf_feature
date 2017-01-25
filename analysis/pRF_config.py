@@ -102,6 +102,7 @@ lgcXval = True
 
 # set which set of hrf functions should be used
 lgcOldSchoolHrf = False
+
 if lgcOldSchoolHrf:  # use legacy hrf function
     strBasis = '_oldSch'
     # use only canonical hrf function
