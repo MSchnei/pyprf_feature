@@ -1,5 +1,5 @@
 # -*- coding: utf-8 -*-
-"""function for creating pRF model time courses"""
+"""functions for creating pRF model time courses"""
 
 # Part of py_pRF_motion library
 # Copyright (C) 2016  Marian Schneider, Ingo Marquardt
@@ -21,6 +21,7 @@ import numpy as np
 import scipy as sp
 import pickle
 from scipy.interpolate import griddata
+from scipy.stats import vonmises_line
 from pRF_hrfutils import spmt, dspmt, ddspmt, cnvlTc, cnvlTcOld
 import multiprocessing as mp
 
@@ -76,20 +77,49 @@ def loadPrsOrd(vecRunLngth, strPathPresOrd, vecVslStim):
     return aryPresOrd
 
 
-def crtPwBoxCarFn(varNumVol, aryPngData, aryPresOrd, vecMtDrctn):
+def crtBoxCarWeights(lgcVonMises, lgcAoM, varKappa, varNumMtDrctn):
+    """
+    This function creates box car weights.
+    If lgcVonMises is set to False, this will create weights of 0 and 1
+    If lgcVonMises is set to True, this takes into account that a voxel which
+    prefers rightward motion might still react to rightward and upward motion
+    """
+    if lgcVonMises:  # assign weights according to von mises pdf
+        x = np.linspace(-np.pi, np.pi, 360)
+        mus = np.arange(0, 360, 45)
+        # get von Mises distributions
+        aryCrvV1 = np.empty((len(x), len(mus)), dtype='float64')
+        for ind, mu in enumerate(mus-180):
+            aryCrvV1[:, ind] = np.roll(vonmises_line.pdf(x, varKappa), mu)
+        # sample relevant indices
+        vecIndV1 = np.empty((len(mus), len(mus)))
+        for ind in np.arange(len(mus)):
+            vecIndV1[:, ind] = aryCrvV1[mus, ind]
+        # normalize
+        vecIndV1 = vecIndV1 / np.sum(vecIndV1, axis=0)
+
+        if lgcAoM:  # reduce presented motion direction from 8 to 4?
+            vecIndV1 = (vecIndV1[:varNumMtDrctn, varNumMtDrctn:] +
+                        vecIndV1[:varNumMtDrctn, :varNumMtDrctn])
+    else:  # assume binary 0 and 1 weights
+        vecIndV1 = np.eye(varNumMtDrctn)
+
+    return vecIndV1
+
+
+def crtPwBoxCarFn(varNumVol, aryPngData, aryPresOrd, vecIndV1, vecMtDrctn):
     """
     This function creates pixel-wise boxcar functions.
     """
     print('------Create pixel-wise boxcar functions')
     aryBoxCar = np.empty(aryPngData.shape[0:2] + (len(vecMtDrctn),) +
-                         (varNumVol,), dtype='int64')
+                         (varNumVol,), dtype='float32')
+    # append a row of zeros for fixation periods
+    vecIndV1 = np.append(np.zeros((1, vecIndV1.shape[1])), vecIndV1, 0)
     for ind, num in enumerate(vecMtDrctn):
-        aryCondTemp = np.zeros((aryPngData.shape), dtype='int64')
-        lgcTempMtDrctn = [aryPresOrd == num][0]
-        aryCondTemp[:, :, lgcTempMtDrctn] = np.copy(
-            aryPngData[:, :, lgcTempMtDrctn])
-        aryBoxCar[:, :, ind, :] = aryCondTemp
-
+        vecTmpWeights = vecIndV1[:, ind][aryPresOrd]
+        mtplTempMtDrctn = aryPngData * vecTmpWeights[None, None, :]
+        aryBoxCar[:, :, ind, :] = mtplTempMtDrctn
     return aryBoxCar
 
 

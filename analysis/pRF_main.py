@@ -27,7 +27,7 @@ import numpy as np
 import nibabel as nb
 import time
 import multiprocessing as mp
-from pRF_mdlCrt import (loadPng, loadPrsOrd, crtPwBoxCarFn, cnvlPwBoxCarFn,
+from pRF_mdlCrt import (loadPng, loadPrsOrd, crtRegWeights, crtPwBoxCarFn,
                         rsmplInHighRes, funcPrfTc)
 from pRF_filtering import funcSmthTmp
 from pRF_funcFindPrf import funcFindPrf, funcFindPrfXval
@@ -79,14 +79,28 @@ if cfg.lgcCrteMdl:
         aryPresOrd[aryPresOrd == 6] = 2
         aryPresOrd[aryPresOrd == 7] = 3
         aryPresOrd[aryPresOrd == 8] = 4
+        aryPresOrd[aryPresOrd == 9] = 5
 
     vecMtDrctn = np.unique(aryPresOrd)[1:]  # exclude zeros
+    # determine new numbe rof motion directions
     cfg.varNumMtDrctn = len(vecMtDrctn) * cfg.switchHrfSet
+
+    vecIndV1 = crtRegWeights(cfg.lgcVonMises,
+                             cfg.lgcAoM,
+                             cfg.varKappa,
+                             len(vecMtDrctn)-1)
+
+    # *** add the indices for the static condition
+    vecIndV1 = np.append(vecIndV1, np.zeros((1, vecIndV1.shape[1])), 0)
+    vecIndV1 = np.append(vecIndV1, np.zeros((vecIndV1.shape[0], 1)), 1)
+    vecIndV1[-1, -1] = 1
+
 
     # *** create pixel-wise boxcar functions
     aryBoxCar = crtPwBoxCarFn(cfg.varNumVol,
                               aryPngData,
                               aryPresOrd,
+                              vecIndV1,
                               vecMtDrctn)
     del(aryPngData)
     del(aryPresOrd)

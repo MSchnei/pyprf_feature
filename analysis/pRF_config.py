@@ -84,15 +84,21 @@ strPathNiiMask = '/media/sf_D_DRIVE/PacMan/Analysis/P3/Distorted/FitResults/Test
 # Output basename:
 strPathOut = '/media/sf_D_DRIVE/PacMan/Analysis/P3/Distorted/FitResults/TestBasis'
 
-# Use cython (i.e. compiled code) for faster performance? (Requires cython to
-# be installed.)
+# Use cython (i.e. compiled code) for faster performance?
+# (Requires cython to be installed.)
 lgcCython = False
 
 # Create pRF time course models?
-lgcCrteMdl = False
+lgcCrteMdl = True
 
 # reduce presented motion direction from 8 to 4?
 lgcAoM = True
+
+lgcVonMises = True
+if lgcVonMises:
+    # set kappa (i.e. dispersion distribution, higher kappa -> less dispersion)
+    # kappa = 0 -> uniform distribution; kappa = inf -> uniform distribution
+    varKappa = 4
 
 # length of the runs that were done
 vecRunLngth = [172, 172, 172, 172]
