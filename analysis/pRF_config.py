@@ -94,7 +94,7 @@ lgcCrteMdl = True
 # reduce presented motion direction from 8 to 4?
 lgcAoM = True
 
-lgcVonMises = True
+lgcVonMises = False
 if lgcVonMises:
     # set kappa (i.e. dispersion distribution, higher kappa -> less dispersion)
     # kappa = 0 -> uniform distribution; kappa = inf -> uniform distribution

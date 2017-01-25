@@ -77,7 +77,7 @@ def loadPrsOrd(vecRunLngth, strPathPresOrd, vecVslStim):
     return aryPresOrd
 
 
-def crtBoxCarWeights(lgcVonMises, lgcAoM, varKappa, varNumMtDrctn):
+def crtBoxCarWeights(lgcVonMises, lgcAoM, varNumMtDrctn, varKappa=0):
     """
     This function creates box car weights.
     If lgcVonMises is set to False, this will create weights of 0 and 1
@@ -85,6 +85,8 @@ def crtBoxCarWeights(lgcVonMises, lgcAoM, varKappa, varNumMtDrctn):
     prefers rightward motion might still react to rightward and upward motion
     """
     if lgcVonMises:  # assign weights according to von mises pdf
+        print('------Create box car weights from von Mises distribution')
+
         x = np.linspace(-np.pi, np.pi, 360)
         mus = np.arange(0, 360, 45)
         # get von Mises distributions
@@ -102,6 +104,7 @@ def crtBoxCarWeights(lgcVonMises, lgcAoM, varKappa, varNumMtDrctn):
             vecIndV1 = (vecIndV1[:varNumMtDrctn, varNumMtDrctn:] +
                         vecIndV1[:varNumMtDrctn, :varNumMtDrctn])
     else:  # assume binary 0 and 1 weights
+        print('------Create binary box car weights')
         vecIndV1 = np.eye(varNumMtDrctn)
 
     return vecIndV1
