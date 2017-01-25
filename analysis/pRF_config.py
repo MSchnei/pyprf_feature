@@ -78,11 +78,14 @@ lstNiiFls = ['zs1_1rprf_01_hpf.nii',
              'zs1_1rprf_04_hpf.nii',
              ]
 
+# length of the runs that were done
+vecRunLngth = [172, 172, 172, 172]
+
 # Path of mask (to restrict pRF model finding):
 strPathNiiMask = '/media/sf_D_DRIVE/PacMan/Analysis/P3/Distorted/FitResults/TestMask2.nii.gz'
 
 # Output basename:
-strPathOut = '/media/sf_D_DRIVE/PacMan/Analysis/P3/Distorted/FitResults/TestBasis'
+strPathOut = '/media/sf_D_DRIVE/PacMan/Analysis/P3/Distorted/FitResults/TestVonMises'
 
 # Use cython (i.e. compiled code) for faster performance?
 # (Requires cython to be installed.)
@@ -94,23 +97,21 @@ lgcCrteMdl = True
 # reduce presented motion direction from 8 to 4?
 lgcAoM = True
 
+# should box car weights respect von Mises distribution
 lgcVonMises = False
 if lgcVonMises:
     # set kappa (i.e. dispersion distribution, higher kappa -> less dispersion)
     # kappa = 0 -> uniform distribution; kappa = inf -> uniform distribution
     varKappa = 4
+    strMdls = '_vM' + str(varKappa)
+else:
+    strMdls = ''
 
-# length of the runs that were done
-vecRunLngth = [172, 172, 172, 172]
-
-# cross validate?
-lgcXval = True
-
-# set which set of hrf functions should be used
-lgcOldSchoolHrf = False
+# should legacy hrf function be used? (or basis set? how many bases?)
+lgcOldSchoolHrf = True
 
 if lgcOldSchoolHrf:  # use legacy hrf function
-    strBasis = '_oldSch'
+    strMdls = strMdls + '_oldSch'
     # use only canonical hrf function
     switchHrfSet = 1
 else:  # use hrf basis
@@ -119,8 +120,10 @@ else:  # use hrf basis
     # 2: canonical hrf function and 1st tmp derivative
     # 3: canonical hrf function, 1st tmp and spatial derivative
     switchHrfSet = 3
-    strBasis = '_bsSet' + str(switchHrfSet)
+    strMdls = strMdls + '_bsSet' + str(switchHrfSet)
 
+# should we cross validate?
+lgcXval = False
 if lgcXval:
     varNumXval = len(lstNiiFls)  # set nr of xvalidations, equal to nr of runs
 
@@ -143,11 +146,11 @@ if lgcCrteMdl:
     strPathPng = '/media/sf_D_DRIVE/PacMan/Analysis/P3/Distorted/PrfPngs/Ima_'
 
     # Output path for pRF time course models file (without file extension):
-    strPathMdl = '/media/sf_D_DRIVE/PacMan/Analysis/P3/Distorted/FitResults/pRF_model_mtn_tc' + strBasis
+    strPathMdl = '/media/sf_D_DRIVE/PacMan/Analysis/P3/Distorted/FitResults/pRF_model_mtn_tc' + strMdls
 
 else:
     # provide number of motion directions
     varNumMtDrctn = 5 * switchHrfSet
     # If we use existing pRF time course models, the path to the respective
     # file has to be provided (including file extension, i.e. '*.npy'):
-    strPathMdl = '/media/sf_D_DRIVE/PacMan/Analysis/P3/Distorted/FitResults/pRF_model_mtn_tc' + strBasis + '.npy'
+    strPathMdl = '/media/sf_D_DRIVE/PacMan/Analysis/P3/Distorted/FitResults/pRF_model_mtn_tc' + strMdls + '.npy'
