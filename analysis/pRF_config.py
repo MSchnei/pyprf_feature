@@ -85,7 +85,7 @@ vecRunLngth = [172, 172, 172, 172]
 strPathNiiMask = '/media/sf_D_DRIVE/PacMan/Analysis/P3/Distorted/FitResults/TestMask2.nii.gz'
 
 # Output basename:
-strPathOut = '/media/sf_D_DRIVE/PacMan/Analysis/P3/Distorted/FitResults/TestVonMises'
+strPathOut = '/media/sf_D_DRIVE/PacMan/Analysis/P3/Distorted/FitResults/TestVonMisesTrue'
 
 # Use cython (i.e. compiled code) for faster performance?
 # (Requires cython to be installed.)
@@ -98,11 +98,11 @@ lgcCrteMdl = True
 lgcAoM = True
 
 # should box car weights respect von Mises distribution
-lgcVonMises = False
+lgcVonMises = True
 if lgcVonMises:
     # set kappa (i.e. dispersion distribution, higher kappa -> less dispersion)
     # kappa = 0 -> uniform distribution; kappa = inf -> uniform distribution
-    varKappa = 4
+    varKappa = 2
     strMdls = '_vM' + str(varKappa)
 else:
     strMdls = ''
