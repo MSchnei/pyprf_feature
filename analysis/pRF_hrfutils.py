@@ -135,6 +135,24 @@ def ddspmt(t):
     """
     return (spmt(t) - _spm_dd_func(t)) / 0.01
 
+def createHrf(lstHrf,
+              varTr,
+              varOvsmpl=10,
+              varHrfLen=32,):
+    """
+    Aux function that takes list with spmt, dspmt, ddspmt as input and
+    returns a list with hrf shaped time courses
+    """
+    # prepare empty list that will contain the arrays with hrf time courses
+    lstBse = []
+    # Create hrf time courses
+    for hrfFn in lstHrf:
+        # needs to be a multiple of oversample
+        vecTmpBse = hrfFn(np.linspace(0, varHrfLen,
+                                      (varHrfLen // varTr) * varOvsmpl))
+        lstBse.append(vecTmpBse)
+
+    return lstBse
 
 # %% functions for convultion
 def cnvlTc(idxPrc,
@@ -161,13 +179,8 @@ def cnvlTc(idxPrc,
     # get resolution of supersampled frame times
     varRes = varTr / float(varOvsmpl)
 
-    # prepare empty list that will contain the arrays with hrf time courses
-    lstBse = []
-    for hrfFn in lstHrf:
-        # needs to be a multiple of oversample
-        vecTmpBse = hrfFn(np.linspace(0, varHrfLen,
-                                      (varHrfLen // varTr) * varOvsmpl))
-        lstBse.append(vecTmpBse)
+    # get hrf shapes
+    lstBse = createHrf(lstHrf, varTr, varOvsmpl, varHrfLen)
 
     # *** prepare pixel time courses for convolution
     print("---------Process " + str(idxPrc) +

@@ -86,28 +86,31 @@ if cfg.lgcCrteMdl:
     cfg.varNumMtDrctn = len(vecMtDrctn) * cfg.switchHrfSet
 
     if cfg.lgcVonMises:
-        vecIndV1 = crtBoxCarWeights(cfg.lgcVonMises,
+        aryIndV1 = crtBoxCarWeights(cfg.lgcVonMises,
                                     cfg.lgcAoM,
                                     len(vecMtDrctn)-1,
                                     cfg.varKappa)
     else:
-        vecIndV1 = crtBoxCarWeights(cfg.lgcVonMises,
+        aryIndV1 = crtBoxCarWeights(cfg.lgcVonMises,
                                     cfg.lgcAoM,
                                     len(vecMtDrctn)-1)
 
     # *** add the indices for the static condition
-    vecIndV1 = np.append(vecIndV1, np.zeros((1, vecIndV1.shape[1])), 0)
-    vecIndV1 = np.append(vecIndV1, np.zeros((vecIndV1.shape[0], 1)), 1)
-    vecIndV1[-1, -1] = 1
+    aryIndV1 = np.append(aryIndV1, np.zeros((1, aryIndV1.shape[1])), 0)
+    aryIndV1 = np.append(aryIndV1, np.zeros((aryIndV1.shape[0], 1)), 1)
+    aryIndV1[-1, -1] = 1
 
     # *** create pixel-wise boxcar functions
     aryBoxCar = crtPwBoxCarFn(cfg.varNumVol,
                               aryPngData,
                               aryPresOrd,
-                              vecIndV1,
+                              aryIndV1,
                               vecMtDrctn)
     del(aryPngData)
     del(aryPresOrd)
+
+    # create 2D Gaussians with 3rd dimension hrf
+
 
     # *** convolve every pixel box car function with hrf function(s)
 #    aryBoxCarConv = cnvlPwBoxCarFn(aryBoxCar,

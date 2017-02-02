@@ -98,7 +98,7 @@ lgcCrteMdl = True
 lgcAoM = True
 
 # should box car weights respect von Mises distribution
-lgcVonMises = True
+lgcVonMises = False
 if lgcVonMises:
     # set kappa (i.e. dispersion distribution, higher kappa -> less dispersion)
     # kappa = 0 -> uniform distribution; kappa = inf -> uniform distribution

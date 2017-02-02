@@ -17,12 +17,13 @@
 # You should have received a copy of the GNU General Public License
 # along with this program.  If not, see <http://www.gnu.org/licenses/>.
 
+from __future__ import division
 import numpy as np
 import scipy as sp
 import pickle
 from scipy.interpolate import griddata
 from scipy.stats import vonmises_line
-from pRF_hrfutils import spmt, dspmt, ddspmt, cnvlTc, cnvlTcOld
+from pRF_hrfutils import spmt, dspmt, ddspmt, cnvlTc, cnvlTcOld, createHrf
 import multiprocessing as mp
 
 
@@ -298,6 +299,68 @@ def rsmplInHighRes(aryBoxCarConv,
             aryBoxCarConvHigh[:, :, idxMtn, idxVol] = aryResampled
 
     return aryBoxCarConvHigh
+
+
+def func2DGaussHrf(varSizeX,
+                   varSizeY,
+                   varPosX,
+                   varPosY,
+                   varSd,
+                   switchHrfSet,
+                   varTr):
+    """Create 3D kernel: 2D Gaussian with hrf in 3rd dimension"""
+    varPosX = 50
+    varPosY = 50
+    hrf = np.ones(16)
+    varSizeX = 128
+    varSizeY = 128
+    varSd = 20
+    switchHrfSet = 1
+
+    varSizeX = int(varSizeX)
+    varSizeY = int(varSizeY)
+
+    # Create hrf time course function:
+    if switchHrfSet == 3:
+        lstHrf = [spmt, dspmt, ddspmt]
+    elif switchHrfSet == 2:
+        lstHrf = [spmt, dspmt]
+    elif switchHrfSet == 1:
+        lstHrf = [spmt]
+
+    # get hrf shapes
+    lstBse = createHrf(lstHrf, varTr, varOvsmpl=1)
+
+    aryY, aryX, aryT = np.meshgrid(np.arange(varSizeX),
+                                   np.arange(varSizeY),
+                                   np.arange(len(lstBse[0])),)
+
+    # Step 1: calculate spatial Gaussian
+    # this is a 2D Gaussian that moves with every movie frame at speed v
+
+    # normalization for spatial gaussian
+    a = 1 / (2*varSd**2*np.pi)
+    # denominator spatial Gaussian
+    b = 1 / (2*varSd**2)
+    # calculate the Gaussian
+    ary2DGauss = a * np.exp(
+        -b * (np.square(aryX-varPosX) + np.square(aryY-varPosY))
+        )
+
+    # Step 2: build a 3D array that has an hrf shape in the time direction
+    hrf = lstBse[0]
+    aryHrf = np.multiply(aryT, hrf[None, None, :])
+    # Step 3: combine
+    aryGauss3D = ary2DGauss * aryHrf
+
+    return aryGauss3D
+
+def cnvlWith3DGauss(aryBoxCar, aryGauss3D):
+    aryBoxCar
+    temp = aryBoxCar[:, :, 0, :]
+    cnvlPwBoxCarFn
+
+    from scipy import signal
 
 
 def funcGauss(varSizeX,
