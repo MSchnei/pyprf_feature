@@ -1,5 +1,7 @@
 # -*- coding: utf-8 -*-
 
+"""Main functions for hrf."""
+
 # Part of py_pRF_motion library
 # Copyright (C) 2016  Marian Schneider, Ingo Marquardt
 #

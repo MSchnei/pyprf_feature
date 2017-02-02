@@ -1,5 +1,7 @@
 # -*- coding: utf-8 -*-
 
+ """Procedure to calculate betas and R^2 for the best model.""" 
+
 # Part of py_pRF_motion library
 # Copyright (C) 2016  Marian Schneider
 #
@@ -27,11 +29,31 @@ def getBetas(idxPrc,
              aryFuncChnk,
              aryBstMdls,
              queOut):
-    """
-    Calculate betas and R2 for every voxel for the respective best model that
-    was found.
-    This is done after fitting with cross validation, since during the fitting
-    process, we never fit the model to the entire data
+    """Calculate voxel betas and R^2 for the best model.
+
+    Parameters
+    ----------
+    idxPrc : TODO
+        (?)
+    vecMdlXpos : np.array, shape 1d (?)
+        Model X positions.
+    vecMdlYpos : np.array, shape 1d (?)
+        Model Y positions.
+    vecMdlSd : np.array, shape 1d (?)
+        (?)
+    aryPrfTc : np.array, shape (?)
+        Population receptive field time courses.
+    aryFuncChnk : TODO
+        Chunk of something(?)
+    aryBstMdls : np.array, shape (?)
+        Best models.
+    queOut : TODO
+        Queue output (?)
+
+    Notes
+    -----
+    This is done after fitting with cross validation, since during the
+    fitting process, we never fit the model to the entire data.
     """
 
     # get number of motion directions
@@ -66,7 +88,7 @@ def getBetas(idxPrc,
         # Vector with pRF values at which to give status feedback:
         vecStatPrf = np.linspace(0,
                                  varNumMdls,
-                                 num=(varStsStpSze+1),
+                                 num=(varStsStpSze1),
                                  endpoint=True)
         vecStatPrf = np.ceil(vecStatPrf)
         vecStatPrf = vecStatPrf.astype(int)

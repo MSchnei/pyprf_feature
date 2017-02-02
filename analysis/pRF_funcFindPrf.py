@@ -1,5 +1,6 @@
 # -*- coding: utf-8 -*-
-"""Main function for pRF finding"""
+
+"""Main procedures for populaton receptive field (pRF) finding."""
 
 # Part of py_pRF_motion library
 # Copyright (C) 2016  Ingo Marquardt
@@ -21,17 +22,21 @@ import numpy as np
 
 
 # %%
-def funcFindPrf(idxPrc,
-                vecMdlXpos,
-                vecMdlYpos,
-                vecMdlSd,
-                aryFuncChnk,
-                aryPrfTc,
-                lgcCython,
-                queOut):
-    """
-    Find the best pRF model for voxel time course.
-    No cross validation
+def funcFindPrf(idxPrc, vecMdlXpos, vecMdlYpos, vecMdlSd, aryFuncChnk,
+                aryPrfTc, lgcCython, queOut):
+    """Find best pRF model for voxel time course (no cross-validation).
+
+        Parameters
+        ----------
+        idxPrc : TODO
+        vecMdlXpos : TODO
+        vecMdlYpos : TODO
+        vecMdlSd : TODO
+        aryFuncChnk : TODO
+        aryPrfTc : TODO
+        lgcCython : TODO
+        queOut : TODO
+        
     """
     # Number of voxels to be fitted in this chunk:
     varNumVoxChnk = aryFuncChnk.shape[0]
@@ -210,20 +215,25 @@ def funcFindPrf(idxPrc,
 
 
 # %%
-def funcFindPrfXval(idxPrc,
-                    vecMdlXpos,
-                    vecMdlYpos,
-                    vecMdlSd,
-                    lstFuncTrnChnk,
-                    lstFuncTstChnk,
-                    lstPrfMdlsTrn,
-                    lstPrfMdlsTst,
-                    lgcCython,
-                    varNumXval,
-                    queOut):
-    """
-    Find the best pRF model for voxel time course.
-    With cross validation
+def funcFindPrfXval(idxPrc, vecMdlXpos, vecMdlYpos, vecMdlSd, lstFuncTrnChnk,
+                    lstFuncTstChnk, lstPrfMdlsTrn, lstPrfMdlsTst, lgcCython,
+                    varNumXval, queOut):
+    """Find best pRF model for voxel timecourse (with cross-validation).
+
+    Parameters
+    ----------
+    idxPrc : TODO
+    vecMdlXpos : TODO
+    vecMdlYpos : TODO
+    vecMdlSd : TODO
+    lstFuncTrnChnk : TODO
+    lstFuncTstChnk : TODO
+    lstPrfMdlsTrn : TODO
+    lstPrfMdlsTst : TODO
+    lgcCython : TODO
+    varNumXval : TODO
+    queOut : TODO
+
     """
     # Number of voxels to be fitted in this chunk:
     assert lstFuncTrnChnk[0].shape[0] == lstFuncTstChnk[0].shape[0]
@@ -261,7 +271,7 @@ def funcFindPrfXval(idxPrc,
         # Vector with pRF values at which to give status feedback:
         vecStatPrf = np.linspace(0,
                                  varNumMdls,
-                                 num=(varStsStpSze+1),
+                                 num=(varStsStpSze1),
                                  endpoint=True)
         vecStatPrf = np.ceil(vecStatPrf)
         vecStatPrf = vecStatPrf.astype(int)

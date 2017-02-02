@@ -1,5 +1,5 @@
 # -*- coding: utf-8 -*-
-"""Define pRF finding parameters here"""
+"""Define pRF finding parameters here."""
 
 # Part of py_pRF_motion library
 # Copyright (C) 2016  Marian Schneider, Ingo Marquardt

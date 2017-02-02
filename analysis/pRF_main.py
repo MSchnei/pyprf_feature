@@ -17,23 +17,21 @@
 # You should have received a copy of the GNU General Public License
 # along with this program.  If not, see <http://www.gnu.org/licenses/>.
 
-print('---pRF analysis')
-
 
 # %% Import modules
 import os
-os.chdir(os.path.abspath(os.path.dirname(__file__)))
 import numpy as np
 import nibabel as nb
 import time
 import multiprocessing as mp
+import sys
 from pRF_mdlCrt import (loadPng, loadPrsOrd, crtPwBoxCarFn, cnvlPwBoxCarFn,
                         rsmplInHighRes, funcPrfTc)
 from pRF_filtering import funcSmthTmp
 from pRF_funcFindPrf import funcFindPrf, funcFindPrfXval
 from pRF_calcR2_getBetas import getBetas
 from pRF_hrfutils import spmt, dspmt, ddspmt, cnvlTc, cnvlTcOld
-import sys
+os.chdir(os.path.abspath(os.path.dirname(__file__)))
 
 # %% get some parameters from command line
 sys.argv = sys.argv[1:]
@@ -63,13 +61,10 @@ varTme01 = time.time()
 if cfg.lgcCrteMdl:
 
     # *** Load PNGs
-    aryPngData = loadPng(cfg.varNumVol,
-                         cfg.tplPngSize,
-                         cfg.strPathPng)
+    aryPngData = loadPng(cfg.varNumVol, cfg.tplPngSize, cfg.strPathPng)
 
     # *** Load presentation order of motion directions
-    aryPresOrd = loadPrsOrd(cfg.vecRunLngth,
-                            cfg.strPathPresOrd,
+    aryPresOrd = loadPrsOrd(cfg.vecRunLngth, cfg.strPathPresOrd,
                             cfg.vecVslStim)
 
     # *** if lgcAoM, reduce motion directions from 8 to 4
@@ -84,9 +79,7 @@ if cfg.lgcCrteMdl:
     cfg.varNumMtDrctn = len(vecMtDrctn) * cfg.switchHrfSet
 
     # *** create pixel-wise boxcar functions
-    aryBoxCar = crtPwBoxCarFn(cfg.varNumVol,
-                              aryPngData,
-                              aryPresOrd,
+    aryBoxCar = crtPwBoxCarFn(cfg.varNumVol, aryPngData, aryPresOrd,
                               vecMtDrctn)
     del(aryPngData)
     del(aryPresOrd)
@@ -135,22 +128,17 @@ if cfg.lgcCrteMdl:
     if cfg.lgcOldSchoolHrf:
         for idxPrc in range(0, cfg.varPar):
             lstPrcs[idxPrc] = mp.Process(target=cnvlTcOld,
-                                         args=(idxPrc,
-                                               lstBoxCar[idxPrc],
-                                               cfg.varTr,
-                                               cfg.varNumVol,
+                                         args=(idxPrc, lstBoxCar[idxPrc],
+                                               cfg.varTr, cfg.varNumVol,
                                                queOut)
                                          )
     else:
         # Create processes:
         for idxPrc in range(0, cfg.varPar):
             lstPrcs[idxPrc] = mp.Process(target=cnvlTc,
-                                         args=(idxPrc,
-                                               lstBoxCar[idxPrc],
-                                               lstHrf,
-                                               cfg.varTr,
-                                               cfg.varNumVol,
-                                               queOut)
+                                         args=(idxPrc, lstBoxCar[idxPrc],
+                                               lstHrf, cfg.varTr,
+                                               cfg.varNumVol, queOut)
                                          )
 
         # Daemon (kills processes when exiting):
@@ -205,8 +193,8 @@ if cfg.lgcCrteMdl:
     print('------Create pRF time course models')
 
     # Upsampling factor:
-    if (cfg.tplVslSpcHighSze[0] / cfg.varNumX) == (cfg.tplVslSpcHighSze[1]
-                                                   / cfg.varNumY):
+    if (cfg.tplVslSpcHighSze[0] / cfg.varNumX) == (
+            cfg.tplVslSpcHighSze[1] / cfg.varNumY):
         varFctUp = cfg.tplVslSpcHighSze[0] / cfg.varNumX
     else:
         print('------ERROR. Dimensions of upsampled visual space do not ' +
@@ -214,16 +202,12 @@ if cfg.lgcCrteMdl:
 
     # Vector with the x-indicies of the positions in the super-sampled visual
     # space at which to create pRF models.
-    vecX = np.linspace(0,
-                       (cfg.tplVslSpcHighSze[0] - 1),
-                       cfg.varNumX,
+    vecX = np.linspace(0, (cfg.tplVslSpcHighSze[0] - 1), cfg.varNumX,
                        endpoint=True)
 
     # Vector with the y-indicies of the positions in the super-sampled visual
     # space at which to create pRF models.
-    vecY = np.linspace(0,
-                       (cfg.tplVslSpcHighSze[1] - 1),
-                       cfg.varNumY,
+    vecY = np.linspace(0, (cfg.tplVslSpcHighSze[1] - 1), cfg.varNumY,
                        endpoint=True)
 
     # Vector with the standard deviations of the pRF models. We need to convert
@@ -243,10 +227,8 @@ if cfg.lgcCrteMdl:
               'dimensions in the upsampled visual space do not agree')
 
     # Vector with pRF sizes to be modelled (still in degree of visual angle):
-    vecPrfSd = np.linspace(cfg.varPrfStdMin,
-                           cfg.varPrfStdMax,
-                           cfg.varNumPrfSizes,
-                           endpoint=True)
+    vecPrfSd = np.linspace(cfg.varPrfStdMin, cfg.varPrfStdMax,
+                           cfg.varNumPrfSizes, endpoint=True)
 
     # We multiply the vector with the pRF sizes to be modelled with the scaling
     # factor (for the x-dimensions - as we have just found out, the scaling
@@ -310,12 +292,9 @@ if cfg.lgcCrteMdl:
     # Create processes:
     for idxPrc in range(0, cfg.varPar):
         lstPrcs[idxPrc] = mp.Process(target=funcPrfTc,
-                                     args=(idxPrc,
-                                           lstMdlParams[idxPrc],
-                                           cfg.tplVslSpcHighSze,
-                                           cfg.varNumVol,
-                                           aryBoxCarConvHigh,
-                                           queOut)
+                                     args=(idxPrc, lstMdlParams[idxPrc],
+                                           cfg.tplVslSpcHighSze, cfg.varNumVol,
+                                           aryBoxCarConvHigh, queOut)
                                      )
         # Daemon (kills processes when exiting):
         lstPrcs[idxPrc].Daemon = True
@@ -475,21 +454,15 @@ if 0.0 < cfg.varSdSmthTmp:
 print('---------Preparing parallel pRF model finding')
 
 # Vector with the moddeled x-positions of the pRFs:
-vecMdlXpos = np.linspace(cfg.varExtXmin,
-                         cfg.varExtXmax,
-                         cfg.varNumX,
+vecMdlXpos = np.linspace(cfg.varExtXmin, cfg.varExtXmax, cfg.varNumX,
                          endpoint=True)
 
 # Vector with the moddeled y-positions of the pRFs:
-vecMdlYpos = np.linspace(cfg.varExtYmin,
-                         cfg.varExtYmax,
-                         cfg.varNumY,
+vecMdlYpos = np.linspace(cfg.varExtYmin, cfg.varExtYmax, cfg.varNumY,
                          endpoint=True)
 
 # Vector with the moddeled standard deviations of the pRFs:
-vecMdlSd = np.linspace(cfg.varPrfStdMin,
-                       cfg.varPrfStdMax,
-                       cfg.varNumPrfSizes,
+vecMdlSd = np.linspace(cfg.varPrfStdMin, cfg.varPrfStdMax, cfg.varNumPrfSizes,
                        endpoint=True)
 
 # Empty list for results (parameters of best fitting pRF model):
@@ -577,31 +550,20 @@ print('---------Creating parallel processes')
 if cfg.lgcXval:
     for idxPrc in range(0, cfg.varPar):
         lstPrcs[idxPrc] = mp.Process(target=funcFindPrfXval,
-                                     args=(idxPrc,
-                                           vecMdlXpos,
-                                           vecMdlYpos,
-                                           vecMdlSd,
-                                           lstFuncTrn[idxPrc],
-                                           lstFuncTst[idxPrc],
-                                           lstPrfMdlsTrn,
-                                           lstPrfMdlsTst,
-                                           cfg.lgcCython,
-                                           cfg.varNumXval,
-                                           queOut)
+                                     args=(idxPrc, vecMdlXpos, vecMdlYpos,
+                                           vecMdlSd, lstFuncTrn[idxPrc],
+                                           lstFuncTst[idxPrc], lstPrfMdlsTrn,
+                                           lstPrfMdlsTst, cfg.lgcCython,
+                                           cfg.varNumXval, queOut)
                                      )
         # Daemon (kills processes when exiting):
         lstPrcs[idxPrc].Daemon = True
 else:
     for idxPrc in range(0, cfg.varPar):
         lstPrcs[idxPrc] = mp.Process(target=funcFindPrf,
-                                     args=(idxPrc,
-                                           vecMdlXpos,
-                                           vecMdlYpos,
-                                           vecMdlSd,
-                                           lstFunc[idxPrc],
-                                           aryPrfTc,
-                                           cfg.lgcCython,
-                                           queOut)
+                                     args=(idxPrc, vecMdlXpos, vecMdlYpos,
+                                           vecMdlSd, lstFunc[idxPrc], aryPrfTc,
+                                           cfg.lgcCython, queOut)
                                      )
         # Daemon (kills processes when exiting):
         lstPrcs[idxPrc].Daemon = True
@@ -666,14 +628,9 @@ if cfg.lgcXval:
 
     for idxPrc in range(0, cfg.varPar):
         lstPrcs[idxPrc] = mp.Process(target=getBetas,
-                                     args=(idxPrc,
-                                           vecMdlXpos,
-                                           vecMdlYpos,
-                                           vecMdlSd,
-                                           aryPrfTc,
-                                           lstFunc[idxPrc],
-                                           lstBstMdls[idxPrc],
-                                           queOut)
+                                     args=(idxPrc, vecMdlXpos, vecMdlYpos,
+                                           vecMdlSd, aryPrfTc, lstFunc[idxPrc],
+                                           lstBstMdls[idxPrc], queOut)
                                      )
         # Daemon (kills processes when exiting):
         lstPrcs[idxPrc].Daemon = True
@@ -721,10 +678,8 @@ aryPrfRes[:, :, :, 4] = np.arctan2(aryPrfRes[:, :, :, 1],
                                    aryPrfRes[:, :, :, 0])
 
 # Calculate eccentricity map (r = sqrt( x^2 + y^2 ) ):
-aryPrfRes[:, :, :, 5] = np.sqrt(np.add(np.power(aryPrfRes[:, :, :, 0],
-                                                2.0),
-                                       np.power(aryPrfRes[:, :, :, 1],
-                                                2.0)))
+aryPrfRes[:, :, :, 5] = np.sqrt(np.add(np.power(aryPrfRes[:, :, :, 0], 2.0),
+                                       np.power(aryPrfRes[:, :, :, 1], 2.0)))
 # save as npy
 np.save(cfg.strPathOut + '_aryPrfRes', aryPrfRes)
 np.save(cfg.strPathOut + '_aryBstBetas', aryBstBetas)

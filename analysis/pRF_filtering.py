@@ -1,5 +1,6 @@
 # -*- coding: utf-8 -*-
-"""Main function for preprocessing of data & models"""
+
+"""Main functions for preprocessing of data & models."""
 
 # Part of py_pRF_motion library
 # Copyright (C) 2016  Ingo Marquardt, Marian Schneider
@@ -24,10 +25,18 @@ from scipy.ndimage.filters import gaussian_filter1d
 
 # %% Spatial smoothing of fMRI data
 def funcSmthSpt(aryFuncChnk, varSdSmthSpt):
-    """
-    Apply spatial smoothing to the input data.
+    """Apply spatial smoothing to the input data.
 
-    The extent of smoothing needs to be specified as an input parameter.
+    Parameters
+    ----------
+    aryFuncChnk : np.array
+        TODO
+    varSdSmthSpt : float (?)
+        Extent of smoothing.
+    Returns
+    -------
+    aryFuncChnk : np.array
+        Smoothed data.
     """
     varNdim = aryFuncChnk.ndim
 
@@ -61,10 +70,19 @@ def funcSmthSpt(aryFuncChnk, varSdSmthSpt):
 
 # %% Temporal smoothing of fMRI data & pRF time course models
 def funcSmthTmp(aryFuncChnk, varSdSmthTmp):
-    """
-    Apply temporal smoothing to the input data.
+    """Apply temporal smoothing to fMRI data & pRF time course models.
 
-    The extend of smoothing needs to be specified as an input parameter.
+    Parameters
+    ----------
+    aryFuncChnk : np.array
+        TODO
+    varSdSmthTmp : float (?)
+        extend of smoothing
+
+    Returns
+    -------
+    aryFuncChnk : np.array
+        TODO
     """
     # For the filtering to perform well at the ends of the time series, we
     # set the method to 'nearest' and place a volume with mean intensity
