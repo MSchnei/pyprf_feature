@@ -1,15 +1,14 @@
 # -*- coding: utf-8 -*-
-"""
-Created on Mon Jul 20 16:47:28 2015
 
-@author: Marian.Schneider
-"""
+"""Main script to deliver presentation stimuli."""
+
 from __future__ import division  # so that 1/3=0.333 instead of 1/3=0
-from psychopy import visual, event, core,  monitors, logging, gui, data, misc
-from psychopy.misc import pol2cart
 import numpy as np
 import pickle
 import os
+from psychopy import visual, event, core,  monitors, logging, gui, data, misc
+from psychopy.misc import pol2cart
+
 
 # %%
 """ SAVING and LOGGING """
@@ -116,13 +115,17 @@ masks = np.load(str_path_masks)
 # where -1 means that values are not passed, 0 means values are half-passed
 masks[masks == 0] = -1
 
-# retrieve conditions from pickle file (stored in folder Conditions)
+# open pickle file (stored in folder Conditions)
 str_path_conditions = str_path_parent_up + os.path.sep + 'Conditions' + \
     os.path.sep + 'Conditions_run' + str(expInfo['run']) + '.pickle'
 with open(str_path_conditions, 'rb') as handle:
     arrays = pickle.load(handle)
+
+# get timings for apertures and motion directions
 Conditions = arrays["Conditions"]
 Conditions = Conditions.astype(int)
+
+# get timings for the targets
 Targets = arrays["Targets"]
 Targets = Targets.astype(bool)
 TargetOnsetinSec = arrays["TargetOnsetinSec"]
@@ -132,6 +135,9 @@ targets = np.arange(0, len(Conditions)*ExpectedTR, ExpectedTR)[Targets]
 targets = targets + TargetOnsetinSec
 print('TARGETS: ')
 print targets
+
+# get the array for the random textured pattern
+noiseTexture = arrays["NoiseTexture"]
 
 # create array to log key pressed events
 TriggerPressedArray = np.array([])
@@ -146,13 +152,6 @@ logFile.write('TargetDur=' + unicode(TargetDur) + '\n')
 """STIMULI"""
 
 # INITIALISE SOME STIMULI
-
-noiseDim = 256
-noiseTexture = np.ones((noiseDim, noiseDim))  # white
-blackDotIdx = np.random.choice(noiseDim*noiseDim, noiseDim*noiseDim/2)
-noiseTexture = noiseTexture.flatten()
-noiseTexture[blackDotIdx] = -1  # black
-noiseTexture = noiseTexture.reshape((noiseDim, noiseDim))
 
 movRTP = visual.GratingStim(
     myWin,

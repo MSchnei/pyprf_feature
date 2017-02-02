@@ -13,7 +13,7 @@ import itertools
 
 # set paramters
 NrOfApertures = 32
-NrOfMotionDir = 8+1  # add another number for static (number 9)
+NrOfMotionDir = 8+1  # 8 motion directions + 1 static, number 9 for static
 
 ExpectedTR = 2.832
 TargetDuration = 0.3
@@ -68,6 +68,8 @@ Conditions2 = np.vstack((np.zeros((NrNullTrialStart, 2)),
                         Conditions2,
                         np.zeros((NrNullTrialEnd, 2))))
 
+# %% Prepare target times
+
 # prepare targets
 NrOfTargets = int(len(Conditions1)/5)
 Targets = np.zeros(len(Conditions1))
@@ -85,18 +87,32 @@ TargetOnsetinSec = np.random.uniform(0.1,
                                      ExpectedTR-TargetDuration,
                                      size=NrOfTargets)
 
+# %% Prepare array for random noise pattern
+
+noiseDim = 256
+noiseTexture = np.ones((noiseDim, noiseDim))  # white
+blackDotIdx = np.random.choice(noiseDim*noiseDim, noiseDim*noiseDim/2)
+noiseTexture = noiseTexture.flatten()
+noiseTexture[blackDotIdx] = -1  # black
+noiseTexture = noiseTexture.reshape((noiseDim, noiseDim))
+
+
+# %% save the results
+
 # create dictionary for saving to pickle
 array_run1 = {'Conditions': Conditions1,
               'Targets': Targets,
               'TargetOnsetinSec': TargetOnsetinSec,
               'ExpectedTR': ExpectedTR,
               'ExpectedTargetDuration': TargetDuration,
+              'NoiseTexture': noiseTexture,
               }
 array_run2 = {'Conditions': Conditions2,
               'Targets': Targets,
               'TargetOnsetinSec': TargetOnsetinSec,
               'ExpectedTR': ExpectedTR,
               'ExpectedTargetDuration': TargetDuration,
+              'NoiseTexture': noiseTexture,
               }
 
 # save dictionary to pickle
