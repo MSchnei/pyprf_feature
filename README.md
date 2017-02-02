@@ -1,5 +1,6 @@
 # py_pRF_motion
 A free & open python tool for finding best-fitting pRF models and motion parameters for fMRI data.
+
 If you are not interested in getting an estimate of the voxel's preferred motion direction but only the spatial properties of the population receptive field please check out:  https://github.com/ingo-m/py_pRF_mapping
 
 ## Dependencies
