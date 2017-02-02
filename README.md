@@ -6,9 +6,9 @@ A free & open python tool for finding best-fitting pRF models and motion paramet
 
 | Package                              | Tested version |
 |--------------------------------------|----------------|
-| [NumPy](http://www.numpy.org/)       | ?              |
-| [SciPy](http://www.scipy.org/)       | ?              |
-| [NiBabel](http://nipy.org/nibabel/)  | ?              |
+| [NumPy](http://www.numpy.org/)       | 1.11.1         |
+| [SciPy](http://www.scipy.org/)       | 0.18.0         |
+| [NiBabel](http://nipy.org/nibabel/)  | 2.0.2          |
 
 ## How to use
 Step 1: Record fMRI data
@@ -30,8 +30,9 @@ Open a terminal, navigate to the Analysis folder, containing the "pRF_main.py" s
 ## References
 This application is based on the following work:
 
-...
+Dumoulin, S. O., & Wandell, B. A. (2008). Population receptive field estimates in human visual cortex. NeuroImage, 39(2), 647–660. https://doi.org/10.1016/j.neuroimage.2007.09.034
 
+Nishimoto, S., Vu, A. T., Naselaris, T., Benjamini, Y., Yu, B., & Gallant, J. L. (2011). Report Reconstructing Visual Experiences from Brain Activity Evoked by Natural Movies, 1641–1646. https://doi.org/10.1016/j.cub.2011.08.031
 
 ## License
 
