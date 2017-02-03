@@ -96,7 +96,7 @@ myWin = visual.Window(
     blendMode='avg')
 
 # Speed of the dots (in deg per second)
-speedPixPerSec = misc.deg2pix(16.64, moni)  # 0.01
+speedPixPerSec = misc.deg2pix(8.0, moni)  # 0.01
 # The size of the field.
 fieldSizeinDeg = 24
 fieldSizeinPix = np.round(misc.deg2pix(fieldSizeinDeg, moni))

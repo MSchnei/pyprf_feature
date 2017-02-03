@@ -1,6 +1,6 @@
 # -*- coding: utf-8 -*-
 
-"""Prepare condition order, target times and noise texture."""
+"""Prepare condition order, targets and noise texture for stim presentation."""
 
 from __future__ import division  # so that 1/3=0.333 instead of 1/3=0
 import numpy as np
@@ -62,10 +62,13 @@ aryCondStub = aryCondStub.reshape((varNrOfApertAxes*varNrOfMotionDir,
 for ind, cond in enumerate(aryCondStub):
     aryCondStub[ind, :, :] = aryCondStub[ind, np.random.permutation(
         varNrOfApertFields), :]
-
 # axis, subpart of axis, aperture order, [aperture index, motion direction]
 aryCondStub = aryCondStub.reshape((varNrOfApertAxes, varNrOfMotionDir,
                                    varNrOfApertFields, 2))
+# make a copy for run 7 which we will need later
+aryRun7 = np.copy(aryCondStub.reshape((varNrOfApertAxes*varNrOfMotionDir,
+                                       varNrOfApertFields, 2)))
+
 
 # %%
 # determine which axes will be presented in which run
@@ -131,11 +134,36 @@ for ind in np.arange(varNrOfRuns):
 # get number of volumes
 varNrOfVols = Conditions.shape[1]
 
+
+# %% Prepare run 7
+# Unlike the first 6 runs, run 7 will not have aperture positions and
+# motion directions fully crossed
+
+# take aryRun7, which we saved earlier, and shuffle it
+np.random.shuffle(aryRun7)
+aryRun7 = aryRun7.reshape((-1, 2))
+# Take only every second element
+aryRun7 = aryRun7[0::2, :]
+# insert null trials from one of the previous runs (randomly chosen)
+aryRun7 = np.insert(aryRun7,
+                    aryNullPos[np.random.permutation(varNrOfRuns)[0], :],
+                    np.array([0, 0]), axis=0)
+# add null trials in beginning and end
+aryRun7 = np.vstack((np.zeros((varNrNullTrialStart, 2)), aryRun7,
+                     np.zeros((varNrNullTrialEnd, 2))))
+
+# reshape aryRun7 for concatenation with Conditions
+aryRun7 = aryRun7.reshape(((1,) + aryRun7.shape))
+# append run 7 to conditions
+Conditions = np.concatenate((Conditions, aryRun7), axis=0)
+# increment nr of runs variable
+varNrOfRuns += 1
+
 # %% Prepare target times
 
 # prepare targets
 varNrOfTargets = int(varNrOfVols/5)
-Targets = np.zeros((Conditions.shape[0:2]))
+Targets = np.zeros((varNrOfRuns, varNrOfVols))
 TargetOnsetinSec = np.empty((varNrOfRuns, varNrOfTargets))
 
 for ind in np.arange(varNrOfRuns):
