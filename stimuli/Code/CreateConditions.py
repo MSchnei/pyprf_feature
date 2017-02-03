@@ -1,9 +1,6 @@
 # -*- coding: utf-8 -*-
-"""
-Created on Thu Jun 23 16:21:45 2016
 
-@author: marian
-"""
+"""Prepare condition order, target times and noise texture."""
 
 from __future__ import division  # so that 1/3=0.333 instead of 1/3=0
 import numpy as np
@@ -13,7 +10,7 @@ import itertools
 
 # set paramters
 varNrOfApertAxes = 4
-varNrOfRuns = (varNrOfApertAxes*(varNrOfApertAxes-1))/2
+varNrOfRuns = int((varNrOfApertAxes*(varNrOfApertAxes-1))/2)
 varNrOfApertFields = 8
 varNrOfApert = varNrOfApertAxes * varNrOfApertFields
 varNrOfMotionDir = 8+1  # 8 motion directions + 1 static, number 9 for static
@@ -26,7 +23,7 @@ varNrOfCond = varNrOfApert*varNrOfMotionDir
 # prepare vector for motion direction; define 8 directions of motion
 vecMotionDir = np.linspace(1, varNrOfMotionDir, varNrOfMotionDir)
 
-# %% prepare the aryCondStub, which wil form the basis of the Condtions array
+# %% prepare the aryCondStub, which will form the basis of the Condtions array
 
 # prepare vector for aperture configurations
 vecApertConfig = np.linspace(1, varNrOfApert, varNrOfApert)
@@ -152,7 +149,7 @@ for ind in np.arange(varNrOfRuns):
         # check that two targets do not follow each other immediately
         lgcRep = np.greater(np.sum(np.diff(np.sort(TargetPos)) == 1), 0)
     Targets[ind, TargetPos] = 1
-    assert varNrOfTargets == np.sum(Targets, axis=1)
+    assert varNrOfTargets == np.sum(Targets[ind])
 
     # prepare random target onset delay
     TargetOnsetinSec[ind, :] = np.random.uniform(0.1,
