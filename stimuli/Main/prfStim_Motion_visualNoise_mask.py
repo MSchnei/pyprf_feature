@@ -66,10 +66,10 @@ logging.console.setLevel(logging.WARNING)  # set console to receive warnings
 # %%
 """MONITOR AND WINDOW"""
 # set monitor information:
-distanceMon = 29.5   # [99 for Nova coil]
-widthMon    = 35     # [30 for Nova coil]
-PixW        = 1920.0 # [1920.0] in scanner
-PixH        = 1200.0 # [1200.0] in scanner
+distanceMon = 29.5  # [99 for Nova coil]
+widthMon = 35  # [30 for Nova coil]
+PixW = 1920.0  # [1920.0] in scanner
+PixH = 1200.0  # [1200.0] in scanner
 
 moni = monitors.Monitor('testMonitor', width=widthMon, distance=distanceMon)
 moni.setSizePix([PixW, PixH])  # [1920.0, 1080.0] in psychoph lab

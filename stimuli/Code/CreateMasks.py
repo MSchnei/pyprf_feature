@@ -1,4 +1,5 @@
 # -*- coding: utf-8 -*-
+
 """
 Created on Tue Jul 19 11:27:49 2016
 
@@ -380,7 +381,9 @@ for i, cond in enumerate(Cond):
     # save to mskHalf
     mskHalf[:, :, 2*i] = m
     mskHalf[:, :, 2*i+1] = m2
-
+# change order along axis = 2
+neworder = np.array([2, 0, 3, 1])
+mskHalf = mskHalf[:, :, neworder]
 
 # 2nd step: define ring apertures
 circleSplits = 4
