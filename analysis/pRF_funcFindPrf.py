@@ -271,7 +271,7 @@ def funcFindPrfXval(idxPrc, vecMdlXpos, vecMdlYpos, vecMdlSd, lstFuncTrnChnk,
         # Vector with pRF values at which to give status feedback:
         vecStatPrf = np.linspace(0,
                                  varNumMdls,
-                                 num=(varStsStpSze1),
+                                 num=(varStsStpSze+1),
                                  endpoint=True)
         vecStatPrf = np.ceil(vecStatPrf)
         vecStatPrf = vecStatPrf.astype(int)

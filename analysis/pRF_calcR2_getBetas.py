@@ -1,6 +1,6 @@
 # -*- coding: utf-8 -*-
 
- """Procedure to calculate betas and R^2 for the best model.""" 
+"""Procedure to calculate betas and R^2 for the best model.""" 
 
 # Part of py_pRF_motion library
 # Copyright (C) 2016  Marian Schneider
@@ -88,7 +88,7 @@ def getBetas(idxPrc,
         # Vector with pRF values at which to give status feedback:
         vecStatPrf = np.linspace(0,
                                  varNumMdls,
-                                 num=(varStsStpSze1),
+                                 num=(varStsStpSze+1),
                                  endpoint=True)
         vecStatPrf = np.ceil(vecStatPrf)
         vecStatPrf = vecStatPrf.astype(int)
