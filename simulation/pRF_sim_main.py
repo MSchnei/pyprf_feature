@@ -21,16 +21,14 @@
 # %% Import modules
 import os
 import numpy as np
-import nibabel as nb
 import time
 import multiprocessing as mp
 import sys
-from pRF_mdlCrt import (loadPng, loadPrsOrd, crtPwBoxCarFn, cnvlPwBoxCarFn,
-                        rsmplInHighRes, funcPrfTc)
-from pRF_filtering import funcSmthTmp
-from pRF_funcFindPrf import funcFindPrf, funcFindPrfXval
-from pRF_calcR2_getBetas import getBetas
-from pRF_hrfutils import spmt, dspmt, ddspmt, cnvlTc, cnvlTcOld
+from analysis.pRF_mdlCrt import (loadPng, loadPrsOrd, crtPwBoxCarFn,
+                                 cnvlPwBoxCarFn, rsmplInHighRes, funcPrfTc)
+from analysis.pRF_funcFindPrf import funcFindPrf, funcFindPrfXval
+from analysis.pRF_calcR2_getBetas import getBetas
+from analysis.pRF_hrfutils import spmt, dspmt, ddspmt, cnvlTc, cnvlTcOld
 os.chdir(os.path.abspath(os.path.dirname(__file__)))
 
 # %% get some parameters from command line
