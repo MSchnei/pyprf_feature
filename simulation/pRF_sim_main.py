@@ -24,12 +24,20 @@ import numpy as np
 import time
 import multiprocessing as mp
 import sys
+# add parent path
+strParentPath = os.path.abspath(
+    os.path.join(os.path.dirname(__file__), '..'))
+sys.path.insert(0, strParentPath)
+# import modules from parent path
 from analysis.pRF_mdlCrt import (loadPng, loadPrsOrd, crtPwBoxCarFn,
                                  cnvlPwBoxCarFn, rsmplInHighRes, funcPrfTc)
 from analysis.pRF_funcFindPrf import funcFindPrf, funcFindPrfXval
 from analysis.pRF_calcR2_getBetas import getBetas
 from analysis.pRF_hrfutils import spmt, dspmt, ddspmt, cnvlTc, cnvlTcOld
 os.chdir(os.path.abspath(os.path.dirname(__file__)))
+# delete parent path
+del sys.path[0]
+
 
 # %% get some parameters from command line
 sys.argv = sys.argv[1:]
@@ -38,7 +46,7 @@ print 'Argument List:', str(sys.argv)
 
 if varNumCmdArgs == 0:
     # import the default cfg file
-    import pRF_config as cfg
+    import pRF_sim_config as cfg
 else:
     print "------Imported custom cfg file"
     # determine the type of aperture
