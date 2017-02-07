@@ -20,6 +20,9 @@ outPath = os.path.join(str_path_parent_up, "PNGs")
 if not os.path.exists(outPath):
     os.makedirs(outPath)
 
+factorX = 8
+factorY = 8
+
 # load masks from pickle
 print "Opening pickle.."
 with open(picklePath, 'rb') as handle:

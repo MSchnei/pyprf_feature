@@ -22,13 +22,13 @@ import pickle
 lgcStc = False
 
 # Number of presented runs
-varNumRuns = 4
+varNumRuns = 6
 
 # list of volumes per run
-varNumTPinSingleRun = np.array([172, 172, 172, 172])
+varNumTPinSingleRun = np.array([172, 172, 172, 172, 172, 172])
 
 # list of stimuli used for run (varies with individual recording)
-lstRunStimuli = np.array([1, 2, 3, 4])
+lstRunStimuli = np.array([1, 2, 3, 4, 5, 6])
 
 # Determine the factors by which the image should be downsampled (since the
 # original array is rather big; factor 2 means:downsample from 1200 to 600):
@@ -36,10 +36,10 @@ factorX = 8
 factorY = 8
 
 # load aperture positions
-strPathApertPos = '/media/sf_D_DRIVE/PacMan/PsychoPyScripts/Pacman_Scripts/PacMan_Pilot3_20161220/ModBasedMotLoc/Masks/mskBar.npy'
+strPathApertPos = '/home/marian/Documents/Git/py_pRF_motion/stimuli/Masks/mskCircleBar.npy'
 
 # Output path for time course files:
-strPathOut = '/media/sf_D_DRIVE/PacMan/Analysis/P3/PrfPngs'
+strPathOut = '/media/sf_D_DRIVE/MotionLocaliser/Simulation2p0/Apertures/PNGs/mskCircleBar'
 if not os.path.exists(strPathOut):
     os.makedirs(strPathOut)
 
@@ -49,7 +49,7 @@ if not os.path.exists(strPathOut):
 # Base name of pickle files that contain order of stim presentat. in each run
 # file should contain 1D array, column contains present. order of aperture pos,
 # here file is 2D where 2nd column contains present. order of motion directions
-strPathPresOrd = '/media/sf_D_DRIVE/PacMan/PsychoPyScripts/Pacman_Scripts/PacMan_Pilot3_20161220/ModBasedMotLoc/Conditions/Conditions_run0'
+strPathPresOrd = '/media/sf_D_DRIVE/MotionLocaliser/Simulation2p0/Conditions/Conditions_run0'
 
 
 # %%

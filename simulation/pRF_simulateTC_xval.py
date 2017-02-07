@@ -66,21 +66,21 @@ varPrfStdMax = 22.0  # max is given by np.sqrt(2*np.power(2*varExtXmax,2))
 varNumPNG = 33
 
 # Number of presented runs
-varNumRuns = 8
+varNumRuns = 6
 
 # Volume TR of input data [s]:
 varTr = 3.0
 
 # Determine the factors by which the image should be downsampled (since the
 # original array is rather big; factor 2 means:downsample from 1200 to 600):
-factorX = 12
-factorY = 12
+factorX = 8
+factorY = 8
 
 # state the number of parallel processes
 varPar = 10
 
 # Output path for time course files:
-strPathMdl = '/media/sf_D_DRIVE/MotionLocaliser/Apertures/pRF_model_tc/' + \
+strPathMdl = '/media/sf_D_DRIVE/MotionLocaliser/Simulation2p0/Apertures/pRF_model_tc/' + \
     aprtType + '/'
 
 # %%
@@ -89,18 +89,17 @@ strPathMdl = '/media/sf_D_DRIVE/MotionLocaliser/Apertures/pRF_model_tc/' + \
 # Base name of pickle files that contain order of stim presentat. in each run
 # file should contain 1D array, column contains present. order of aperture pos,
 # here file is 2D where 2nd column contains present. order of motion directions
-strPathPresOrd = '/media/sf_D_DRIVE/MotionLocaliser/PsychoPyScripts/Conditions/Conditions_run0'
+strPathPresOrd = '/media/sf_D_DRIVE/MotionLocaliser/Simulation2p0/Conditions/Conditions_run0'
 
 # Base name of png files representing the stimulus aperture as black and white
 # the decisive information is in alpha channel (4th dimension)
-strPathPNGofApertPos = '/media/sf_D_DRIVE/MotionLocaliser/Apertures/PNGs/' + \
+strPathPNGofApertPos = '/media/sf_D_DRIVE/MotionLocaliser/Simulation2p0/Apertures/PNGs/' + \
     aprtType + '/' + aprtType + '_'
 
 # Size of png files (pixel*pixel):
-tplPngSize = (1200, 1200)
+tplPngSize = (1024, 1024)
 
-if not lgcNoise:
-    strPathNoise = '/media/sf_D_DRIVE/MotionLocaliser/Apertures/pRF_model_tc/noise/noise_xval.npy'
+strPathNoise = '/media/sf_D_DRIVE/MotionLocaliser/Simulation2p0/Apertures/pRF_model_tc/noise/noise_xval'
 
 # %%
 # ***  Check time
@@ -142,7 +141,7 @@ for idx01 in range(0, varNumPNG):
 aryApertPos = np.zeros((tplPngSize[0], tplPngSize[1], varNumPNG))
 for idx01 in range(0, varNumPNG):
     aryApertPos[:, :, idx01] = sp.misc.imread(
-        lstPathsPNGofApertPos[idx01])[:, :, 3]
+        lstPathsPNGofApertPos[idx01])
 
 # Convert RGB values (0 to 255) to integer ones and zeros:
 aryApertPos = (aryApertPos > 0).astype(int)
@@ -185,9 +184,12 @@ for ind in range(0, aryTngCrvAoM.shape[1]):
 
 # add 0 at position 0 (this has to do with experim. coding: 0 means null trial)
 aryTngCrvAoM = np.vstack((np.zeros(aryTngCrvAoM.shape[1]), aryTngCrvAoM))
+# add 0 zero at position 9 (again experim. coding: 9 means static)
+aryTngCrvAoM = np.vstack((aryTngCrvAoM, np.zeros(aryTngCrvAoM.shape[1])))
+
 # add one more array that has equal response to all motion positions
-aryTngCrvEqProb = np.hstack(([0], np.tile(np.array([1/8]), 8)))
-aryTngCrvEqProb = aryTngCrvEqProb.reshape((9, 1))
+aryTngCrvEqProb = np.hstack(([0], np.tile(np.array([1/8]), 8), [0]))
+aryTngCrvEqProb = aryTngCrvEqProb.reshape((-1, 1))
 # add all three arrays together to form one common array of all tuning curves
 aryTngCrv = np.concatenate((aryTngCrvAoM, aryTngCrvEqProb),
                            axis=1)
@@ -265,11 +267,11 @@ vecTngCrvIndcs = np.arange(varNumTngCrv, dtype='int8')
 # put all possible combinations for three 2D Gauss parameters (x, y, sigma)
 # and motion direction tuning curve models into tuple array
 iterables = [combiXY, vecPrfSd, vecTngCrvIndcs]
-aryNrlParams = list(itertools.product(*iterables))
+aryNrlParamsPix = list(itertools.product(*iterables))
 # undo the zipping
-for ind, item in enumerate(aryNrlParams):
-    aryNrlParams[ind] = list(np.hstack(item))
-aryNrlParams = np.array(aryNrlParams)
+for ind, item in enumerate(aryNrlParamsPix):
+    aryNrlParamsPix[ind] = list(np.hstack(item))
+aryNrlParamsPix = np.array(aryNrlParamsPix)
 
 # calculate number of models
 varNumMdls = varNumXY*varNumPrfSizes*varNumTngCrv
@@ -308,7 +310,7 @@ for ind, item in enumerate(aryNrlParamsDeg):
     aryNrlParamsDeg[ind] = list(np.hstack(item))
 aryNrlParamsDeg = np.array(aryNrlParamsDeg)
 
-array = {'aryNrlParamsPix': aryNrlParams,
+array = {'aryNrlParamsPix': aryNrlParamsPix,
          'aryNrlParamsDeg': aryNrlParamsDeg,
          'varNumXY': varNumXY,
          'varNumPrfSizes': varNumPrfSizes,
@@ -342,7 +344,7 @@ print('---------Number of neural models that will be created: ' +
 
 # put n =varPar number of chunks of the Gauss parameters into list for
 # parallel processing
-lstPrlNrlMdls = np.array_split(aryNrlParams, varPar)
+lstPrlNrlMdls = np.array_split(aryNrlParamsPix, varPar)
 
 print('---------Creating parallel processes for neural models')
 
@@ -528,9 +530,11 @@ if lgcNoise:
             varNumCNR,
             varNumTP,
             )
+    # save noise so it can be used by other apertures
+    np.save(strPathNoise, noise)
 else:
     # load noise
-    noise = np.load(strPathNoise)
+    noise = np.load(strPathNoise + '.npy')
 
 # response = signal + noise, here aryMdlConvZscore is the signal
 # use broadcastng for efficiency

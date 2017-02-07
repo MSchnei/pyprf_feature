@@ -400,55 +400,13 @@ else:
 
 print('------Find pRF models for voxel time courses')
 
-print('---------Loading nii data')
-# Load mask (to restrict model fining):
-niiMask = nb.load(cfg.strPathNiiMask)
-# Get nii header of mask:
-hdrMsk = niiMask.header
-# Get nii 'affine':
-affMsk = niiMask.affine
-# Load the data into memory:
-aryMask = niiMask.get_data().astype('bool')
-
-# prepare aryFunc for functional data
-aryFunc = np.empty((np.sum(aryMask), 0), dtype='float32')
-for idx in np.arange(len(cfg.lstNiiFls)):
-    print('------------Loading run: ' + str(idx+1))
-    # Load 4D nii data:
-    niiFunc = nb.load(os.path.join(cfg.strPathNiiFunc,
-                                   cfg.lstNiiFls[idx]))
-    # Load the data into memory:
-    aryFuncTemp = niiFunc.get_data()
-    aryFunc = np.append(aryFunc, aryFuncTemp[aryMask, :], axis=1)
-
-# remove unneccary array
-del(aryFuncTemp)
-
-# Take mean over time of functional nii data:
-aryFuncMean = np.mean(aryFunc, axis=1)
-# Logical test for voxel inclusion: is the mean of functional time series
-# above the cutoff value?
-aryLgc = np.greater(aryFuncMean, cfg.varIntCtf)
-# update 3D mask accordingly
-aryMask[aryMask] = np.copy(aryLgc)
+print('---------Loading simulated data')
 
 # Array with functional data for which conditions (cutoff value)
 # are fullfilled:
-aryFunc = aryFunc[aryLgc, :]
+aryFunc = np.load(cfg.strPathNiiFunc)
 # Number of voxels for which pRF finding will be performed:
 varNumVoxInc = aryFunc.shape[0]
-
-# Convert preprocessing parameters (for temporal and spatial smoothing) from
-# SI units (i.e. [s] and [mm]) into units of data array:
-cfg.varSdSmthTmp = np.divide(cfg.varSdSmthTmp, cfg.varTr)
-
-# Perform temporal smoothing on pRF time course models:
-if 0.0 < cfg.varSdSmthTmp:
-    print('---------Temporal smoothing on pRF time course models')
-    print('------------SD tmp smooth is: ' + str(cfg.varSdSmthTmp))
-    aryPrfTc = funcSmthTmp(aryPrfTc,
-                           cfg.varSdSmthTmp,
-                           )
 
 print('---------Preparing parallel pRF model finding')
 
@@ -663,46 +621,25 @@ if cfg.lgcXval:
 # aryPrfRes[total-number-of-voxels, 0:3], where the 2nd dimension
 # contains the parameters of the best-fitting pRF model for the voxel, in
 # the order (0) pRF-x-pos, (1) pRF-y-pos, (2) pRF-SD, (3) pRF-R2.
-aryPrfRes = np.zeros((niiMask.shape + (6,)))
+aryPrfRes = np.zeros((varNumVoxInc, 6))
 
 # Put results form pRF finding into array (they originally needed to be
 # saved in a list due to parallelisation).
-aryPrfRes[aryMask, 0] = aryBstXpos
-aryPrfRes[aryMask, 1] = aryBstYpos
-aryPrfRes[aryMask, 2] = aryBstSd
-aryPrfRes[aryMask, 3] = aryBstR2
+aryPrfRes[:, 0] = aryBstXpos
+aryPrfRes[:, 1] = aryBstYpos
+aryPrfRes[:, 2] = aryBstSd
+aryPrfRes[:, 3] = aryBstR2
 
 # Calculate polar angle map:
-aryPrfRes[:, :, :, 4] = np.arctan2(aryPrfRes[:, :, :, 1],
-                                   aryPrfRes[:, :, :, 0])
+aryPrfRes[:, 4] = np.arctan2(aryPrfRes[:, 1],
+                             aryPrfRes[:, 0])
 
 # Calculate eccentricity map (r = sqrt( x^2 + y^2 ) ):
-aryPrfRes[:, :, :, 5] = np.sqrt(np.add(np.power(aryPrfRes[:, :, :, 0], 2.0),
-                                       np.power(aryPrfRes[:, :, :, 1], 2.0)))
+aryPrfRes[:, 5] = np.sqrt(np.add(np.power(aryPrfRes[:, 0], 2.0),
+                                 np.power(aryPrfRes[:, 1], 2.0)))
 # save as npy
 np.save(cfg.strPathOut + '_aryPrfRes', aryPrfRes)
 np.save(cfg.strPathOut + '_aryBstBetas', aryBstBetas)
-
-# List with name suffices of output images:
-lstNiiNames = ['_x_pos',
-               '_y_pos',
-               '_SD',
-               '_R2',
-               '_polar_angle',
-               '_eccentricity']
-
-print('---------Exporting results')
-
-# Save nii results:
-for idxOut in range(0, 6):
-    # Create nii object for results:
-    niiOut = nb.Nifti1Image(aryPrfRes[:, :, :, idxOut],
-                            affMsk,
-                            header=hdrMsk
-                            )
-    # Save nii:
-    strTmp = (cfg.strPathOut + lstNiiNames[idxOut] + '.nii')
-    nb.save(niiOut, strTmp)
 
 
 # %%
