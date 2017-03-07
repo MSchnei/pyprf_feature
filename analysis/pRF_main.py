@@ -401,7 +401,7 @@ else:
 print('------Find pRF models for voxel time courses')
 
 print('---------Loading nii data')
-# Load mask (to restrict model fining):
+# Load mask (to restrict model finding):
 niiMask = nb.load(cfg.strPathNiiMask)
 # Get nii header of mask:
 hdrMsk = niiMask.header
