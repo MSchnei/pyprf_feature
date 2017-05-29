@@ -50,15 +50,7 @@ varNumVol = 1032
 varIntCtf = -100.0
 
 # Number of processes to run in parallel:
-varPar = 10
-
-# Size of high-resolution visual space model in which the pRF models are
-# created (x- and y-dimension). The x and y dimensions specified here need to
-# be the same integer multiple of the number of x- and y-positions to model, as
-# specified above. In other words, if the the resolution in x-direction of the
-# visual space model is ten times that of varNumX, the resolution in
-# y-direction also has to be ten times varNumY. The order is: first x, then y.
-tplVslSpcHighSze = (200, 200)
+varPar = 8
 
 aperture = 'mskCircleBar'
 
@@ -66,14 +58,14 @@ aperture = 'mskCircleBar'
 strPathNiiFunc = '/media/sf_D_DRIVE/MotionLocaliser/Simulation2p0/Apertures/pRF_model_tc/' + aperture + '/simResp_xval_0.npy'
 
 # Output basename:
-strPathOut = '/media/sf_D_DRIVE/MotionLocaliser/Simulation2p0/FitResults/simResp_xval_0'
+strPathOut = '/media/sf_D_DRIVE/MotionLocaliser/Simulation2p0/FitResults/simResp_xval_' + aperture + '0'
 
 # Use cython (i.e. compiled code) for faster performance? (Requires cython to
 # be installed.)
 lgcCython = False
 
 # Create pRF time course models?
-lgcCrteMdl = False
+lgcCrteMdl = True
 
 # reduce presented motion direction from 8 to 4?
 lgcAoM = True

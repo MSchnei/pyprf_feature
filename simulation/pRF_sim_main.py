@@ -183,37 +183,25 @@ if cfg.lgcCrteMdl:
                                 cfg.varNumVol])
     # aryBoxCarConv will have shape 128, 128, 15, 688
 
-    # *** resample pixel-time courses in high-res visual space
-    aryBoxCarConvHigh = rsmplInHighRes(aryBoxCarConv,
-                                       cfg.tplPngSize,
-                                       cfg.tplVslSpcHighSze,
-                                       cfg.varNumMtDrctn,
-                                       cfg.varNumVol)
-
-    # aryBoxCarConvHigh will have shape 200, 200, 15, 688
-
     # *** Create pRF time courses models
-    # The pRF time course models are created using the super-sampled model of
-    # the pixel time courses.
-
     print('------Create pRF time course models')
 
     # Upsampling factor:
-    if (cfg.tplVslSpcHighSze[0] / cfg.varNumX) == (
-            cfg.tplVslSpcHighSze[1] / cfg.varNumY):
-        varFctUp = cfg.tplVslSpcHighSze[0] / cfg.varNumX
+    if (cfg.tplPngSize[0] / cfg.varNumX) == (
+            cfg.tplPngSize[1] / cfg.varNumY):
+        varFctUp = cfg.tplPngSize[0] / cfg.varNumX
     else:
         print('------ERROR. Dimensions of upsampled visual space do not ' +
               'agree with specified number of pRFs to model.')
 
     # Vector with the x-indicies of the positions in the super-sampled visual
     # space at which to create pRF models.
-    vecX = np.linspace(0, (cfg.tplVslSpcHighSze[0] - 1), cfg.varNumX,
+    vecX = np.linspace(0, (cfg.tplPngSize[0] - 1), cfg.varNumX,
                        endpoint=True)
 
     # Vector with the y-indicies of the positions in the super-sampled visual
     # space at which to create pRF models.
-    vecY = np.linspace(0, (cfg.tplVslSpcHighSze[1] - 1), cfg.varNumY,
+    vecY = np.linspace(0, (cfg.tplPngSize[1] - 1), cfg.varNumY,
                        endpoint=True)
 
     # Vector with the standard deviations of the pRF models. We need to convert
@@ -221,8 +209,8 @@ if cfg.lgcCrteMdl:
     # dimensions of the visual space. We calculate the scaling factor from
     # degrees of visual angle to pixels in the *upsampled* visual space
     # separately for the x- and the y-directions (the two should be the same).
-    varDgr2PixUpX = cfg.tplVslSpcHighSze[0] / (cfg.varExtXmax - cfg.varExtXmin)
-    varDgr2PixUpY = cfg.tplVslSpcHighSze[1] / (cfg.varExtYmax - cfg.varExtYmin)
+    varDgr2PixUpX = cfg.tplPngSize[0] / (cfg.varExtXmax - cfg.varExtXmin)
+    varDgr2PixUpY = cfg.tplPngSize[1] / (cfg.varExtYmax - cfg.varExtYmin)
 
     # The factor relating pixels in the upsampled visual space to degrees of
     # visual angle should be roughly the same (allowing for some rounding error
@@ -299,8 +287,8 @@ if cfg.lgcCrteMdl:
     for idxPrc in range(0, cfg.varPar):
         lstPrcs[idxPrc] = mp.Process(target=funcPrfTc,
                                      args=(idxPrc, lstMdlParams[idxPrc],
-                                           cfg.tplVslSpcHighSze, cfg.varNumVol,
-                                           aryBoxCarConvHigh, queOut)
+                                           cfg.tplPngSize, cfg.varNumVol,
+                                           aryBoxCarConv, queOut)
                                      )
         # Daemon (kills processes when exiting):
         lstPrcs[idxPrc].Daemon = True

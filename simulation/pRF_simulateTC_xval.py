@@ -73,11 +73,11 @@ varTr = 3.0
 
 # Determine the factors by which the image should be downsampled (since the
 # original array is rather big; factor 2 means:downsample from 1200 to 600):
-factorX = 8
-factorY = 8
+factorX = 1
+factorY = 1
 
 # state the number of parallel processes
-varPar = 10
+varPar = 8
 
 # Output path for time course files:
 strPathMdl = '/media/sf_D_DRIVE/MotionLocaliser/Simulation2p0/Apertures/pRF_model_tc/' + \
@@ -94,10 +94,10 @@ strPathPresOrd = '/media/sf_D_DRIVE/MotionLocaliser/Simulation2p0/Conditions/Con
 # Base name of png files representing the stimulus aperture as black and white
 # the decisive information is in alpha channel (4th dimension)
 strPathPNGofApertPos = '/media/sf_D_DRIVE/MotionLocaliser/Simulation2p0/Apertures/PNGs/' + \
-    aprtType + '/' + aprtType + '_'
+    aprtType + '/' + 'Ima_'
 
 # Size of png files (pixel*pixel):
-tplPngSize = (1024, 1024)
+tplPngSize = (128, 128)
 
 strPathNoise = '/media/sf_D_DRIVE/MotionLocaliser/Simulation2p0/Apertures/pRF_model_tc/noise/noise_xval'
 

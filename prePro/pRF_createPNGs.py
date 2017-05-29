@@ -36,10 +36,10 @@ factorX = 8
 factorY = 8
 
 # load aperture positions
-strPathApertPos = '/home/marian/Documents/Git/py_pRF_motion/stimuli/Masks/mskCircleBar.npy'
+strPathApertPos = '/home/marian/Documents/Git/py_pRF_motion/stimuli/Masks/mskBar.npy'
 
 # Output path for time course files:
-strPathOut = '/media/sf_D_DRIVE/MotionLocaliser/Simulation2p0/Apertures/PNGs/mskCircleBar'
+strPathOut = '/media/sf_D_DRIVE/MotionLocaliser/Simulation2p0/Apertures/PNGs/mskBar'
 if not os.path.exists(strPathOut):
     os.makedirs(strPathOut)
 
