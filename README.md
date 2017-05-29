@@ -1,7 +1,7 @@
 # py_pRF_motion
 A free & open source package for finding best-fitting pRF models and motion parameters for fMRI data.
 
-If you are only interested in the spatial properties of the population receptive fields, check out this similar project:  https://github.com/ingo-m/py_pRF_mapping
+If you are only interested in the spatial properties of the population receptive fields, not preferred motion directions, check out this related project:  https://github.com/ingo-m/py_pRF_mapping
 
 
 ## Dependencies
