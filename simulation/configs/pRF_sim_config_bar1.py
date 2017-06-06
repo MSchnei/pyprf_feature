@@ -58,7 +58,7 @@ aperture = 'mskBar'
 strPathNiiFunc = '/media/sf_D_DRIVE/MotionLocaliser/Simulation2p0/Apertures/pRF_model_tc/' + aperture + '/simResp_xval_1.npy'
 
 # Output basename:
-strPathOut = '/media/sf_D_DRIVE/MotionLocaliser/Simulation2p0/FitResults/simResp_xval_' + aperture + '1'
+strPathOut = '/media/sf_D_DRIVE/MotionLocaliser/Simulation2p0/FitResults/' + aperture + '/simResp_xval_1'
 
 # Use cython (i.e. compiled code) for faster performance? (Requires cython to
 # be installed.)

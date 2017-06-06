@@ -17,10 +17,18 @@ strParPathGrdTruth = '/media/sf_D_DRIVE/MotionLocaliser/Simulation2p0/Apertures/
 strGrdTrthPickle = 'dicNrlParams_xval.pickle'
 
 strParPathFitRes = '/media/sf_D_DRIVE/MotionLocaliser/Simulation2p0/FitResults'
-lstFitRes = ['simResp_xval_1_aryPrfRes.npy', ]
-aryFitCNR = np.array([0.5])
+lstFitRes = [
+'simResp_xval_0_aryPrfRes.npy',
+'simResp_xval_1_aryPrfRes.npy',
+'simResp_xval_2_aryPrfRes.npy',
+]
 
-lstAprtType = ['mskBar',
+aryFitCNR = np.array([0.1, 0.5, 1])
+
+lstAprtType = [
+               'mskBar',
+               'mskSquare',
+               'mskCircle',
                'mskCircleBar',
                ]
 
@@ -42,7 +50,8 @@ lstGrdTruth = []
 
 for ind1, idxType in enumerate(lstAprtType):  # walk through aperture types
     # load known ground truth
-    with open(os.path.join(strParPathGrdTruth, idxType, strGrdTrthPickle), 'rb') as handle:
+    varPath = os.path.join(strParPathGrdTruth, idxType, strGrdTrthPickle)
+    with open(varPath, 'rb') as handle:
         aryPckl = pickle.load(handle)
     lstGrdTruth.append(aryPckl["aryNrlParamsDeg"])
     # this step is repeated in vein, but paramters are same across aprt types
@@ -154,7 +163,7 @@ for idxNsLvls in np.arange(varNumNoiseLvls):
         labels = ['20/45', '45/45', '70/45']
         plt.xticks(x, labels)
     plt.ylabel('Similarity Index S', fontsize=fontsize)
-    plt.ylim((0.7, 1.0))
+    plt.ylim((0.3, 1.0))
     # Now add the legend with some customizations.
     legend = ax.legend(loc='lower left', shadow=True, fontsize = fontsize)
     plt.show()

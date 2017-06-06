@@ -52,20 +52,20 @@ varIntCtf = -100.0
 # Number of processes to run in parallel:
 varPar = 8
 
-aperture = 'mskCircleBar'
+aperture = 'mskBar'
 
 # Parent path to functional data
-strPathNiiFunc = '/media/sf_D_DRIVE/MotionLocaliser/Simulation2p0/Apertures/pRF_model_tc/' + aperture + '/simResp_xval_1.npy'
+strPathNiiFunc = '/media/sf_D_DRIVE/MotionLocaliser/Simulation2p0/Apertures/pRF_model_tc/' + aperture + '/simResp_xval_0.npy'
 
 # Output basename:
-strPathOut = '/media/sf_D_DRIVE/MotionLocaliser/Simulation2p0/FitResults/simResp_xval_' + aperture + '1'
+strPathOut = '/media/sf_D_DRIVE/MotionLocaliser/Simulation2p0/FitResults/' + aperture + '/simResp_xval_0'
 
 # Use cython (i.e. compiled code) for faster performance? (Requires cython to
 # be installed.)
 lgcCython = False
 
 # Create pRF time course models?
-lgcCrteMdl = False
+lgcCrteMdl = True
 
 # reduce presented motion direction from 8 to 4?
 lgcAoM = True

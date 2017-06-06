@@ -26,22 +26,24 @@ text4save = [['X position in deg of visual angle', '_byXPos_'],
              ['Axis Of Motion', '_byAoM2_'],
              ]
 
-pathType = ['mskBar',
-            'mskCircleBar',
-            ]
+pathType = [
+    'mskBar',
+    'mskSquare',
+    'mskCircle',
+    'mskCircleBar',
+    ]
 
 varNumTypes = len(pathType)
 
-lstFit = ['simResp_xval_1_aryPrfRes.npy',
-          ]
-lstSimResp = ['simResp_xval_1.npy',
-              ]
-lstEstim = ['simResp_xval_1_aryBstBetas.npy',
-            ]
+lstEstim = [
+    'simResp_xval_0_aryBstBetas.npy',
+    'simResp_xval_1_aryBstBetas.npy',
+    'simResp_xval_2_aryBstBetas.npy',
+    ]
 
 pathGrdTrth = 'dicNrlParams_xval.pickle'
-varNumNoiseLvls = len(lstFit)
-CNR = np.array([ 0.5])
+CNR = np.array([0.1, 0.5, 1])
+varNumNoiseLvls = len(CNR)
 
 # %%
 # *** Define some useful functions (for curve fitting)
