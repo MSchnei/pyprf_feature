@@ -39,6 +39,9 @@ strTxtSave = [['X position in deg of visual angle', '_byXPos_'],
               ['Axis of Motion', '_byAoM_'],
               ['Sigma of Motion Preference', '_byMotionSpread_']]
 
+# set path to save figures
+varPathFigs = '/media/sf_D_DRIVE/MotionLocaliser/Simulation2p0/FitResults/Figures/Comp_4times3/'
+
 # *** derive variables
 strTxtSave = strTxtSave[varCriterion]
 varNumAprtTypes = len(lstAprtType)
@@ -163,12 +166,11 @@ for idxNsLvls in np.arange(varNumNoiseLvls):
         labels = ['20/45', '45/45', '70/45']
         plt.xticks(x, labels)
     plt.ylabel('Similarity Index S', fontsize=fontsize)
-    plt.ylim((0.3, 1.0))
+    plt.ylim((0.0, 1.0))
     # Now add the legend with some customizations.
     legend = ax.legend(loc='lower left', shadow=True, fontsize = fontsize)
-    plt.show()
 
     # save
-#    filename = path2saveFigs + 'Similar_' + title + strTxtSave[1] + \
-#        'NoiseLevel_' + str(idxNsLvls) + '.png'
-#    plt.savefig(filename)
+    filename = varPathFigs + 'PrfProps_' + title + strTxtSave[1] + \
+        'NoiseLevel_' + str(idxNsLvls) + '.png'
+    plt.savefig(filename)

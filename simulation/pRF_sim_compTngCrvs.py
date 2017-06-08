@@ -11,20 +11,21 @@ import os
 import pickle
 import matplotlib.pyplot as plt
 import itertools
+from pRF_functions import makeAoMTuneCurves
 
-# %%
-# *** Set parameters and paths to data
+# %% Set parameters and paths to data
 pathFolder = '/media/sf_D_DRIVE/MotionLocaliser/Simulation2p0/Apertures/pRF_model_tc/'
 pathFitResults = '/media/sf_D_DRIVE/MotionLocaliser/Simulation2p0/FitResults'
-path2saveFigs = '' 
+varPathFigs = '/media/sf_D_DRIVE/MotionLocaliser/Simulation2p0/FitResults/Figures/Comp_4times3/'
 
-criterion = 2  # 0: x pos, 1: y pos, 2: pRF size, 3: AoM1, 4: AoM2
-text4save = [['X position in deg of visual angle', '_byXPos_'],
-             ['Y position in deg of visual angle', '_byYPos_'],
-             ['pRF size (sigma) in deg of visual angle', '_byPrfSize_'],
-             ['Axis Of Motion', '_byAoM1_'],
-             ['Axis Of Motion', '_byAoM2_'],
-             ]
+varCriterion = 2  # 0: x pos, 1: y pos, 2: pRF size, 3: AoM1, 4: AoM2
+strTxtSave = [
+    ['X position in deg of visual angle', '_byXPos_'],
+    ['Y position in deg of visual angle', '_byYPos_'],
+    ['pRF size (sigma) in deg of visual angle', '_byPrfSize_'],
+    ['Axis Of Motion', '_byAoM1_'],
+    ['Axis Of Motion', '_byAoM2_'],
+    ]
 
 pathType = [
     'mskBar',
@@ -43,47 +44,19 @@ lstEstim = [
 
 pathGrdTrth = 'dicNrlParams_xval.pickle'
 CNR = np.array([0.1, 0.5, 1])
+
+# *** derive variables
+strTxtSave = strTxtSave[varCriterion]
 varNumNoiseLvls = len(CNR)
 
-# %%
-# *** Define some useful functions (for curve fitting)
-
-def funcGauss1D(x, mu, sig):
-    """ Create 1D Gaussian. Source:
-    http://mathworld.wolfram.com/GaussianFunction.html
-    """
-    arrOut = np.exp(-np.power((x - mu)/sig, 2.)/2)
-    # normalize
-    # arrOut = arrOut/(np.sqrt(2.*np.pi)*sig)
-    # normalize (laternative)
-    arrOut = arrOut/np.sum(arrOut)
-    return arrOut
-
-
-def makeMotDirTuneCurves(x, mu, sig):
-    # find middle of x
-    centre = np.round(len(x)/2)
-    dif = np.subtract(centre, mu).astype(int)
-    # initialise the curve in the centre so it will be symmetric
-    arrOut = funcGauss1D(x, mu+dif, sig)
-    # roll back so that the peak of the gaussian will be over mu
-    arrOut = np.roll(arrOut, -dif)
-    return arrOut
-
-
-def makeAoMTuneCurves(x, mu1, mu2, sig):
-    arr1 = makeMotDirTuneCurves(x, mu1, sig)
-    arr2 = makeMotDirTuneCurves(x, mu2, sig)
-    arrOut = 0.5 * arr1 + 0.5 * arr2
-    return arrOut
-
+# %% Define useful functions
 
 def circDiff(length, ary1, ary2):
     """calculate the circular difference between two paired arrays.
     This function will return the difference between pairs of numbers; however
     the difference that is output will be minimal in the sense that if we
     assume an array with length = 4: [0, 1, 2, 3], the difference between
-    0 and 3 will not be 3, but (i.e. circular difference)"""
+    0 and 3 will not be 3, but 1 (i.e. circular difference)"""
     x = np.arange(length)
     mod = length % 2
     if mod == 0:
@@ -106,8 +79,7 @@ def circDiff(length, ary1, ary2):
     ind = ind.astype('int')
     return flat[ind]
 
-# %%
-# *** load ground truth paramters: x, y, sigma, tuning curve index
+# %% load ground truth paramters: x, y, sigma, tuning curve index
 
 grdTrth = []
 for idxType in pathType:  # walk through aperture types
@@ -121,8 +93,7 @@ for idxType in pathType:  # walk through aperture types
     varNumTngCrv = aryPckl["varNumTngCrv"]
     varNumMdls = varNumXY*varNumPrfSizes*varNumTngCrv
 
-# %%
-# *** get motion tuning curve indices from ground truth
+# %% get motion tuning curve indices from ground truth
 aryMtnCrvIdx = grdTrth[0][:, 3].astype('int')
 
 # get logical to exclude equal probability (used below)
@@ -200,7 +171,7 @@ criteria = np.concatenate((prfCriteria, mtnParams), axis=1)
 #aryRange = np.array((rangeMax1, rangeMax2))
 aryRange = np.array([2])
 
-vecCiterion = np.unique(criteria[:, criterion])
+vecCiterion = np.unique(criteria[:, varCriterion])
 S = np.empty((varNumNoiseLvls,
               varNumTypes,
               len(vecCiterion),
@@ -210,7 +181,7 @@ for idxNsLvls in np.arange(varNumNoiseLvls):
     for idxType in np.arange(varNumTypes):
         for idxCrit, Crit in enumerate(vecCiterion):
 
-            lgc = [criteria[:, criterion] == Crit][0]
+            lgc = [criteria[:, varCriterion] == Crit][0]
 
             vecS = np.subtract(
                 np.ones(mtnParams[lgc].shape[0]), (np.divide(np.sqrt(
@@ -243,14 +214,14 @@ for idxNsLvls in np.arange(varNumNoiseLvls):
     # add title
     title = 'CNR: ' + str(CNR[idxNsLvls])
     plt.title(title, fontsize=fontsize)
-    plt.xlabel(text4save[criterion][0], fontsize = fontsize)
+    plt.xlabel(strTxtSave[0], fontsize = fontsize)
     plt.xlim((np.min(x), np.max(x)))
     ax.tick_params(axis='x', labelsize=fontsize)
     ax.tick_params(axis='y', labelsize=fontsize)
-    if criterion in [3, 4]:
+    if varCriterion in [3, 4]:
         labels = ['0/180', '45/225', '90/270', '135/315']
         plt.xticks(x, labels)
-    elif criterion == 5:
+    elif varCriterion == 5:
         labels = ['20/45', '45/45', '70/45']
         plt.xticks(x, labels)
     plt.ylabel('Similarity Index S', fontsize=fontsize)
@@ -258,3 +229,7 @@ for idxNsLvls in np.arange(varNumNoiseLvls):
     # Now add the legend with some customizations.
     legend = ax.legend(loc='lower right', shadow=True, fontsize=fontsize)
 
+    # save
+    filename = varPathFigs + 'TngCrvs_' + title + strTxtSave[1] + \
+        'NoiseLevel_' + str(idxNsLvls) + '.png'
+    plt.savefig(filename)
