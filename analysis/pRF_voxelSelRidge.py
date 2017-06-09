@@ -97,19 +97,17 @@ for train_index, test_index in kf.split(aryPrfTc):
    y_train, y_test = aryFunc[train_index], aryFunc[test_index]
 
 
-ridgeTest = linear_model.RidgeCV(alphas=(0.1, 1.0, 10.0),
-                                 fit_intercept=False,
-                                 normalize=False,
-                                 scoring=None,
-                                 cv=kf.split(aryPrfTc),
-                                 gcv_mode=None,
-                                 store_cv_values=False)
-ridgeTest.fit([[0, 0], [0, 0], [1, 1]], [0, .1, 1])       
+ridgeTest = RidgeCV(alphas=(0.1, 1.0, 10.0),
+                    fit_intercept=False,
+                    normalize=False,
+                    scoring=None,
+                    cv=kf.split(aryPrfTc),
+                    gcv_mode=None,
+                    store_cv_values=False)
+ridgeTest.fit(aryPrfTc, aryFunc)
 
 
-
-
-reg.alpha_                                      
+ridgeTest.alpha_                                      
 
 
 

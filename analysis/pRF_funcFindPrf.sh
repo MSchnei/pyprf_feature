@@ -1,11 +1,11 @@
 #!/bin/sh
 
 # directory:
-directory="/home/marian/Documents/Git/py_pRF_motion/Analysis"
+directory="/media/sf_D_DRIVE/MotionLocaliser/Tools/P02/pRF_Motion"
 # Go to input directory
 cd ${directory}
 
-echo "----- cross validation -----"
-python pRF_main.py /home/marian/Documents/Git/py_pRF_motion/Analysis/pRF_config_xval.py
-echo "----- no cross validation -----"
-python pRF_main.py /home/marian/Documents/Git/py_pRF_motion/Analysis/pRF_config_noXval.py
+echo "----- cross validation AoM-----"
+python pRF_main.py /media/sf_D_DRIVE/MotionLocaliser/Analysis/P02/FitResults/6runs_MotionAoMXval/pRF_config.py
+echo "----- cross validation DoM-----"
+python pRF_main.py /media/sf_D_DRIVE/MotionLocaliser/Analysis/P02/FitResults/6runs_MotionDoMXval/pRF_config.py

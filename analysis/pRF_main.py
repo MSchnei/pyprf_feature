@@ -104,10 +104,9 @@ if cfg.lgcCrteMdl:
     elif cfg.switchHrfSet == 1:
         lstHrf = [spmt]
 
-    # Reshape png data:
-    aryBoxCar = np.reshape(aryBoxCar,
-                           ((aryBoxCar.shape[0] * aryBoxCar.shape[1] *
-                            aryBoxCar.shape[2]), aryBoxCar.shape[3]))
+    # adjust the input, if necessary, such that input is 2D, with last dim time
+    tplInpShp = aryBoxCar.shape
+    aryBoxCar = np.reshape(aryBoxCar, (-1, aryBoxCar.shape[-1]))
 
     # Put input data into chunks:
     lstBoxCar = np.array_split(aryBoxCar, cfg.varPar)
@@ -170,11 +169,9 @@ if cfg.lgcCrteMdl:
     del(lstConv)
 
     # Reshape results:
-    aryBoxCarConv = np.reshape(aryBoxCarConv,
-                               [cfg.tplPngSize[0],
-                                cfg.tplPngSize[1],
-                                cfg.varNumMtDrctn,
-                                cfg.varNumVol])
+    # Reshape results:
+    tplOutShp = tplInpShp[:-1] + (len(lstHrf), ) + (tplInpShp[-1], )
+    aryBoxCarConv = np.reshape(aryBoxCarConv, tplOutShp)
     # aryBoxCarConv will have shape 128, 128, 15, 688
 
     # *** resample pixel-time courses in high-res visual space
@@ -412,7 +409,7 @@ aryMask = niiMask.get_data().astype('bool')
 
 # prepare aryFunc for functional data
 aryFunc = np.empty((np.sum(aryMask), 0), dtype='float32')
-for idx in np.arange(len(cfg.lstNiiFls)):
+for idx in np.arange(len(cfg.lstNiiFls))[np.arange(len(cfg.lstNiiFls))!=cfg.varTestRun]:
     print('------------Loading run: ' + str(idx+1))
     # Load 4D nii data:
     niiFunc = nb.load(os.path.join(cfg.strPathNiiFunc,
@@ -437,6 +434,14 @@ aryMask[aryMask] = np.copy(aryLgc)
 aryFunc = aryFunc[aryLgc, :]
 # Number of voxels for which pRF finding will be performed:
 varNumVoxInc = aryFunc.shape[0]
+
+print('---------Consider only training pRF time courses')
+# Consider only the training runs
+lgcPrfTc = np.array(np.split(np.arange(np.sum(cfg.vecRunLngth)),
+                             np.cumsum(cfg.vecRunLngth)[:-1]))
+lgcPrfTc = np.hstack(
+    lgcPrfTc[np.arange(len(cfg.lstNiiFls)) != cfg.varTestRun])
+aryPrfTc = aryPrfTc[..., lgcPrfTc]
 
 # Convert preprocessing parameters (for temporal and spatial smoothing) from
 # SI units (i.e. [s] and [mm]) into units of data array:
@@ -482,14 +487,15 @@ queOut = mp.Queue()
 print('---------Number of voxels on which pRF finding will be ' +
       'performed: ' + str(varNumVoxInc))
 
+# make sure that the predictors are demeaned
+aryPrfTc = np.subtract(aryPrfTc, np.mean(aryPrfTc, axis=4)[
+    :, :, :, :, None])
+# make sure that the data is demeaned
+aryFunc = np.subtract(aryFunc, np.mean(aryFunc, axis=1)[:, None])
+
 if cfg.lgcXval:
     # get number of time points
     varNumTP = aryFunc.shape[1]
-    # make sure that the predictors are demeaned
-    aryPrfTc = np.subtract(aryPrfTc, np.mean(aryPrfTc, axis=4)[
-        :, :, :, :, None])
-    # make sure that the data is demeaned
-    aryFunc = np.subtract(aryFunc, np.mean(aryFunc, axis=1)[:, None])
     # prepare cross validation
     vecXval = np.arange(cfg.varNumXval)
     lsSplit = np.array(np.split(np.arange(varNumTP),
@@ -592,7 +598,7 @@ aryBstYpos = np.zeros(0)
 aryBstSd = np.zeros(0)
 if not cfg.lgcXval:
     aryBstR2 = np.zeros(0)
-    aryBstBetas = np.zeros((0, cfg.varNumMtDrctn+1))
+    aryBstBetas = np.zeros((0, cfg.varNumMtDrctn))
 for idxRes in range(0, cfg.varPar):
     aryBstXpos = np.append(aryBstXpos, lstPrfRes[idxRes][1])
     aryBstYpos = np.append(aryBstYpos, lstPrfRes[idxRes][2])
@@ -629,7 +635,7 @@ if cfg.lgcXval:
         lstPrcs[idxPrc] = mp.Process(target=getBetas,
                                      args=(idxPrc, vecMdlXpos, vecMdlYpos,
                                            vecMdlSd, aryPrfTc, lstFunc[idxPrc],
-                                           lstBstMdls[idxPrc], queOut)
+                                           lstBstMdls[idxPrc], 'train', queOut)
                                      )
         # Daemon (kills processes when exiting):
         lstPrcs[idxPrc].Daemon = True
@@ -681,13 +687,13 @@ aryPrfRes[:, :, :, 5] = np.sqrt(np.add(np.power(aryPrfRes[:, :, :, 0], 2.0),
                                        np.power(aryPrfRes[:, :, :, 1], 2.0)))
 # save as npy
 np.save(cfg.strPathOut + '_aryPrfRes', aryPrfRes)
-np.save(cfg.strPathOut + '_aryBstBetas', aryBstBetas)
+np.save(cfg.strPathOut + '_aryBstTrainBetas', aryBstBetas)
 
 # List with name suffices of output images:
 lstNiiNames = ['_x_pos',
                '_y_pos',
                '_SD',
-               '_R2',
+               '_TrainR2',
                '_polar_angle',
                '_eccentricity']
 

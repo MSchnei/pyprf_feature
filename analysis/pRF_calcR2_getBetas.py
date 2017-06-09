@@ -28,6 +28,7 @@ def getBetas(idxPrc,
              aryPrfTc,
              aryFuncChnk,
              aryBstMdls,
+             aryBstTrainBetas,
              queOut):
     """Calculate voxel betas and R^2 for the best model.
 
@@ -142,11 +143,28 @@ def getBetas(idxPrc,
                                   axis=1) == 3][0]
 
                 if np.greater(np.sum(lgcTemp), 0):
+                    # get current design matrix
                     aryDsgnTmp = aryPrfTc[idxX, idxY, idxSd, :, :].T
-                    aryTmpPrmEst, aryTmpRes = np.linalg.lstsq(
-                        aryDsgnTmp, aryFuncChnk[:, lgcTemp])[0:2]
-                    aryEstimMtnCrv[lgcTemp, :] = aryTmpPrmEst.T
-                    vecBstRes[lgcTemp] = aryTmpRes
+
+                    if aryBstTrainBetas is 'train':  # training
+
+                        aryTmpPrmEst, aryTmpRes = np.linalg.lstsq(
+                            aryDsgnTmp, aryFuncChnk[:, lgcTemp])[0:2]
+                        aryEstimMtnCrv[lgcTemp, :] = aryTmpPrmEst.T
+                        vecBstRes[lgcTemp] = aryTmpRes
+
+                    else:  # testing
+                        aryPredTc = np.dot(aryDsgnTmp,
+                                           aryBstTrainBetas[lgcTemp, :].T)
+                        # Deviation between pred tc and each datapoint:
+                        vecFuncDev = np.subtract(aryFuncChnk[:, lgcTemp],
+                                                 aryPredTc)
+                        # Sum of squares:
+                        vecBstRes[lgcTemp] = np.sum(np.power(vecFuncDev,
+                                                    2.0),
+                                                    axis=0)
+                    # increase logical counter to verify later that every voxel
+                    # was visited only once
                     vecLgcCounter[lgcTemp] += 1
 
                 # Status indicator (only used in the first of the parallel

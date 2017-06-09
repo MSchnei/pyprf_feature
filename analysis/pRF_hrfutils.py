@@ -300,4 +300,3 @@ def cnvlTcOld(idxPrc,
 
     # Put output to queue:
     queOut.put(lstOut)
-

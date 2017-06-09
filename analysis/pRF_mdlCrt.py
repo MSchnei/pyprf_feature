@@ -20,6 +20,7 @@
 import numpy as np
 import scipy as sp
 import pickle
+from PIL import Image
 from scipy.interpolate import griddata
 from pRF_hrfutils import spmt, dspmt, ddspmt, cnvlTc, cnvlTcOld
 import multiprocessing as mp
@@ -44,7 +45,7 @@ def loadPng(varNumVol, tplPngSize, strPathPng):
                            tplPngSize[1],
                            varNumVol))
     for idx01 in range(0, varNumVol):
-        aryPngData[:, :, idx01] = sp.misc.imread(lstPngPaths[idx01])
+        aryPngData[:, :, idx01] = np.array(Image.open(lstPngPaths[idx01]))
 
     # Convert RGB values (0 to 255) to integer ones and zeros:
     aryPngData = (aryPngData > 0).astype(int)
@@ -121,10 +122,9 @@ def cnvlPwBoxCarFn(aryBoxCar,
     elif switchHrfSet == 1:
         lstHrf = [spmt]
 
-    # Reshape png data:
-    aryBoxCar = np.reshape(aryBoxCar,
-                           ((aryBoxCar.shape[0] * aryBoxCar.shape[1] *
-                            aryBoxCar.shape[2]), aryBoxCar.shape[3]))
+    # adjust the input, if necessary, such that input is 2D, with last dim time
+    tplInpShp = aryBoxCar.shape
+    aryBoxCar = np.reshape(aryBoxCar, (-1, aryBoxCar.shape[-1]))
 
     # Put input data into chunks:
     lstBoxCar = np.array_split(aryBoxCar, varPar)
@@ -192,11 +192,8 @@ def cnvlPwBoxCarFn(aryBoxCar,
     del(lstConv)
 
     # Reshape results:
-    aryBoxCarConv = np.reshape(aryBoxCarConv,
-                               [tplPngSize[0],
-                                tplPngSize[1],
-                                varNumMtDrctn,
-                                varNumVol])
+    tplOutShp = tplInpShp[:-1] + (len(lstHrf), ) + (tplInpShp[-1], )
+    aryBoxCarConv = np.reshape(aryBoxCarConv, tplOutShp)
 
     # Return:
     return aryBoxCarConv
