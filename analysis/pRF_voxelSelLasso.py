@@ -1,6 +1,6 @@
 # -*- coding: utf-8 -*-
 
-"""Procedure fit ridge regression to select voxels.""" 
+"""Procedure fit lasso regression to select voxels.""" 
 
 # Part of py_pRF_motion library
 # Copyright (C) 2016  Marian Schneider
@@ -22,19 +22,19 @@ import numpy as np
 import nibabel as nb
 import pRF_config as cfg
 from pRF_utils import loadNiiData, saveNiiData, calcR2, calcFstats, calcMse
-from sklearn.linear_model import Ridge, RidgeCV
+from sklearn.linear_model import Lasso, LassoCV
 from sklearn.model_selection import KFold
 from scipy import stats
 
 # %% set paths
-cfg.strPathRidgeMdl = cfg.strPathOut+'_ExtractedFeatures.npy'
+cfg.strPathLassoMdl = cfg.strPathOut+'_ExtractedFeatures.npy'
 
 # %% Load existing pRF time course models
 
 print('------Load pRF time course models')
 
 # Load the file:
-aryPrfTc = np.load(cfg.strPathRidgeMdl)
+aryPrfTc = np.load(cfg.strPathLassoMdl)
 aryPrfTc = aryPrfTc.reshape((-1, aryPrfTc.shape[-1]))
 
 # derive logical for training/test runs
@@ -60,7 +60,7 @@ aryFuncTst = aryFunc[..., ~lgcTrnTst].T
 # remove unneccary array
 del(aryFunc)
 
-# %% perform ridge regression
+# %% perform lasso regression
 
 # zscore the predictors
 aryPrfTcTrn = stats.zscore(aryPrfTcTrn, axis=0, ddof=2)
@@ -68,50 +68,10 @@ aryPrfTcTrn = stats.zscore(aryPrfTcTrn, axis=0, ddof=2)
 aryFuncTrn = np.subtract(aryFuncTrn, np.mean(aryFuncTrn, axis=0)[None, :])
 
 # 20 possible regularization coefficients (log spaced between 10 and 1,000)
-vecAlpha = np.logspace(np.log10(10), np.log10(10000), 20)
-
-# %% use RidgeCV with generalized crossvalidation (GCV), this returns one
-# optimal alpha per voxel but GCV might be inappropriate for time series data
-
-## using GCV
-#ridgeGCV = RidgeCV(alphas=vecAlpha,
-#                   fit_intercept=False,
-#                   normalize=False,
-#                   scoring=None,
-#                   cv=None,
-#                   gcv_mode='auto',
-#                   store_cv_values=True)
-#
-#ridgeGCV.fit(aryPrfTcTrn, aryFuncTrn)
-#
-## extract best alpha per voxel
-#aryAvgMse = np.mean(ridgeGCV.cv_values_, axis=0)
-#idxBestAlpha = np.argmin(aryAvgMse, axis=1)
-#bestAlpha = np.array([vecAlpha[ind] for ind in idxBestAlpha])
-#
-## refit with best alphas to entire training data
-#ridgeRefit = Ridge(alpha=bestAlpha, fit_intercept=False, normalize=False)
-#ridgeRefit.fit(aryPrfTcTrn, aryFuncTrn)
-#
-## calculate Fstats on training data
-#vecFval, vecPval = calcFstats(ridgeRefit.predict(aryPrfTcTrn), aryFuncTrn,
-#                              aryPrfTcTrn.shape[1])
-#
-## calculate R2 on training data set
-#vecR2Trn = calcR2(ridgeRefit.predict(aryPrfTcTrn), aryFuncTrn)
-#
-## calculate R2 on test data set
-#vecR2Tst = calcR2(ridgeRefit.predict(aryPrfTcTst), aryFuncTst)
-#
-## save R2 as nii
-#strTmp = (cfg.strPathOut + '_GCV_vecR2Trn.nii')
-#saveNiiData(vecR2Trn, nb.load(cfg.strPathNiiMask), strTmp, aryMask)
-#strTmp = (cfg.strPathOut + '_GCV_vecPvalTrain.nii')
-#saveNiiData(vecPval, nb.load(cfg.strPathNiiMask), strTmp, aryMask)
+vecAlpha = np.logspace(np.log10(0.1), np.log10(100), 20)
 
 # %% perform kfold crossvalidation, in every fold calculate MSE, return best
 # alpha for every voxel
-print('------Calculate ridgre regression')
 
 # using Kfold
 kf = KFold(n_splits=len(cfg.lstNiiFls)-1)
@@ -122,12 +82,12 @@ for idxAlpha, alpha in enumerate(vecAlpha):
     # walk through differnet folds of crossvalidation
     aryMse = np.empty((aryFuncTrn.shape[1], kf.n_splits), dtype='float32')
     for idx, (idxTrn, idxVal) in enumerate(kf.split(aryPrfTcTrn)):
-        objRidgeMdl = Ridge(alpha=alpha, fit_intercept=False,
-                            normalize=False, solver='auto')
+        objLassoMdl = Lasso(alpha=alpha, fit_intercept=False,
+                            normalize=False)
 
-        objRidgeMdl.fit(aryPrfTcTrn[idxTrn], aryFuncTrn[idxTrn])
+        objLassoMdl.fit(aryPrfTcTrn[idxTrn], aryFuncTrn[idxTrn])
         # calculate MSE
-        aryMse[:, idx] = calcMse(objRidgeMdl.predict(aryPrfTcTrn[idxVal]),
+        aryMse[:, idx] = calcMse(objLassoMdl.predict(aryPrfTcTrn[idxVal]),
                                  aryFuncTrn[idxVal])
     # average the MSE across all folds for this alpha
     aryAvgMse[:, idxAlpha] = np.mean(aryMse, axis=1)
@@ -137,23 +97,21 @@ idxBestAlpha2 = np.argmin(aryAvgMse, axis=1)
 bestAlpha = np.array([vecAlpha[ind] for ind in idxBestAlpha2])
 
 # refit with best alphas to entire training data
-ridgeRefit = Ridge(alpha=bestAlpha, fit_intercept=False, normalize=False)
-ridgeRefit.fit(aryPrfTcTrn, aryFuncTrn)
+lassoRefit = Lasso(alpha=bestAlpha, fit_intercept=False, normalize=False)
+lassoRefit.fit(aryPrfTcTrn, aryFuncTrn)
 
 # calculate Fstats on training data
-vecFval, vecPval = calcFstats(ridgeRefit.predict(aryPrfTcTrn), aryFuncTrn,
+vecFval, VecPval = calcFstats(lassoRefit.predict(aryPrfTcTrn), aryFuncTrn,
                               aryPrfTcTrn.shape[1])
 
 # calculate R2 on training data set
-vecR2Trn = calcR2(ridgeRefit.predict(aryPrfTcTrn), aryFuncTrn)
+vecR2Trn = calcR2(lassoRefit.predict(aryPrfTcTrn), aryFuncTrn)
 
 # calculate R2 on test data set
-vecR2Tst = calcR2(ridgeRefit.predict(aryPrfTcTst), aryFuncTst)
+vecR2Tst = calcR2(lassoRefit.predict(aryPrfTcTst), aryFuncTst)
 
 # save R2 as nii
 strTmp = (cfg.strPathOut + '_Kfold_vecR2Trn.nii')
 saveNiiData(vecR2Trn, nb.load(cfg.strPathNiiMask), strTmp, aryMask)
 strTmp = (cfg.strPathOut + '_Kfold_vecPvalTrain.nii')
-saveNiiData(vecPval, nb.load(cfg.strPathNiiMask), strTmp, aryMask)
-strTmp = (cfg.strPathOut + '_Kfold_vecFvalTrain.nii')
-saveNiiData(vecFval, nb.load(cfg.strPathNiiMask), strTmp, aryMask)
+saveNiiData(VecPval, nb.load(cfg.strPathNiiMask), strTmp, aryMask)

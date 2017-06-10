@@ -48,12 +48,6 @@ varVoxRes = 0.8
 # [set 0 if not desired]
 varSdSmthTmp = 0
 
-# Intensity cutoff value for fMRI time series. Voxels with a mean intensity
-# lower than the value specified here are not included in the pRF model finding
-# (this speeds up the calculation, and, more importatnly, avoids division by
-# zero):
-varIntCtf = -100.0
-
 # Number of processes to run in parallel:
 varPar = 10
 
@@ -81,10 +75,10 @@ lstNiiFls = ['demean_rafunc01_hpf.nii',
 varTestRun = 6
 
 # Path of mask (to restrict pRF model finding):
-strPathNiiMask = '/media/sf_D_DRIVE/MotionLocaliser/Analysis/P02/Struct/mask.nii'
+strPathNiiMask = '/media/sf_D_DRIVE/MotionLocaliser/Analysis/P02/Struct/testMask.nii'
 
 # Output basename:
-strPathOut = '/media/sf_D_DRIVE/MotionLocaliser/Analysis/P02/FitResults/6runs_MotionAoMNoXval/MotionNoXvalAoM'
+strPathOut = '/media/sf_D_DRIVE/MotionLocaliser/Analysis/P02/FitResults/Testing/MotionXvalAoM'
 
 # Use cython (i.e. compiled code) for faster performance? (Requires cython to
 # be installed.)
@@ -94,7 +88,7 @@ lgcCython = False
 lgcCrteMdl = False
 
 # reduce presented motion direction from 8 to 4?
-lgcAoM = False
+lgcAoM = True
 
 # length of the runs that were done
 vecRunLngth = [172] * len(lstNiiFls)
@@ -103,7 +97,7 @@ vecRunLngth = [172] * len(lstNiiFls)
 varNumVol = sum(vecRunLngth)
 
 # cross validate?
-lgcXval = False
+lgcXval = True
 
 # set which set of hrf functions should be used
 lgcOldSchoolHrf = True
@@ -142,7 +136,7 @@ strPathPng = '/media/sf_D_DRIVE/MotionLocaliser/Analysis/P02/PNGs/Ima_'
 
 # If we use existing pRF time course models, the path to the respective
 # file has to be provided (including file extension, i.e. '*.npy'):
-strPathMdl = '/media/sf_D_DRIVE/MotionLocaliser/Analysis/P02/FitResults/6runs_MotionAoMNoXval/pRF_model_tc' + strBasis + '.npy'
+strPathMdl = '/media/sf_D_DRIVE/MotionLocaliser/Analysis/P02/FitResults/Testing/pRF_model_tc' + strBasis + '.npy'
 
 if lgcAoM:
     # number of motion directions

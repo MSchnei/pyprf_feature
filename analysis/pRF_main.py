@@ -25,6 +25,9 @@ import nibabel as nb
 import time
 import multiprocessing as mp
 import sys
+from scipy import stats
+from pRF_utils import loadNiiData, saveNiiData, calcR2, calcFstats, calcMse
+from sklearn.model_selection import KFold
 from pRF_mdlCrt import (loadPng, loadPrsOrd, crtPwBoxCarFn, cnvlPwBoxCarFn,
                         rsmplInHighRes, funcPrfTc)
 from pRF_filtering import funcSmthTmp
@@ -400,48 +403,20 @@ print('------Find pRF models for voxel time courses')
 print('---------Loading nii data')
 # Load mask (to restrict model finding):
 niiMask = nb.load(cfg.strPathNiiMask)
-# Get nii header of mask:
-hdrMsk = niiMask.header
-# Get nii 'affine':
-affMsk = niiMask.affine
-# Load the data into memory:
 aryMask = niiMask.get_data().astype('bool')
+# Load data from functional runs
+aryFunc = loadNiiData(cfg.lstNiiFls, strPathNiiMask=cfg.strPathNiiMask,
+                      strPathNiiFunc=cfg.strPathNiiFunc)
 
-# prepare aryFunc for functional data
-aryFunc = np.empty((np.sum(aryMask), 0), dtype='float32')
-for idx in np.arange(len(cfg.lstNiiFls))[np.arange(len(cfg.lstNiiFls))!=cfg.varTestRun]:
-    print('------------Loading run: ' + str(idx+1))
-    # Load 4D nii data:
-    niiFunc = nb.load(os.path.join(cfg.strPathNiiFunc,
-                                   cfg.lstNiiFls[idx]))
-    # Load the data into memory:
-    aryFuncTemp = niiFunc.get_data()
-    aryFunc = np.append(aryFunc, aryFuncTemp[aryMask, :], axis=1)
+print('---------Consider only training pRF time courses and func data')
+# derive logical for training/test runs
+lgcTrnTst = np.ones(np.sum(cfg.vecRunLngth), dtype=bool)
+lgcTrnTst[np.cumsum(cfg.vecRunLngth)[cfg.varTestRun-1]:np.cumsum(
+         cfg.vecRunLngth)[cfg.varTestRun]] = False
 
-# remove unneccary array
-del(aryFuncTemp)
-
-# Take mean over time of functional nii data:
-aryFuncMean = np.mean(aryFunc, axis=1)
-# Logical test for voxel inclusion: is the mean of functional time series
-# above the cutoff value?
-aryLgc = np.greater(aryFuncMean, cfg.varIntCtf)
-# update 3D mask accordingly
-aryMask[aryMask] = np.copy(aryLgc)
-
-# Array with functional data for which conditions (cutoff value)
-# are fullfilled:
-aryFunc = aryFunc[aryLgc, :]
-# Number of voxels for which pRF finding will be performed:
-varNumVoxInc = aryFunc.shape[0]
-
-print('---------Consider only training pRF time courses')
-# Consider only the training runs
-lgcPrfTc = np.array(np.split(np.arange(np.sum(cfg.vecRunLngth)),
-                             np.cumsum(cfg.vecRunLngth)[:-1]))
-lgcPrfTc = np.hstack(
-    lgcPrfTc[np.arange(len(cfg.lstNiiFls)) != cfg.varTestRun])
-aryPrfTc = aryPrfTc[..., lgcPrfTc]
+# split in training and test runs
+aryPrfTc = aryPrfTc[..., lgcTrnTst]
+aryFunc = aryFunc[..., lgcTrnTst]
 
 # Convert preprocessing parameters (for temporal and spatial smoothing) from
 # SI units (i.e. [s] and [mm]) into units of data array:
@@ -485,12 +460,10 @@ varCntOut = 0
 queOut = mp.Queue()
 
 print('---------Number of voxels on which pRF finding will be ' +
-      'performed: ' + str(varNumVoxInc))
-
-# make sure that the predictors are demeaned
-aryPrfTc = np.subtract(aryPrfTc, np.mean(aryPrfTc, axis=4)[
-    :, :, :, :, None])
-# make sure that the data is demeaned
+      'performed: ' + str(aryFunc.shape[0]))
+print("Test Test Test")
+# zscore/demean predictors and responses after smoothing
+aryPrfTc = stats.zscore(aryPrfTc, axis=4, ddof=2)
 aryFunc = np.subtract(aryFunc, np.mean(aryFunc, axis=1)[:, None])
 
 if cfg.lgcXval:
@@ -614,54 +587,54 @@ del(lstPrfRes)
 # %%
 # if we did model finding with cross validation, we never estimated
 # the betas and R square for the full model. Do that now:
-if cfg.lgcXval:
-    print('------Find best betas and R2 values')
-    # prepare list for results
-    lstBetaRes = [None] * cfg.varPar
-    # Empty list for processes:
-    lstPrcs = [None] * cfg.varPar
-    # get an array that shows best x, y, sigma for every voxel
-    aryBstMdls = np.array([aryBstXpos, aryBstYpos, aryBstSd]).T
-    # divide this ary in parts and put parts in list
-    lstBstMdls = np.array_split(aryBstMdls, cfg.varPar)
-    # put functional data into list
-    aryFunc = np.load(cfg.strPathOut + '_aryFunc.npy')
-    lstFunc = np.array_split(aryFunc, cfg.varPar)
-    # delete aryFunc from memory and from disk
-    del(aryFunc)
-    os.remove(cfg.strPathOut + '_aryFunc.npy')
-
-    for idxPrc in range(0, cfg.varPar):
-        lstPrcs[idxPrc] = mp.Process(target=getBetas,
-                                     args=(idxPrc, vecMdlXpos, vecMdlYpos,
-                                           vecMdlSd, aryPrfTc, lstFunc[idxPrc],
-                                           lstBstMdls[idxPrc], 'train', queOut)
-                                     )
-        # Daemon (kills processes when exiting):
-        lstPrcs[idxPrc].Daemon = True
-
-    # Start processes:
-    for idxPrc in range(0, cfg.varPar):
-        lstPrcs[idxPrc].start()
-
-    # Collect results from queue:
-    for idxPrc in range(0, cfg.varPar):
-        lstBetaRes[idxPrc] = queOut.get(True)
-
-    # Join processes:
-    for idxPrc in range(0, cfg.varPar):
-        lstPrcs[idxPrc].join()
-
-    # Put output into correct order:
-    lstBetaRes = sorted(lstBetaRes)
-
-    # Concatenate output vectors
-    aryBstR2 = np.zeros(0)
-    aryBstBetas = np.zeros((0, cfg.varNumMtDrctn))
-    for idxRes in range(0, cfg.varPar):
-        aryBstR2 = np.append(aryBstR2, lstBetaRes[idxRes][1])
-        aryBstBetas = np.concatenate((aryBstBetas, lstBetaRes[idxRes][2]),
-                                     axis=0)
+#if cfg.lgcXval:
+#    print('------Find best betas and R2 values')
+#    # prepare list for results
+#    lstBetaRes = [None] * cfg.varPar
+#    # Empty list for processes:
+#    lstPrcs = [None] * cfg.varPar
+#    # get an array that shows best x, y, sigma for every voxel
+#    aryBstMdls = np.array([aryBstXpos, aryBstYpos, aryBstSd]).T
+#    # divide this ary in parts and put parts in list
+#    lstBstMdls = np.array_split(aryBstMdls, cfg.varPar)
+#    # put functional data into list
+#    aryFunc = np.load(cfg.strPathOut + '_aryFunc.npy')
+#    lstFunc = np.array_split(aryFunc, cfg.varPar)
+#    # delete aryFunc from memory and from disk
+#    del(aryFunc)
+#    os.remove(cfg.strPathOut + '_aryFunc.npy')
+#
+#    for idxPrc in range(0, cfg.varPar):
+#        lstPrcs[idxPrc] = mp.Process(target=getBetas,
+#                                     args=(idxPrc, vecMdlXpos, vecMdlYpos,
+#                                           vecMdlSd, aryPrfTc, lstFunc[idxPrc],
+#                                           lstBstMdls[idxPrc], 'train', queOut)
+#                                     )
+#        # Daemon (kills processes when exiting):
+#        lstPrcs[idxPrc].Daemon = True
+#
+#    # Start processes:
+#    for idxPrc in range(0, cfg.varPar):
+#        lstPrcs[idxPrc].start()
+#
+#    # Collect results from queue:
+#    for idxPrc in range(0, cfg.varPar):
+#        lstBetaRes[idxPrc] = queOut.get(True)
+#
+#    # Join processes:
+#    for idxPrc in range(0, cfg.varPar):
+#        lstPrcs[idxPrc].join()
+#
+#    # Put output into correct order:
+#    lstBetaRes = sorted(lstBetaRes)
+#
+#    # Concatenate output vectors
+#    aryBstR2 = np.zeros(0)
+#    aryBstBetas = np.zeros((0, cfg.varNumMtDrctn))
+#    for idxRes in range(0, cfg.varPar):
+#        aryBstR2 = np.append(aryBstR2, lstBetaRes[idxRes][1])
+#        aryBstBetas = np.concatenate((aryBstBetas, lstBetaRes[idxRes][2]),
+#                                     axis=0)
 
 # %% Prepare for saving results
 
@@ -669,42 +642,57 @@ if cfg.lgcXval:
 # aryPrfRes[total-number-of-voxels, 0:3], where the 2nd dimension
 # contains the parameters of the best-fitting pRF model for the voxel, in
 # the order (0) pRF-x-pos, (1) pRF-y-pos, (2) pRF-SD, (3) pRF-R2.
-aryPrfRes = np.zeros((niiMask.shape + (6,)))
+if not cfg.lgcXval:
+    aryPrfRes = np.zeros((niiMask.shape + (6,)))
+else:
+    aryPrfRes = np.zeros((niiMask.shape + (5,)))
 
 # Put results form pRF finding into array (they originally needed to be
 # saved in a list due to parallelisation).
 aryPrfRes[aryMask, 0] = aryBstXpos
 aryPrfRes[aryMask, 1] = aryBstYpos
 aryPrfRes[aryMask, 2] = aryBstSd
-aryPrfRes[aryMask, 3] = aryBstR2
 
 # Calculate polar angle map:
-aryPrfRes[:, :, :, 4] = np.arctan2(aryPrfRes[:, :, :, 1],
+aryPrfRes[:, :, :, 3] = np.arctan2(aryPrfRes[:, :, :, 1],
                                    aryPrfRes[:, :, :, 0])
 
 # Calculate eccentricity map (r = sqrt( x^2 + y^2 ) ):
-aryPrfRes[:, :, :, 5] = np.sqrt(np.add(np.power(aryPrfRes[:, :, :, 0], 2.0),
+aryPrfRes[:, :, :, 4] = np.sqrt(np.add(np.power(aryPrfRes[:, :, :, 0], 2.0),
                                        np.power(aryPrfRes[:, :, :, 1], 2.0)))
+
+if not cfg.lgcXval:
+    aryPrfRes[aryMask, 5] = aryBstR2
+
 # save as npy
 np.save(cfg.strPathOut + '_aryPrfRes', aryPrfRes)
-np.save(cfg.strPathOut + '_aryBstTrainBetas', aryBstBetas)
+if not cfg.lgcXval:
+    np.save(cfg.strPathOut + '_aryBstTrainBetas', aryBstBetas)
 
 # List with name suffices of output images:
-lstNiiNames = ['_x_pos',
-               '_y_pos',
-               '_SD',
-               '_TrainR2',
-               '_polar_angle',
-               '_eccentricity']
+if not cfg.lgcXval:
+    lstNiiNames = ['_x_pos',
+                   '_y_pos',
+                   '_SD',
+                   '_polar_angle',
+                   '_eccentricity',
+                   '_TrainR2']
+
+else:
+    lstNiiNames = ['_x_pos',
+                   '_y_pos',
+                   '_SD',
+                   '_polar_angle',
+                   '_eccentricity']
 
 print('---------Exporting results')
 
 # Save nii results:
-for idxOut in range(0, 6):
+for idxOut in range(0, len(lstNiiNames)):
     # Create nii object for results:
     niiOut = nb.Nifti1Image(aryPrfRes[:, :, :, idxOut],
-                            affMsk,
-                            header=hdrMsk
+                            niiMask.affine,
+                            header=niiMask.header
                             )
     # Save nii:
     strTmp = (cfg.strPathOut + lstNiiNames[idxOut] + '.nii')
