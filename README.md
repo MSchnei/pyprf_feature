@@ -1,3 +1,5 @@
+[![DOI](https://zenodo.org/badge/78625137.svg)](https://zenodo.org/badge/latestdoi/78625137)
+
 # py_pRF_motion
 A free & open source package for finding best-fitting pRF models and motion parameters for fMRI data.
 
