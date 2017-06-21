@@ -212,8 +212,6 @@ def rsmplInHighRes(aryBoxCarConv,
     into this space, for each time point (volume).
     """
 
-    print('------Resample pixel-time courses in high-res visual space')
-
     # Array for super-sampled pixel-time courses:
     aryBoxCarConvHigh = np.zeros((tplVslSpcHighSze[0],
                                   tplVslSpcHighSze[1],
@@ -279,29 +277,26 @@ def funcGauss(varSizeX,
 
     # The actual creation of the Gaussian array:
     aryGauss = (
-        (
-            np.power((aryX - varPosX), 2.0) +
-            np.power((aryY - varPosY), 2.0)
-        ) /
-        (2.0 * np.power(varSd, 2.0))
+        (np.square((aryX - varPosX)) + np.square((aryY - varPosY))) /
+        (2.0 * np.square(varSd))
         )
-    aryGauss = np.exp(-aryGauss)
+    aryGauss = np.exp(-aryGauss) / (2 * np.pi * np.square(varSd))
 
     return aryGauss
 
 
 def funcPrfTc(idxPrc,
               aryMdlParamsChnk,
-              tplVslSpcHighSze,
+              tplPngSize,
               varNumVol,
-              aryPngDataHigh,
+              aryBoxCarConv,
               queOut):
     """Create pRF time course models."""
     # Number of combinations of model parameters in the current chunk:
     varChnkSze = np.size(aryMdlParamsChnk, axis=0)
 
     # Determine number of motion directions
-    varNumMtnDrtn = aryPngDataHigh.shape[2]
+    varNumMtnDrtn = aryBoxCarConv.shape[2]
 
     # Output array with pRF model time courses:
     aryOut = np.zeros([varChnkSze, varNumMtnDrtn, varNumVol])
@@ -319,27 +314,20 @@ def funcPrfTc(idxPrc,
             varTmpSd = np.around(aryMdlParamsChnk[idxMdl, 3], 0)
 
             # Create pRF model (2D):
-            aryGauss = funcGauss(tplVslSpcHighSze[0],
-                                 tplVslSpcHighSze[1],
+            aryGauss = funcGauss(tplPngSize[0],
+                                 tplPngSize[1],
                                  varTmpX,
                                  varTmpY,
                                  varTmpSd)
 
-            # Multiply super-sampled pixel-time courses with Gaussian pRF
-            # models:
-            aryPrfTcTmp = np.multiply(aryPngDataHigh[:, :, idxMtn, :],
+            # Multiply pixel-time courses with Gaussian pRF models:
+            aryPrfTcTmp = np.multiply(aryBoxCarConv[:, :, idxMtn, :],
                                       aryGauss[:, :, None])
 
             # Calculate sum across x- and y-dimensions - the 'area under the
             # Gaussian surface'. This is essentially an unscaled version of the
             # pRF time course model (i.e. not yet scaled for size of the pRF).
             aryPrfTcTmp = np.sum(aryPrfTcTmp, axis=(0, 1))
-
-            # Normalise the pRF time course model to the size of the pRF. This
-            # gives us the ratio of 'activation' of the pRF at each time point,
-            # or, in other words, the pRF time course model.
-            aryPrfTcTmp = np.divide(aryPrfTcTmp,
-                                    np.sum(aryGauss, axis=(0, 1)))
 
             # Put model time courses into the function's output array:
             aryOut[idxMdl, idxMtn, :] = aryPrfTcTmp

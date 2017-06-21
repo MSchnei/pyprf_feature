@@ -97,94 +97,87 @@ if cfg.lgcCrteMdl:
 #                                   cfg.varPar,
 #                                   cfg.lgcOldSchoolHrf,
 #                                   )
-    print('------Convolve every pixel box car function with hrf function(s)')
 
-    # Create hrf time course function:
-    if cfg.switchHrfSet == 3:
-        lstHrf = [spmt, dspmt, ddspmt]
-    elif cfg.switchHrfSet == 2:
-        lstHrf = [spmt, dspmt]
-    elif cfg.switchHrfSet == 1:
-        lstHrf = [spmt]
+#    print('------Convolve every pixel box car function with hrf function(s)')
+#
+#    # Create hrf time course function:
+#    if cfg.switchHrfSet == 3:
+#        lstHrf = [spmt, dspmt, ddspmt]
+#    elif cfg.switchHrfSet == 2:
+#        lstHrf = [spmt, dspmt]
+#    elif cfg.switchHrfSet == 1:
+#        lstHrf = [spmt]
+#
+#    # adjust the input, if necessary, such that input is 2D, with last ax time
+#    tplInpShp = aryBoxCar.shape
+#    aryBoxCar = np.reshape(aryBoxCar, (-1, aryBoxCar.shape[-1]))
+#
+#    # Put input data into chunks:
+#    lstBoxCar = np.array_split(aryBoxCar, cfg.varPar)
+#    # We don't need the original array with the input data anymore:
+#    del(aryBoxCar)
+#
+#    # Create a queue to put the results in:
+#    queOut = mp.Queue()
+#
+#    # Empty list for processes:
+#    lstPrcs = [None] * cfg.varPar
+#
+#    # Empty list for results of parallel processes:
+#    lstConv = [None] * cfg.varPar
+#
+#    print('---------Creating parallel processes')
+#
+#    if cfg.lgcOldSchoolHrf:
+#        for idxPrc in range(0, cfg.varPar):
+#            lstPrcs[idxPrc] = mp.Process(target=cnvlTcOld,
+#                                         args=(idxPrc, lstBoxCar[idxPrc],
+#                                               cfg.varTr, cfg.varNumVol,
+#                                               queOut)
+#                                         )
+#    else:
+#        # Create processes:
+#        for idxPrc in range(0, cfg.varPar):
+#            lstPrcs[idxPrc] = mp.Process(target=cnvlTc,
+#                                         args=(idxPrc, lstBoxCar[idxPrc],
+#                                               lstHrf, cfg.varTr,
+#                                               cfg.varNumVol, queOut)
+#                                         )
+#
+#        # Daemon (kills processes when exiting):
+#        lstPrcs[idxPrc].Daemon = True
+#
+#    # Start processes:
+#    for idxPrc in range(0, cfg.varPar):
+#        lstPrcs[idxPrc].start()
+#
+#    # Collect results from queue:
+#    for idxPrc in range(0, cfg.varPar):
+#        lstConv[idxPrc] = queOut.get(True)
+#
+#    # Join processes:
+#    for idxPrc in range(0, cfg.varPar):
+#        lstPrcs[idxPrc].join()
+#
+#    print('---------Collecting results from parallel processes')
+#
+#    # Put output into correct order:
+#    lstConv = sorted(lstConv)
+#
+#    # Concatenate convolved pixel time courses (into the same order as they
+#    # were entered into the analysis):
+#    aryBoxCarConv = np.zeros((0, cfg.switchHrfSet, cfg.varNumVol))
+#    for idxRes in range(0, cfg.varPar):
+#        aryBoxCarConv = np.concatenate((aryBoxCarConv, lstConv[idxRes][1]),
+#                                       axis=0)
+#    del(lstConv)
 
-    # adjust the input, if necessary, such that input is 2D, with last dim time
-    tplInpShp = aryBoxCar.shape
-    aryBoxCar = np.reshape(aryBoxCar, (-1, aryBoxCar.shape[-1]))
+#    # Reshape results:
+#    tplOutShp = tplInpShp[:-2] + (cfg.varNumMtDrctn * len(lstHrf), ) + (tplInpShp[-1], )
+#    aryBoxCarConv = np.reshape(aryBoxCarConv, tplOutShp)
+#    # aryBoxCarConv will have shape 128, 128, 5*1, 1204
+    aryBoxCarConv = np.load('/media/sf_D_DRIVE/MotionLocaliser/Analysis/P02/FitResults/Compare/aryBoxCarConv.npy')
 
-    # Put input data into chunks:
-    lstBoxCar = np.array_split(aryBoxCar, cfg.varPar)
-    # We don't need the original array with the input data anymore:
-    del(aryBoxCar)
-
-    # Create a queue to put the results in:
-    queOut = mp.Queue()
-
-    # Empty list for processes:
-    lstPrcs = [None] * cfg.varPar
-
-    # Empty list for results of parallel processes:
-    lstConv = [None] * cfg.varPar
-
-    print('---------Creating parallel processes')
-
-    if cfg.lgcOldSchoolHrf:
-        for idxPrc in range(0, cfg.varPar):
-            lstPrcs[idxPrc] = mp.Process(target=cnvlTcOld,
-                                         args=(idxPrc, lstBoxCar[idxPrc],
-                                               cfg.varTr, cfg.varNumVol,
-                                               queOut)
-                                         )
-    else:
-        # Create processes:
-        for idxPrc in range(0, cfg.varPar):
-            lstPrcs[idxPrc] = mp.Process(target=cnvlTc,
-                                         args=(idxPrc, lstBoxCar[idxPrc],
-                                               lstHrf, cfg.varTr,
-                                               cfg.varNumVol, queOut)
-                                         )
-
-        # Daemon (kills processes when exiting):
-        lstPrcs[idxPrc].Daemon = True
-
-    # Start processes:
-    for idxPrc in range(0, cfg.varPar):
-        lstPrcs[idxPrc].start()
-
-    # Collect results from queue:
-    for idxPrc in range(0, cfg.varPar):
-        lstConv[idxPrc] = queOut.get(True)
-
-    # Join processes:
-    for idxPrc in range(0, cfg.varPar):
-        lstPrcs[idxPrc].join()
-
-    print('---------Collecting results from parallel processes')
-
-    # Put output into correct order:
-    lstConv = sorted(lstConv)
-
-    # Concatenate convolved pixel time courses (into the same order as they
-    # were entered into the analysis):
-    aryBoxCarConv = np.zeros((0, cfg.switchHrfSet, cfg.varNumVol))
-    for idxRes in range(0, cfg.varPar):
-        aryBoxCarConv = np.concatenate((aryBoxCarConv, lstConv[idxRes][1]),
-                                       axis=0)
-    del(lstConv)
-
-    # Reshape results:
-    # Reshape results:
-    tplOutShp = tplInpShp[:-1] + (len(lstHrf), ) + (tplInpShp[-1], )
-    aryBoxCarConv = np.reshape(aryBoxCarConv, tplOutShp)
-    # aryBoxCarConv will have shape 128, 128, 15, 688
-
-    # *** resample pixel-time courses in high-res visual space
-    aryBoxCarConvHigh = rsmplInHighRes(aryBoxCarConv,
-                                       cfg.tplPngSize,
-                                       cfg.tplVslSpcHighSze,
-                                       cfg.varNumMtDrctn,
-                                       cfg.varNumVol)
-
-    # aryBoxCarConvHigh will have shape 200, 200, 15, 688
 
     # *** Create pRF time courses models
     # The pRF time course models are created using the super-sampled model of
@@ -193,21 +186,21 @@ if cfg.lgcCrteMdl:
     print('------Create pRF time course models')
 
     # Upsampling factor:
-    if (cfg.tplVslSpcHighSze[0] / cfg.varNumX) == (
-            cfg.tplVslSpcHighSze[1] / cfg.varNumY):
-        varFctUp = cfg.tplVslSpcHighSze[0] / cfg.varNumX
+    if (cfg.tplPngSize[0] / cfg.varNumX) == (
+            cfg.tplPngSize[1] / cfg.varNumY):
+        varFctUp = cfg.tplPngSize[0] / cfg.varNumX
     else:
         print('------ERROR. Dimensions of upsampled visual space do not ' +
               'agree with specified number of pRFs to model.')
 
     # Vector with the x-indicies of the positions in the super-sampled visual
     # space at which to create pRF models.
-    vecX = np.linspace(0, (cfg.tplVslSpcHighSze[0] - 1), cfg.varNumX,
+    vecX = np.linspace(0, (cfg.tplPngSize[0] - 1), cfg.varNumX,
                        endpoint=True)
 
     # Vector with the y-indicies of the positions in the super-sampled visual
     # space at which to create pRF models.
-    vecY = np.linspace(0, (cfg.tplVslSpcHighSze[1] - 1), cfg.varNumY,
+    vecY = np.linspace(0, (cfg.tplPngSize[1] - 1), cfg.varNumY,
                        endpoint=True)
 
     # Vector with the standard deviations of the pRF models. We need to convert
@@ -215,8 +208,8 @@ if cfg.lgcCrteMdl:
     # dimensions of the visual space. We calculate the scaling factor from
     # degrees of visual angle to pixels in the *upsampled* visual space
     # separately for the x- and the y-directions (the two should be the same).
-    varDgr2PixUpX = cfg.tplVslSpcHighSze[0] / (cfg.varExtXmax - cfg.varExtXmin)
-    varDgr2PixUpY = cfg.tplVslSpcHighSze[1] / (cfg.varExtYmax - cfg.varExtYmin)
+    varDgr2PixUpX = cfg.tplPngSize[0] / (cfg.varExtXmax - cfg.varExtXmin)
+    varDgr2PixUpY = cfg.tplPngSize[1] / (cfg.varExtYmax - cfg.varExtYmin)
 
     # The factor relating pixels in the upsampled visual space to degrees of
     # visual angle should be roughly the same (allowing for some rounding error
@@ -293,8 +286,8 @@ if cfg.lgcCrteMdl:
     for idxPrc in range(0, cfg.varPar):
         lstPrcs[idxPrc] = mp.Process(target=funcPrfTc,
                                      args=(idxPrc, lstMdlParams[idxPrc],
-                                           cfg.tplVslSpcHighSze, cfg.varNumVol,
-                                           aryBoxCarConvHigh, queOut)
+                                           cfg.tplPngSize, cfg.varNumVol,
+                                           aryBoxCarConv, queOut)
                                      )
         # Daemon (kills processes when exiting):
         lstPrcs[idxPrc].Daemon = True
@@ -400,7 +393,6 @@ else:
 
 print('------Find pRF models for voxel time courses')
 
-print('---------Loading nii data')
 # Load mask (to restrict model finding):
 niiMask = nb.load(cfg.strPathNiiMask)
 aryMask = niiMask.get_data().astype('bool')
@@ -667,23 +659,16 @@ if not cfg.lgcXval:
 # save as npy
 np.save(cfg.strPathOut + '_aryPrfRes', aryPrfRes)
 if not cfg.lgcXval:
-    np.save(cfg.strPathOut + '_aryBstTrainBetas', aryBstBetas)
+    np.save(cfg.strPathOut + '_aryBstTrnBetas', aryBstBetas)
 
 # List with name suffices of output images:
+lstNiiNames = ['_x_pos',
+               '_y_pos',
+               '_SD',
+               '_polar_angle',
+               '_eccentricity']
 if not cfg.lgcXval:
-    lstNiiNames = ['_x_pos',
-                   '_y_pos',
-                   '_SD',
-                   '_polar_angle',
-                   '_eccentricity',
-                   '_TrainR2']
-
-else:
-    lstNiiNames = ['_x_pos',
-                   '_y_pos',
-                   '_SD',
-                   '_polar_angle',
-                   '_eccentricity']
+    lstNiiNames = lstNiiNames + ['_TrnR2']
 
 print('---------Exporting results')
 

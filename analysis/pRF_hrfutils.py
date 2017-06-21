@@ -274,22 +274,17 @@ def cnvlTcOld(idxPrc,
     # Each time course is convolved with the HRF separately, because the
     # numpy convolution function can only be used on one-dimensional data.
     # Thus, we have to loop through time courses:
-    for idxTc in range(0, aryConv.shape[0]):
-
-        # Extract the current time course:
-        vecTc = aryBoxCarChunk[idxTc, :]
+    for idxTc, vecTc in enumerate(aryBoxCarChunk):
 
         # In order to avoid an artefact at the end of the time series, we have
         # to concatenate an empty array to both the design matrix and the HRF
         # model before convolution.
-        vecZeros = np.zeros([100, 1]).flatten()
-        vecTc = np.concatenate((aryBoxCarChunk[idxTc, :], vecZeros))
-        vecHrf = np.concatenate((vecHrf, vecZeros))
+        vecTc = np.append(vecTc, np.zeros(100))
+        vecHrf = np.append(vecHrf, np.zeros(100))
 
         # Convolve design matrix with HRF model:
-        aryConv[idxTc, :] = np.convolve(vecTc,
-                                        vecHrf,
-                                        mode='full')[0:varNumVol]
+        aryConv[idxTc, :] = np.convolve(vecTc, vecHrf,
+                                        mode='full')[:varNumVol]
 
     # determine output shape
     tplOutShp = tplInpShp[:-1] + (1, ) + (tplInpShp[-1], )

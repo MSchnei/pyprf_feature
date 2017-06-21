@@ -6,10 +6,13 @@ Created on Mon Mar 13 12:16:46 2017
 """
 import sys
 import os
+import itertools
 import numpy as np
 import nibabel as nb
 import multiprocessing as mp
+from sklearn.model_selection import KFold
 from pRF_calcR2_getBetas import getBetas
+from pRF_utils import loadNiiData
 from pRF_filtering import funcSmthTmp
 
 # %% get some parameters from command line
@@ -55,28 +58,44 @@ aryMask = niiMask.get_data().astype('bool')
 aryRes = np.load(cfg.strPathOut + '_aryPrfRes.npy')
 # mask the results array
 aryRes = aryRes[aryMask, :]
+# get an array that shows best x, y, sigma for every voxel
+aryBstMdls = aryRes[:, 0:3]
 
-# get beta weights for best models
-aryBstTrainBetas = np.load(cfg.strPathOut + '_aryBstTrainBetas.npy',)
+iterables = [range(len(vecMdlXpos)), range(len(vecMdlYpos)), range(len(vecMdlSd))]
+lstAllMdlInd = list(itertools.product(*iterables))
+# TODO: this part should be replaced in the future when the best indices are
+# saved directly
+iterables = [vecMdlXpos, vecMdlYpos, vecMdlSd]
+lstAllMdls = list(itertools.product(*iterables))
+# for every row in aryBstMdls, get best model index
+aryBstIndices = np.empty(len(aryBstMdls))
+aryCounter = np.zeros(len(aryBstMdls))
+for ind, mdl in enumerate(lstAllMdls):
+    aryBstIndices[np.all(aryBstMdls == mdl, axis=1)] = ind
+    aryCounter[np.all(aryBstMdls == mdl, axis=1)] += 1
 
-# get data for test run
-niiFunc = nb.load(os.path.join(cfg.strPathNiiFunc,
-                               cfg.lstNiiFls[cfg.varTestRun]))
-# Load the data into memory:
-aryFunc = niiFunc.get_data()
-# mask the data
-aryFunc = aryFunc[aryMask, :]
+# check that every voxel was visited only once
+strErrMsg = ('It looks like at least voxel was revisted more than once. ' +
+             'Check whether the R2 was calculated correctly')
+assert np.sum(aryCounter) == len(aryCounter), strErrMsg
+
+# get data for training runs
+print('------Load training data')
+aryFunc = loadNiiData(cfg.lstNiiFls, strPathNiiMask=cfg.strPathNiiMask,
+                      strPathNiiFunc=cfg.strPathNiiFunc)
 
 print('------Load prediction time courses')
-# load
+# load predictors
 aryPrfTc = np.load(cfg.strPathMdl)
-print('---------Consider only test pRF time courses')
-# Consider only the test runs
-lgcPrfTc = np.array(np.split(np.arange(np.sum(cfg.vecRunLngth)),
-                             np.cumsum(cfg.vecRunLngth)[:-1]))
-lgcPrfTc = np.hstack(
-    lgcPrfTc[np.arange(len(cfg.lstNiiFls)) == cfg.varTestRun])
-aryPrfTc = aryPrfTc[..., lgcPrfTc]
+
+print('---------Consider only traing pRF time courses')
+# derive logical for training/test runs
+lgcTrnTst = np.ones(np.sum(cfg.vecRunLngth), dtype=bool)
+lgcTrnTst[np.cumsum(cfg.vecRunLngth)[cfg.varTestRun-1]:np.cumsum(
+         cfg.vecRunLngth)[cfg.varTestRun]] = False
+# consider only training runs
+aryPrfTc = aryPrfTc[..., lgcTrnTst]
+aryFunc = aryFunc[..., lgcTrnTst]
 
 # Convert preprocessing parameters (for temporal and spatial smoothing) from
 # SI units (i.e. [s] and [mm]) into units of data array:
@@ -99,31 +118,30 @@ aryFunc = np.subtract(aryFunc, np.mean(aryFunc, axis=1)[:, None])
 # %%
 print('------Find best betas and R2 values')
 # prepare list for results
-lstBetaRes = [None] * cfg.varPar
+lstRes = [None] * cfg.varPar
 # Empty list for processes:
 lstPrcs = [None] * cfg.varPar
-# get an array that shows best x, y, sigma for every voxel
-aryBstMdls = np.array([aryRes[:, 0], aryRes[:, 1], aryRes[:, 2]]).T
 # divide this ary in parts and put parts in list
-lstBstMdls = np.array_split(aryBstMdls, cfg.varPar)
-# put best training betas in list
-lstBstTrainBetas = np.array_split(aryBstTrainBetas, cfg.varPar)
+lstBstIndices = np.array_split(aryBstIndices, cfg.varPar)
+# prepare iterator for crossvalidation
+kf = KFold(n_splits=len(cfg.lstNiiFls)-1)
+kf.split(aryPrfTc)
 # put functional data into list
 lstFunc = np.array_split(aryFunc, cfg.varPar)
 # delete arrays from memory
 del(aryRes)
 del(aryBstMdls)
-del(aryBstTrainBetas)
 del(aryFunc)
 # Create a queue to put the results in:
 queOut = mp.Queue()
 
 for idxPrc in range(0, cfg.varPar):
     lstPrcs[idxPrc] = mp.Process(target=getBetas,
-                                 args=(idxPrc, vecMdlXpos, vecMdlYpos,
-                                       vecMdlSd, aryPrfTc, lstFunc[idxPrc],
-                                       lstBstMdls[idxPrc],
-                                       lstBstTrainBetas[idxPrc],
+                                 args=(idxPrc, aryPrfTc,
+                                       lstAllMdlInd,
+                                       lstFunc[idxPrc],
+                                       lstBstIndices[idxPrc],
+                                       kf,
                                        queOut)
                                  )
     # Daemon (kills processes when exiting):
@@ -135,34 +153,33 @@ for idxPrc in range(0, cfg.varPar):
 
 # Collect results from queue:
 for idxPrc in range(0, cfg.varPar):
-    lstBetaRes[idxPrc] = queOut.get(True)
+    lstRes[idxPrc] = queOut.get(True)
 
 # Join processes:
 for idxPrc in range(0, cfg.varPar):
     lstPrcs[idxPrc].join()
 
 # Put output into correct order:
-lstBetaRes = sorted(lstBetaRes)
+lstRes = sorted(lstRes)
 
 # Concatenate output vectors
-aryBstR2 = np.zeros(0)
-aryBstBetas = np.zeros((0, cfg.varNumMtDrctn))
+aryBstBetasTrn = np.zeros((0, cfg.varNumMtDrctn, kf.get_n_splits()))
+aryBstBetasTst = np.zeros((0, cfg.varNumMtDrctn, kf.get_n_splits()))
+aryBstTvalsTrn = np.zeros((0, 4, kf.get_n_splits()))
+aryBstTvalsTst = np.zeros((0, 4, kf.get_n_splits()))
 for idxRes in range(0, cfg.varPar):
-    aryBstR2 = np.append(aryBstR2, lstBetaRes[idxRes][1])
-    aryBstBetas = np.concatenate((aryBstBetas, lstBetaRes[idxRes][2]),
-                                 axis=0)
+    aryBstBetasTrn = np.concatenate((aryBstBetasTrn, lstRes[idxRes][1]),
+                                    axis=0)
+    aryBstBetasTst = np.concatenate((aryBstBetasTst, lstRes[idxRes][2]),
+                                    axis=0)
+    aryBstTvalsTrn = np.concatenate((aryBstTvalsTrn, lstRes[idxRes][3]),
+                                    axis=0)
+    aryBstTvalsTst = np.concatenate((aryBstTvalsTst, lstRes[idxRes][4]),
+                                    axis=0)
+
 
 # %% save results
-np.save(cfg.strPathOut + '_aryBstTestR2.npy', aryBstR2)
-np.save(cfg.strPathOut + '_aryBstTestBetas.npy', aryBstBetas)
-
-# Save R2 as nii::
-aryOut = np.zeros((niiMask.shape ))
-aryOut[aryMask] = aryBstR2
-niiOut = nb.Nifti1Image(aryOut,
-                        niiMask.affine,
-                        header=niiMask.header
-                        )
-strTmp = (cfg.strPathOut + '_aryBstTestR2.nii')
-nb.save(niiOut, strTmp)
-
+np.save(cfg.strPathOut + '_aryXvalBetasTrn.npy', aryBstBetasTrn)
+np.save(cfg.strPathOut + '_aryXvalBetasTst.npy', aryBstBetasTst)
+np.save(cfg.strPathOut + '_aryXvalTvalsTrn.npy', aryBstTvalsTrn)
+np.save(cfg.strPathOut + '_aryXvalTvalsTst.npy', aryBstTvalsTst)
