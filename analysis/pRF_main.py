@@ -29,7 +29,7 @@ from scipy import stats
 from pRF_utils import loadNiiData, saveNiiData, calcR2, calcFstats, calcMse
 from sklearn.model_selection import KFold
 from pRF_mdlCrt import (loadPng, loadPrsOrd, crtPwBoxCarFn, cnvlPwBoxCarFn,
-                        rsmplInHighRes, funcPrfTc)
+                        crtPrfNrlTc)
 from pRF_filtering import funcSmthTmp
 from pRF_funcFindPrf import funcFindPrf, funcFindPrfXval
 from pRF_calcR2_getBetas import getBetas
@@ -87,287 +87,30 @@ if cfg.lgcCrteMdl:
     del(aryPngData)
     del(aryPresOrd)
 
-    # *** convolve every pixel box car function with hrf function(s)
-#    aryBoxCarConv = cnvlPwBoxCarFn(aryBoxCar,
-#                                   cfg.varNumVol,
-#                                   cfg.varTr,
-#                                   cfg.tplPngSize,
-#                                   cfg.varNumMtDrctn,
-#                                   cfg.switchHrfSet,
-#                                   cfg.varPar,
-#                                   cfg.lgcOldSchoolHrf,
-#                                   )
+    # *** Create neural time course models
+    aryNrlTc = crtPrfNrlTc(aryBoxCar, cfg.varNumMtDrctn, cfg.varNumVol,
+                           cfg.tplPngSize, cfg.varNumX, cfg.varExtXmin,
+                           cfg.varExtXmax, cfg.varNumY, cfg.varExtYmin,
+                           cfg.varExtYmax, cfg.varNumPrfSizes,
+                           cfg.varPrfStdMin, cfg.varPrfStdMax, cfg.varPar)
+    # aryNrlTc will have shape (25, 25, 22, 5, 1204)
+    name = '/media/sf_D_DRIVE/MotionLocaliser/Analysis/P02/FitResults/Compare/aryNrlTc.npy'
+    np.save(name, aryNrlTc)
+    # aryNrlTc = np.load(name)
 
-#    print('------Convolve every pixel box car function with hrf function(s)')
-#
-#    # Create hrf time course function:
-#    if cfg.switchHrfSet == 3:
-#        lstHrf = [spmt, dspmt, ddspmt]
-#    elif cfg.switchHrfSet == 2:
-#        lstHrf = [spmt, dspmt]
-#    elif cfg.switchHrfSet == 1:
-#        lstHrf = [spmt]
-#
-#    # adjust the input, if necessary, such that input is 2D, with last ax time
-#    tplInpShp = aryBoxCar.shape
-#    aryBoxCar = np.reshape(aryBoxCar, (-1, aryBoxCar.shape[-1]))
-#
-#    # Put input data into chunks:
-#    lstBoxCar = np.array_split(aryBoxCar, cfg.varPar)
-#    # We don't need the original array with the input data anymore:
-#    del(aryBoxCar)
-#
-#    # Create a queue to put the results in:
-#    queOut = mp.Queue()
-#
-#    # Empty list for processes:
-#    lstPrcs = [None] * cfg.varPar
-#
-#    # Empty list for results of parallel processes:
-#    lstConv = [None] * cfg.varPar
-#
-#    print('---------Creating parallel processes')
-#
-#    if cfg.lgcOldSchoolHrf:
-#        for idxPrc in range(0, cfg.varPar):
-#            lstPrcs[idxPrc] = mp.Process(target=cnvlTcOld,
-#                                         args=(idxPrc, lstBoxCar[idxPrc],
-#                                               cfg.varTr, cfg.varNumVol,
-#                                               queOut)
-#                                         )
-#    else:
-#        # Create processes:
-#        for idxPrc in range(0, cfg.varPar):
-#            lstPrcs[idxPrc] = mp.Process(target=cnvlTc,
-#                                         args=(idxPrc, lstBoxCar[idxPrc],
-#                                               lstHrf, cfg.varTr,
-#                                               cfg.varNumVol, queOut)
-#                                         )
-#
-#        # Daemon (kills processes when exiting):
-#        lstPrcs[idxPrc].Daemon = True
-#
-#    # Start processes:
-#    for idxPrc in range(0, cfg.varPar):
-#        lstPrcs[idxPrc].start()
-#
-#    # Collect results from queue:
-#    for idxPrc in range(0, cfg.varPar):
-#        lstConv[idxPrc] = queOut.get(True)
-#
-#    # Join processes:
-#    for idxPrc in range(0, cfg.varPar):
-#        lstPrcs[idxPrc].join()
-#
-#    print('---------Collecting results from parallel processes')
-#
-#    # Put output into correct order:
-#    lstConv = sorted(lstConv)
-#
-#    # Concatenate convolved pixel time courses (into the same order as they
-#    # were entered into the analysis):
-#    aryBoxCarConv = np.zeros((0, cfg.switchHrfSet, cfg.varNumVol))
-#    for idxRes in range(0, cfg.varPar):
-#        aryBoxCarConv = np.concatenate((aryBoxCarConv, lstConv[idxRes][1]),
-#                                       axis=0)
-#    del(lstConv)
+    # *** convolve every neural time course model with hrf function(s)
+    aryPrfTc = cnvlPwBoxCarFn(aryNrlTc, cfg.varNumVol, cfg.varTr,
+                              cfg.tplPngSize, cfg.varNumMtDrctn,
+                              cfg.switchHrfSet, cfg.lgcOldSchoolHrf,
+                              cfg.varPar,
+                              )
+    # aryPrfTc will have shape (25, 25, 22, 5*1, 1204)
+    name = '/media/sf_D_DRIVE/MotionLocaliser/Analysis/P02/FitResults/Compare/aryPrfTc.npy'
+    np.save(name, aryPrfTc)
+    # aryPrfTc = np.load(name)
 
-#    # Reshape results:
-#    tplOutShp = tplInpShp[:-2] + (cfg.varNumMtDrctn * len(lstHrf), ) + (tplInpShp[-1], )
-#    aryBoxCarConv = np.reshape(aryBoxCarConv, tplOutShp)
-#    # aryBoxCarConv will have shape 128, 128, 5*1, 1204
-    aryBoxCarConv = np.load('/media/sf_D_DRIVE/MotionLocaliser/Analysis/P02/FitResults/Compare/aryBoxCarConv.npy')
-
-
-    # *** Create pRF time courses models
-    # The pRF time course models are created using the super-sampled model of
-    # the pixel time courses.
-
-    print('------Create pRF time course models')
-
-    # Upsampling factor:
-    if (cfg.tplPngSize[0] / cfg.varNumX) == (
-            cfg.tplPngSize[1] / cfg.varNumY):
-        varFctUp = cfg.tplPngSize[0] / cfg.varNumX
-    else:
-        print('------ERROR. Dimensions of upsampled visual space do not ' +
-              'agree with specified number of pRFs to model.')
-
-    # Vector with the x-indicies of the positions in the super-sampled visual
-    # space at which to create pRF models.
-    vecX = np.linspace(0, (cfg.tplPngSize[0] - 1), cfg.varNumX,
-                       endpoint=True)
-
-    # Vector with the y-indicies of the positions in the super-sampled visual
-    # space at which to create pRF models.
-    vecY = np.linspace(0, (cfg.tplPngSize[1] - 1), cfg.varNumY,
-                       endpoint=True)
-
-    # Vector with the standard deviations of the pRF models. We need to convert
-    # the standard deviation values from degree of visual angle to the
-    # dimensions of the visual space. We calculate the scaling factor from
-    # degrees of visual angle to pixels in the *upsampled* visual space
-    # separately for the x- and the y-directions (the two should be the same).
-    varDgr2PixUpX = cfg.tplPngSize[0] / (cfg.varExtXmax - cfg.varExtXmin)
-    varDgr2PixUpY = cfg.tplPngSize[1] / (cfg.varExtYmax - cfg.varExtYmin)
-
-    # The factor relating pixels in the upsampled visual space to degrees of
-    # visual angle should be roughly the same (allowing for some rounding error
-    # if the visual stimulus was not square):
-    if 0.5 < np.absolute((varDgr2PixUpX - varDgr2PixUpY)):
-        print('------ERROR. The ratio of X and Y dimensions in stimulus ' +
-              'space (in degrees of visual angle) and the ratio of X and Y ' +
-              'dimensions in the upsampled visual space do not agree')
-
-    # Vector with pRF sizes to be modelled (still in degree of visual angle):
-    vecPrfSd = np.linspace(cfg.varPrfStdMin, cfg.varPrfStdMax,
-                           cfg.varNumPrfSizes, endpoint=True)
-
-    # We multiply the vector with the pRF sizes to be modelled with the scaling
-    # factor (for the x-dimensions - as we have just found out, the scaling
-    # factors for the x- and y-direction are identical, except for rounding
-    # error). Now the vector with the pRF sizes to be modelled is can directly
-    # be used for the creation of Gaussian pRF models in upsampled visual
-    # space.
-    vecPrfSd = np.multiply(vecPrfSd, varDgr2PixUpX)
-
-    # Number of pRF models to be created (i.e. number of possible combinations
-    # of x-position, y-position, and standard deviation):
-    varNumMdls = cfg.varNumX * cfg.varNumY * cfg.varNumPrfSizes
-
-    # Array for the x-position, y-position, and standard deviations for which
-    # pRF model time courses are going to be created, where the columns
-    # correspond to: (0) an index starting from zero, (1) the x-position, (2)
-    # the y-position, and (3) the standard deviation. The parameters are in
-    # units of the upsampled visual space.
-    aryMdlParams = np.zeros((varNumMdls, 4))
-
-    # Counter for parameter array:
-    varCntMdlPrms = 0
-
-    # Put all combinations of x-position, y-position, and standard deviations
-    # into the array:
-
-    # Loop through x-positions:
-    for idxX in range(0, cfg.varNumX):
-
-        # Loop through y-positions:
-        for idxY in range(0, cfg.varNumY):
-
-            # Loop through standard deviations (of Gaussian pRF models):
-            for idxSd in range(0, cfg.varNumPrfSizes):
-
-                # Place index and parameters in array:
-                aryMdlParams[varCntMdlPrms, 0] = varCntMdlPrms
-                aryMdlParams[varCntMdlPrms, 1] = vecX[idxX]
-                aryMdlParams[varCntMdlPrms, 2] = vecY[idxY]
-                aryMdlParams[varCntMdlPrms, 3] = vecPrfSd[idxSd]
-
-                # Increment parameter index:
-                varCntMdlPrms = varCntMdlPrms + 1
-
-    # The long array with all the combinations of model parameters is put into
-    # separate chunks for parallelisation, using a list of arrays.
-    lstMdlParams = np.array_split(aryMdlParams, cfg.varPar)
-
-    # Create a queue to put the results in:
-    queOut = mp.Queue()
-
-    # Empty list for results from parallel processes (for pRF model time course
-    # results):
-    lstPrfTc = [None] * cfg.varPar
-
-    # Empty list for processes:
-    lstPrcs = [None] * cfg.varPar
-
-    print('---------Creating parallel processes')
-
-    # Create processes:
-    for idxPrc in range(0, cfg.varPar):
-        lstPrcs[idxPrc] = mp.Process(target=funcPrfTc,
-                                     args=(idxPrc, lstMdlParams[idxPrc],
-                                           cfg.tplPngSize, cfg.varNumVol,
-                                           aryBoxCarConv, queOut)
-                                     )
-        # Daemon (kills processes when exiting):
-        lstPrcs[idxPrc].Daemon = True
-
-    # Start processes:
-    for idxPrc in range(0, cfg.varPar):
-        lstPrcs[idxPrc].start()
-
-    # Collect results from queue:
-    for idxPrc in range(0, cfg.varPar):
-        lstPrfTc[idxPrc] = queOut.get(True)
-
-    # Join processes:
-    for idxPrc in range(0, cfg.varPar):
-        lstPrcs[idxPrc].join()
-
-    # Put output arrays from parallel process into one big array
-    lstPrfTc = sorted(lstPrfTc)
-    aryPrfTc = np.empty((0, cfg.varNumMtDrctn, cfg.varNumVol))
-    for idx in range(0, cfg.varPar):
-        print('---------Order list by index: ' + str(lstPrfTc[idx][0]))
-        aryPrfTc = np.concatenate((aryPrfTc, lstPrfTc[idx][1]), axis=0)
-
-    # check that all the models were collected correctly
-    assert aryPrfTc.shape[0] == varNumMdls
-
-    # Clean up:
-    del(aryMdlParams)
-    del(lstMdlParams)
-    del(lstPrfTc)
-
-    # Array representing the low-resolution visual space, of the form
-    # aryPrfTc[x-position, y-position, pRF-size, varNum Vol], which will hold
-    # the pRF model time courses.
-    aryPrfTc4D = np.zeros([cfg.varNumX,
-                           cfg.varNumY,
-                           cfg.varNumPrfSizes,
-                           cfg.varNumMtDrctn,
-                           cfg.varNumVol])
-
-    # We use the same loop structure for organising the pRF model time courses
-    # that we used for creating the parameter array. Counter:
-    varCntMdlPrms = 0
-
-    # Put all combinations of x-position, y-position, and standard deviations
-    # into the array:
-
-    # Loop through x-positions:
-    for idxX in range(0, cfg.varNumX):
-
-        # Loop through y-positions:
-        for idxY in range(0, cfg.varNumY):
-
-            # Loop through standard deviations (of Gaussian pRF models):
-            for idxSd in range(0, cfg.varNumPrfSizes):
-
-                # Put the pRF model time course into its correct position in
-                # the 4D array, leaving out the first column (which contains
-                # the index):
-                aryPrfTc4D[idxX, idxY, idxSd, :, :] = aryPrfTc[
-                    varCntMdlPrms, :, :]
-
-                # Increment parameter index:
-                varCntMdlPrms = varCntMdlPrms + 1
-
-    # Change array name for consistency, and delete unnecessary copy:
-    aryPrfTc = np.copy(aryPrfTc4D)
-    del(aryPrfTc4D)
-    # *************************************************************************
-
-    # *************************************************************************
     # *** Save pRF time course models
-
-    # Save the 4D array as '*.npy' file:
-    np.save(cfg.strPathMdl,
-            aryPrfTc)
-
-    # Set test for correct dimensions of '*.npy' file to true:
-    lgcDim = True
-    # *************************************************************************
+    np.save(cfg.strPathMdl, aryPrfTc)
 
 else:
     # %% Load existing pRF time course models
@@ -404,7 +147,7 @@ print('---------Consider only training pRF time courses and func data')
 # derive logical for training/test runs
 lgcTrnTst = np.ones(np.sum(cfg.vecRunLngth), dtype=bool)
 lgcTrnTst[np.cumsum(cfg.vecRunLngth)[cfg.varTestRun-1]:np.cumsum(
-         cfg.vecRunLngth)[cfg.varTestRun]] = False
+          cfg.vecRunLngth)[cfg.varTestRun]] = False
 
 # split in training and test runs
 aryPrfTc = aryPrfTc[..., lgcTrnTst]
@@ -453,7 +196,6 @@ queOut = mp.Queue()
 
 print('---------Number of voxels on which pRF finding will be ' +
       'performed: ' + str(aryFunc.shape[0]))
-print("Test Test Test")
 # zscore/demean predictors and responses after smoothing
 aryPrfTc = stats.zscore(aryPrfTc, axis=4, ddof=2)
 aryFunc = np.subtract(aryFunc, np.mean(aryFunc, axis=1)[:, None])

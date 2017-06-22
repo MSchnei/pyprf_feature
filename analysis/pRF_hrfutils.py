@@ -25,6 +25,7 @@ from functools import partial
 import numpy as np
 import scipy.stats as sps
 from scipy.interpolate import interp1d
+from scipy.stats import gamma
 
 
 # %% Hrf functions for convultion taken from nipy
@@ -140,7 +141,7 @@ def ddspmt(t):
 
 # %% functions for convultion
 def cnvlTc(idxPrc,
-           aryBoxCarChunk,
+           aryPrfTcChunk,
            lstHrf,
            varTr,
            varNumVol,
@@ -176,12 +177,12 @@ def cnvlTc(idxPrc,
           ": Prepare pixel time courses for convolution")
 
     # adjust the input, if necessary, such that input is 2D, with last dim time
-    tplInpShp = aryBoxCarChunk.shape
-    aryBoxCarChunk = aryBoxCarChunk.reshape((-1, aryBoxCarChunk.shape[-1]))
+    tplInpShp = aryPrfTcChunk.shape
+    aryPrfTcChunk = aryPrfTcChunk.reshape((-1, aryPrfTcChunk.shape[-1]))
 
     # Prepare an empty array for ouput
-    aryConv = np.zeros((aryBoxCarChunk.shape[0], len(lstHrf),
-                        aryBoxCarChunk.shape[1]))
+    aryConv = np.zeros((aryPrfTcChunk.shape[0], len(lstHrf),
+                        aryPrfTcChunk.shape[1]))
     print("---------Process " + str(idxPrc) +
           ": Convolve")
     # Each time course is convolved with the HRF separately, because the
@@ -190,7 +191,7 @@ def cnvlTc(idxPrc,
     for idxTc in range(0, aryConv.shape[0]):
 
         # Extract the current time course:
-        vecTc = aryBoxCarChunk[idxTc, :]
+        vecTc = aryPrfTcChunk[idxTc, :]
 
         # upsample the pixel time course, so that it matches the hrf time crs
         vecTcUps = np.zeros(int(varNumVol * varTr/varRes))
@@ -221,8 +222,6 @@ def cnvlTc(idxPrc,
 # %%
 # The following two functions are old legacy functions
 # They are now replaced by the function cnvlTc
-from scipy.stats import gamma
-
 
 def funcHrf(varNumVol, varTr):
     """Create double gamma function.
@@ -253,7 +252,7 @@ def funcHrf(varNumVol, varTr):
 
 
 def cnvlTcOld(idxPrc,
-              aryBoxCarChunk,
+              aryPrfTcChunk,
               varTr,
               varNumVol,
               queOut):
@@ -265,16 +264,16 @@ def cnvlTcOld(idxPrc,
     vecHrf = funcHrf(varNumVol, varTr)
 
     # adjust the input, if necessary, such that input is 2D, with last dim time
-    tplInpShp = aryBoxCarChunk.shape
-    aryBoxCarChunk = aryBoxCarChunk.reshape((-1, aryBoxCarChunk.shape[-1]))
+    tplInpShp = aryPrfTcChunk.shape
+    aryPrfTcChunk = aryPrfTcChunk.reshape((-1, aryPrfTcChunk.shape[-1]))
 
     # Prepare an empty array for ouput
-    aryConv = np.zeros(np.shape(aryBoxCarChunk))
+    aryConv = np.zeros(np.shape(aryPrfTcChunk))
 
     # Each time course is convolved with the HRF separately, because the
     # numpy convolution function can only be used on one-dimensional data.
     # Thus, we have to loop through time courses:
-    for idxTc, vecTc in enumerate(aryBoxCarChunk):
+    for idxTc, vecTc in enumerate(aryPrfTcChunk):
 
         # In order to avoid an artefact at the end of the time series, we have
         # to concatenate an empty array to both the design matrix and the HRF
