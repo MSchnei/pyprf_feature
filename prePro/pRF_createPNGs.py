@@ -22,10 +22,10 @@ import pickle
 lgcStc = False
 
 # Number of presented runs
-varNumRuns = 6
+varNumRuns = 4
 
 # list of volumes per run
-varNumTPinSingleRun = np.array([172, 172, 172, 172, 172, 172])
+varNumTPinSingleRun = np.array([172, 172, 172, 172])
 
 # list of stimuli used for run (varies with individual recording)
 lstRunStimuli = np.array([1, 2, 3, 4, 5, 6])
@@ -36,10 +36,10 @@ factorX = 8
 factorY = 8
 
 # load aperture positions
-strPathApertPos = '/home/marian/Documents/Git/py_pRF_motion/stimuli/Masks/mskBar.npy'
+strPathApertPos = '/home/john/Desktop/20161220_pRF_log/ModBasedMotLoc/Masks/mskCircleBar.npz'
 
 # Output path for time course files:
-strPathOut = '/media/sf_D_DRIVE/MotionLocaliser/Simulation2p0/Apertures/PNGs/mskBar'
+strPathOut = '/home/john/Desktop/20161220_pRF_log/ModBasedMotLoc/png/mskCircleBar'
 if not os.path.exists(strPathOut):
     os.makedirs(strPathOut)
 
@@ -49,7 +49,7 @@ if not os.path.exists(strPathOut):
 # Base name of pickle files that contain order of stim presentat. in each run
 # file should contain 1D array, column contains present. order of aperture pos,
 # here file is 2D where 2nd column contains present. order of motion directions
-strPathPresOrd = '/media/sf_D_DRIVE/MotionLocaliser/Simulation2p0/Conditions/Conditions_run0'
+strPathPresOrd = '/home/john/Desktop/20161220_pRF_log/ModBasedMotLoc/Conditions/Conditions_run0'
 
 
 # %%
@@ -82,7 +82,18 @@ if lgcStc:
 # %%
 # *** Load aperture information
 print('------Load aperture information')
-aryApertPos = np.load(strPathApertPos)
+# Load npz file content into list:
+with np.load(strPathApertPos) as objMsks:
+    lstMsks = objMsks.items()
+
+for objTmp in lstMsks:
+    strMsg = 'Mask type: ' + objTmp[0]
+    # The following print statement prints the name of the mask stored in the
+    # npz array from which the mask shape is retrieved. Can be used to check
+    # whether the correct mask has been retrieved.
+    print(strMsg)
+    aryApertPos = objTmp[1]
+
 # convert to integer
 aryApertPos = aryApertPos.astype(int)
 
