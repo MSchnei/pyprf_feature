@@ -11,7 +11,8 @@ py_28_pRF_finding from Ingo Marquardt
 from __future__ import division  # so that 1/3=0.333 instead of 1/3=0
 import os
 import numpy as np
-import Image
+#import Image
+from PIL import Image
 import pickle
 
 # %%
@@ -28,7 +29,7 @@ varNumRuns = 4
 varNumTPinSingleRun = np.array([172, 172, 172, 172])
 
 # list of stimuli used for run (varies with individual recording)
-lstRunStimuli = np.array([1, 2, 3, 4, 5, 6])
+lstRunStimuli = np.array([1, 2, 3, 4])
 
 # Determine the factors by which the image should be downsampled (since the
 # original array is rather big; factor 2 means:downsample from 1200 to 600):
@@ -36,10 +37,10 @@ factorX = 8
 factorY = 8
 
 # load aperture positions
-strPathApertPos = '/home/john/Desktop/20161220_pRF_log/ModBasedMotLoc/Masks/mskCircleBar.npz'
+strPathApertPos = '/home/john/Desktop/20161220_stimuli/Masks/mskBar.npz'
 
 # Output path for time course files:
-strPathOut = '/home/john/Desktop/20161220_pRF_log/ModBasedMotLoc/png/mskCircleBar'
+strPathOut = '/home/john/Desktop/20161220_stimuli/PNGs/mskBar'
 if not os.path.exists(strPathOut):
     os.makedirs(strPathOut)
 
@@ -49,7 +50,7 @@ if not os.path.exists(strPathOut):
 # Base name of pickle files that contain order of stim presentat. in each run
 # file should contain 1D array, column contains present. order of aperture pos,
 # here file is 2D where 2nd column contains present. order of motion directions
-strPathPresOrd = '/home/john/Desktop/20161220_pRF_log/ModBasedMotLoc/Conditions/Conditions_run0'
+strPathPresOrd = '/home/john/Desktop/20161220_stimuli/Conditions/Conditions_run0'
 
 
 # %%
@@ -87,7 +88,7 @@ with np.load(strPathApertPos) as objMsks:
     lstMsks = objMsks.items()
 
 for objTmp in lstMsks:
-    strMsg = 'Mask type: ' + objTmp[0]
+    strMsg = '---------Mask type: ' + objTmp[0]
     # The following print statement prints the name of the mask stored in the
     # npz array from which the mask shape is retrieved. Can be used to check
     # whether the correct mask has been retrieved.
@@ -104,6 +105,14 @@ tplPngSize = aryApertPos.shape[0:2]
 # *** Combine information of aperture pos and presentation order
 print('------Combine information of aperture pos and presentation order')
 aryCond = aryApertPos[:, :, aryPresOrd[:, 0]]
+
+# When presenting the stimuli, psychopy presents the stimuli from the array
+# 'upside down', compared to a representation of the array where the first row
+# of the first column is in the upper left. In order to get the PNGs to have
+# the same orientations as the stimuli on the screen during the experiment, we
+# need to flip the array. (See ~/py_pRF_motion/stimuli/Main/prfStim_Motion*.py
+# for the experiment script in which this 'flip' occurs.)
+aryCond = np.flipud(aryCond)
 
 scaleValue = 255  # value to multipy mask value (1s) with for png format
 for index in np.arange(aryCond.shape[2]):
