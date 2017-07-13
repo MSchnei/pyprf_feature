@@ -19,26 +19,26 @@
 
 
 # Number of x-positions to model:
-varNumX = 21
+varNumX = 25
 # Number of y-positions to model:
-varNumY = 21
+varNumY = 25
 # Number of pRF sizes to model:
-varNumPrfSizes = 35
+varNumPrfSizes = 22
 
 # Extend of visual space from centre of the screen (i.e. from the fixation
 # point) [degrees of visual angle]:
-varExtXmin = -5.00
-varExtXmax = 5.00
-varExtYmin = -5.00
-varExtYmax = 5.00
+varExtXmin = -12.00
+varExtXmax = 12.00
+varExtYmin = -12.00
+varExtYmax = 12.00
 
 # Maximum and minimum pRF model size (standard deviation of 2D Gaussian)
 # [degrees of visual angle]:
-varPrfStdMin = 0.1
-varPrfStdMax = 7.0
+varPrfStdMin = 1.0
+varPrfStdMax = 22.0
 
 # Volume TR of input data [s]:
-varTr = 2.832
+varTr = 3.0
 # Voxel resolution of the fMRI data [mm]:
 varVoxRes = 0.8
 
@@ -46,10 +46,7 @@ varVoxRes = 0.8
 # [standard deviation of the Gaussian kernel, in seconds]:
 # the same smotthing will be applied to pRF time course models
 # [set 0 if not desired]
-varSdSmthTmp = 2.832
-
-# Number of fMRI volumes and png files to load:
-varNumVol = 688
+varSdSmthTmp = 0
 
 # Intensity cutoff value for fMRI time series. Voxels with a mean intensity
 # lower than the value specified here are not included in the pRF model finding
@@ -69,24 +66,29 @@ varPar = 10
 tplVslSpcHighSze = (200, 200)
 
 # Parent path to functional data
-strPathNiiFunc = '/media/sf_D_DRIVE/PacMan/Analysis/P3/Distorted/04_SmoothSpat1SmoothTmp1Demean'
+strPathNiiFunc = '/home/john/Documents/pRF_motion/func'
 # list of nii files in parent directory (all nii files together need to have
 # same number of volumes as there are PNGs):
-lstNiiFls = ['zs1_1rprf_01_hpf.nii',
-             'zs1_1rprf_02_hpf.nii',
-             'zs1_1rprf_03_hpf.nii',
-             'zs1_1rprf_04_hpf.nii',
+lstNiiFls = ['demean_rafunc01_hpf.nii',
+             'demean_rafunc02_hpf.nii',
+             'demean_rafunc03_hpf.nii',
+             'demean_rafunc04_hpf.nii',
+             'demean_rafunc05_hpf.nii',
+             'demean_rafunc06_hpf.nii',
+             'demean_rafunc07_hpf.nii',
              ]
+# which run should be hold out for testing? [python index strating from 0]
+varTestRun = 6
 
 # Path of mask (to restrict pRF model finding):
-strPathNiiMask = '/media/sf_D_DRIVE/PacMan/Analysis/P3/Distorted/FitResults/TestMask2.nii.gz'
+strPathNiiMask = '/home/john/Documents/pRF_motion/func/mask.nii.gz'
 
 # Output basename:
-strPathOut = '/media/sf_D_DRIVE/PacMan/Analysis/P3/Distorted/FitResults/TestBasis'
+strPathOut = '/home/john/Documents/pRF_motion/result/MotionNoXvalAoM'
 
-# Use cython (i.e. compiled code) for faster performance? (Requires cython to
-# be installed.)
-lgcCython = False
+# Which version to use for pRF finding. 'numpy' or 'cython' for pRF finding on
+# CPU, 'gpu' for using GPU.
+strVersion = 'gpu'
 
 # Create pRF time course models?
 lgcCrteMdl = False
@@ -95,13 +97,16 @@ lgcCrteMdl = False
 lgcAoM = True
 
 # length of the runs that were done
-vecRunLngth = [172, 172, 172, 172]
+vecRunLngth = [172, 172, 172, 172, 172, 172, 172]
+
+# Number of fMRI volumes and png files to load:
+varNumVol = sum(vecRunLngth)
 
 # cross validate?
-lgcXval = True
+lgcXval = False
 
 # set which set of hrf functions should be used
-lgcOldSchoolHrf = False
+lgcOldSchoolHrf = True
 
 if lgcOldSchoolHrf:  # use legacy hrf function
     strBasis = '_oldSch'
@@ -118,30 +123,30 @@ else:  # use hrf basis
 if lgcXval:
     varNumXval = len(lstNiiFls)  # set nr of xvalidations, equal to nr of runs
 
-if lgcCrteMdl:
-    # If we create new pRF time course models, the following parameters have to
-    # be provided:
+# For time course model creation, the following parameters have to
+# be provided:
 
-    # visual stimuli that were used for this run (if everything is well 1,2,3 )
-    vecVslStim = [1, 2, 3, 4]
+# visual stimuli that were used for this run (if everything is well 1,2,3 )
+vecVslStim = [1, 2, 3, 4, 5, 6, 7]
 
-    # Basename of the filenames that have the presentation orders saved
-    strPathPresOrd = '/media/sf_D_DRIVE/PacMan/PsychoPyScripts/Pacman_Scripts/PacMan_Pilot3_20161220/ModBasedMotLoc/Conditions/Conditions_run0'
+# Basename of the filenames that have the presentation orders saved
+strPathPresOrd = ''  #'/media/sf_D_DRIVE/MotionLocaliser/UsedPsychoPyScripts/P02/Conditions/Conditions_run0'
 
-    # Size of png files (pixel*pixel):
-    tplPngSize = (128, 128)
+# Size of png files (pixel*pixel):
+tplPngSize = (128, 128)
 
-    # Basename of the 'binary stimulus files'. The files need to be in png
-    # format and number in the order of their presentation during the
-    # experiment.
-    strPathPng = '/media/sf_D_DRIVE/PacMan/Analysis/P3/Distorted/PrfPngs/Ima_'
+# Basename of the 'binary stimulus files'. The files need to be in png
+# format and number in the order of their presentation during the
+# experiment.
+strPathPng = ''  #'/media/sf_D_DRIVE/MotionLocaliser/Analysis/P02/PNGs/Ima_'
 
-    # Output path for pRF time course models file (without file extension):
-    strPathMdl = '/media/sf_D_DRIVE/PacMan/Analysis/P3/Distorted/FitResults/pRF_model_mtn_tc' + strBasis
+# If we use existing pRF time course models, the path to the respective
+# file has to be provided (including file extension, i.e. '*.npy'):
+strPathMdl = '/home/john/Documents/pRF_motion/model/pRF_model_tc_oldSch.npy'  #'/media/sf_D_DRIVE/MotionLocaliser/Analysis/P02/FitResults/6runs_MotionAoMNoXval/pRF_model_tc' + strBasis + '.npy'
 
-else:
-    # provide number of motion directions
+if lgcAoM:
+    # number of motion directions
     varNumMtDrctn = 5 * switchHrfSet
-    # If we use existing pRF time course models, the path to the respective
-    # file has to be provided (including file extension, i.e. '*.npy'):
-    strPathMdl = '/media/sf_D_DRIVE/PacMan/Analysis/P3/Distorted/FitResults/pRF_model_mtn_tc' + strBasis + '.npy'
+else:
+    # number of motion directions
+    varNumMtDrctn = 9 * switchHrfSet

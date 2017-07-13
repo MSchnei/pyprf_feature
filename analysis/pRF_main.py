@@ -29,9 +29,12 @@ from pRF_mdlCrt import (loadPng, loadPrsOrd, crtPwBoxCarFn, cnvlPwBoxCarFn,
                         rsmplInHighRes, funcPrfTc)
 from pRF_filtering import funcSmthTmp
 from pRF_funcFindPrf import funcFindPrf, funcFindPrfXval
+
+from pRF_funcFindPrfGpu import funcFindPrfGpu
+
 from pRF_calcR2_getBetas import getBetas
 from pRF_hrfutils import spmt, dspmt, ddspmt, cnvlTc, cnvlTcOld
-os.chdir(os.path.abspath(os.path.dirname(__file__)))
+#os.chdir(os.path.abspath(os.path.dirname(__file__)))
 
 # %% get some parameters from command line
 sys.argv = sys.argv[1:]
@@ -464,6 +467,11 @@ vecMdlYpos = np.linspace(cfg.varExtYmin, cfg.varExtYmax, cfg.varNumY,
 vecMdlSd = np.linspace(cfg.varPrfStdMin, cfg.varPrfStdMax, cfg.varNumPrfSizes,
                        endpoint=True)
 
+# If using the GPU version, we set parallelisation factor to one, because
+# parallelisation is done within the GPU function (no separate CPU threads).
+if cfg.strVersion == 'gpu':
+    cfg.varPar = 1
+
 # Empty list for results (parameters of best fitting pRF model):
 lstPrfRes = [None] * cfg.varPar
 
@@ -483,59 +491,65 @@ print('---------Number of voxels on which pRF finding will be ' +
       'performed: ' + str(varNumVoxInc))
 
 if cfg.lgcXval:
-    # get number of time points
-    varNumTP = aryFunc.shape[1]
-    # make sure that the predictors are demeaned
-    aryPrfTc = np.subtract(aryPrfTc, np.mean(aryPrfTc, axis=4)[
-        :, :, :, :, None])
-    # make sure that the data is demeaned
-    aryFunc = np.subtract(aryFunc, np.mean(aryFunc, axis=1)[:, None])
-    # prepare cross validation
-    vecXval = np.arange(cfg.varNumXval)
-    lsSplit = np.array(np.split(np.arange(varNumTP),
-                                np.cumsum(cfg.vecRunLngth)))
-    # get rid of last element, which is empty
-    lsSplit = lsSplit[:-1]
-    # put the pRF models into different training and test folds
-    lstPrfMdlsTrn = []
-    lstPrfMdlsTst = []
-    for ind in vecXval:
-        idx1 = np.where(ind != vecXval)[0]
-        idx2 = np.where(ind == vecXval)[0]
-        lstPrfMdlsTrn.append(aryPrfTc[:, :, :, :,
-                                      np.hstack(lsSplit[idx1])])
-        lstPrfMdlsTst.append(aryPrfTc[:, :, :, :,
-                                      np.hstack(lsSplit[idx2])])
 
-    # put the functional data into different training and test folds
-    lstFunc = np.array_split(aryFunc, cfg.varPar)
+    if cfg.strVersion != 'gpu':
 
-    lstFuncTrn = [[] for x in xrange(cfg.varPar)]
-    lstFuncTst = [[] for x in xrange(cfg.varPar)]
-    for ind1 in np.arange(len(lstFunc)):
-        # take voxels for ind1 paralelization
-        aryFuncTemp = lstFunc[ind1]
-        lstFuncTrnSplit = []
-        lstFuncTstSplit = []
-        for ind2 in vecXval:
-            # create ind2-fold for xvalidation
-            idx1 = np.where(ind2 != vecXval)[0]
-            idx2 = np.where(ind2 == vecXval)[0]
-            lstFuncTrnSplit.append(
-                aryFuncTemp[:, np.hstack(lsSplit[idx1])])
-            lstFuncTstSplit.append(
-                aryFuncTemp[:, np.hstack(lsSplit[idx2])])
-        lstFuncTrn[ind1] = lstFuncTrnSplit
-        lstFuncTst[ind1] = lstFuncTstSplit
+        # get number of time points
+        varNumTP = aryFunc.shape[1]
+        # make sure that the predictors are demeaned
+        aryPrfTc = np.subtract(aryPrfTc, np.mean(aryPrfTc, axis=4)[
+            :, :, :, :, None])
+        # make sure that the data is demeaned
+        aryFunc = np.subtract(aryFunc, np.mean(aryFunc, axis=1)[:, None])
+        # prepare cross validation
+        vecXval = np.arange(cfg.varNumXval)
+        lsSplit = np.array(np.split(np.arange(varNumTP),
+                                    np.cumsum(cfg.vecRunLngth)))
+        # get rid of last element, which is empty
+        lsSplit = lsSplit[:-1]
+        # put the pRF models into different training and test folds
+        lstPrfMdlsTrn = []
+        lstPrfMdlsTst = []
+        for ind in vecXval:
+            idx1 = np.where(ind != vecXval)[0]
+            idx2 = np.where(ind == vecXval)[0]
+            lstPrfMdlsTrn.append(aryPrfTc[:, :, :, :,
+                                          np.hstack(lsSplit[idx1])])
+            lstPrfMdlsTst.append(aryPrfTc[:, :, :, :,
+                                          np.hstack(lsSplit[idx2])])
 
-    del(lsSplit)
-    del(lstFunc)
-    del(lstFuncTrnSplit)
-    del(lstFuncTstSplit)
-    # save aryFunc so we can load it later for R2 determination, but for now
-    # we delete it to save memory
-    np.save(cfg.strPathOut + '_aryFunc', aryFunc)
-    del(aryFunc)
+        # put the functional data into different training and test folds
+        lstFunc = np.array_split(aryFunc, cfg.varPar)
+
+        lstFuncTrn = [[] for x in xrange(cfg.varPar)]
+        lstFuncTst = [[] for x in xrange(cfg.varPar)]
+        for ind1 in np.arange(len(lstFunc)):
+            # take voxels for ind1 paralelization
+            aryFuncTemp = lstFunc[ind1]
+            lstFuncTrnSplit = []
+            lstFuncTstSplit = []
+            for ind2 in vecXval:
+                # create ind2-fold for xvalidation
+                idx1 = np.where(ind2 != vecXval)[0]
+                idx2 = np.where(ind2 == vecXval)[0]
+                lstFuncTrnSplit.append(
+                    aryFuncTemp[:, np.hstack(lsSplit[idx1])])
+                lstFuncTstSplit.append(
+                    aryFuncTemp[:, np.hstack(lsSplit[idx2])])
+            lstFuncTrn[ind1] = lstFuncTrnSplit
+            lstFuncTst[ind1] = lstFuncTstSplit
+
+        del(lsSplit)
+        del(lstFunc)
+        del(lstFuncTrnSplit)
+        del(lstFuncTstSplit)
+        # save aryFunc so we can load it later for R2 determination, but for now
+        # we delete it to save memory
+        np.save(cfg.strPathOut + '_aryFunc', aryFunc)
+        del(aryFunc)
+
+    else:
+        raise ValueError('Crossvalidation on GPU currently not implemented.')
 
 else:
     # Put functional data into chunks:
@@ -543,29 +557,57 @@ else:
     # We don't need the original array with the functional data anymore:
     del(aryFunc)
 
+
+
+
+
 print('---------Creating parallel processes')
 
 # Create processes:
 if cfg.lgcXval:
-    for idxPrc in range(0, cfg.varPar):
-        lstPrcs[idxPrc] = mp.Process(target=funcFindPrfXval,
-                                     args=(idxPrc, vecMdlXpos, vecMdlYpos,
-                                           vecMdlSd, lstFuncTrn[idxPrc],
-                                           lstFuncTst[idxPrc], lstPrfMdlsTrn,
-                                           lstPrfMdlsTst, cfg.lgcCython,
-                                           cfg.varNumXval, queOut)
-                                     )
-        # Daemon (kills processes when exiting):
-        lstPrcs[idxPrc].Daemon = True
+
+    if cfg.strVersion != 'gpu':
+
+        for idxPrc in range(0, cfg.varPar):
+            lstPrcs[idxPrc] = mp.Process(target=funcFindPrfXval,
+                                         args=(idxPrc, vecMdlXpos, vecMdlYpos,
+                                               vecMdlSd, lstFuncTrn[idxPrc],
+                                               lstFuncTst[idxPrc], lstPrfMdlsTrn,
+                                               lstPrfMdlsTst, cfg.strVersion,
+                                               cfg.varNumXval, queOut)
+                                         )
+            # Daemon (kills processes when exiting):
+            lstPrcs[idxPrc].Daemon = True
+    else:
+        raise ValueError('Crossvalidation on GPU currently not implemented.')
+
 else:
-    for idxPrc in range(0, cfg.varPar):
-        lstPrcs[idxPrc] = mp.Process(target=funcFindPrf,
-                                     args=(idxPrc, vecMdlXpos, vecMdlYpos,
-                                           vecMdlSd, lstFunc[idxPrc], aryPrfTc,
-                                           cfg.lgcCython, queOut)
-                                     )
-        # Daemon (kills processes when exiting):
-        lstPrcs[idxPrc].Daemon = True
+
+    if cfg.strVersion != 'gpu':
+
+        for idxPrc in range(0, cfg.varPar):
+            lstPrcs[idxPrc] = mp.Process(target=funcFindPrf,
+                                         args=(idxPrc, vecMdlXpos, vecMdlYpos,
+                                               vecMdlSd, lstFunc[idxPrc], aryPrfTc,
+                                               cfg.strVersion, queOut)
+                                         )
+            # Daemon (kills processes when exiting):
+            lstPrcs[idxPrc].Daemon = True
+    else:
+        print('---------pRF finding on GPU')
+        # Create processes:
+        for idxPrc in range(0, cfg.varPar):
+            lstPrcs[idxPrc] = mp.Process(target=funcFindPrfGpu,
+                                         args=(idxPrc,
+                                               vecMdlXpos,
+                                               vecMdlYpos,
+                                               vecMdlSd,
+                                               lstFunc[idxPrc],
+                                               aryPrfTc,
+                                               queOut)
+                                         )
+            # Daemon (kills processes when exiting):
+            lstPrcs[idxPrc].Daemon = True
 
 # Start processes:
 for idxPrc in range(0, cfg.varPar):
