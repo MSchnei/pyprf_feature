@@ -81,10 +81,10 @@ lstNiiFls = ['demean_rafunc01_hpf.nii',
 varTestRun = 6
 
 # Path of mask (to restrict pRF model finding):
-strPathNiiMask = '/home/john/Documents/pRF_motion/func/mask.nii.gz'
+strPathNiiMask = '/home/john/Documents/pRF_motion/func/testMask.nii'
 
 # Output basename:
-strPathOut = '/home/john/Documents/pRF_motion/result/MotionNoXvalAoM'
+strPathOut = '/home/john/Documents/pRF_motion/result/MotionNoXvalAoM_numpy'
 
 # Which version to use for pRF finding. 'numpy' or 'cython' for pRF finding on
 # CPU, 'gpu' for using GPU.
