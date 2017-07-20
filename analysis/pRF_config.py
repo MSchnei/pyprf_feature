@@ -75,7 +75,7 @@ lstNiiFls = ['demean_rafunc01_hpf.nii',
 varTestRun = 6
 
 # Path of mask (to restrict pRF model finding):
-strPathNiiMask = '/media/sf_D_DRIVE/MotionLocaliser/Analysis/P02/Struct/testMask.nii'
+strPathNiiMask = '/media/sf_D_DRIVE/MotionLocaliser/Analysis/P02/Struct/mask.nii'
 
 # Output basename:
 strPathOut = '/media/sf_D_DRIVE/MotionLocaliser/Analysis/P02/FitResults/Compare/MotionNoXvalAoM'

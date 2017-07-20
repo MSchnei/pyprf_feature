@@ -68,7 +68,7 @@ if cfg.lgcCrteMdl:
 
     # *** Load presentation order of motion directions
     aryPresOrd = loadPrsOrd(cfg.vecRunLngth, cfg.strPathPresOrd,
-                            cfg.vecVslStim)
+                            cfg.vecVslStim)[1]
 
     # *** if lgcAoM, reduce motion directions from 8 to 4
     if cfg.lgcAoM:

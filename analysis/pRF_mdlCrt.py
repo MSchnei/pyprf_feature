@@ -77,12 +77,14 @@ def loadPrsOrd(vecRunLngth, strPathPresOrd, vecVslStim):
         Key of (stimulus) condition presented in every run
     Returns
     -------
-    aryPresOrd : 1d numpy array, shape [n_vols]
+    aryPresOrdAprt : 1d numpy array, shape [n_vols]
+        Presentation order of aperture position.
+    aryPresOrdMtn : 1d numpy array, shape [n_vols]
         Presentation order of motion direction.
     """
 
     print('------Load presentation order of motion directions')
-    aryPresOrd = np.empty((0))
+    aryPresOrd = np.empty((0, 2))
     for idx01 in range(0, len(vecRunLngth)):
         # reconstruct file name
         # ---> consider: some runs were shorter than others(replace next row)
@@ -93,12 +95,13 @@ def loadPrsOrd(vecRunLngth, strPathPresOrd, vecVslStim):
         with open(filename1, 'rb') as handle:
             array1 = pickle.load(handle)
         tempCond = array1["Conditions"]
-        tempCond = tempCond[:vecRunLngth[idx01], 1]
+        tempCond = tempCond[:vecRunLngth[idx01], :]
         # add temp array to aryPresOrd
         aryPresOrd = np.concatenate((aryPresOrd, tempCond), axis=0)
-    aryPresOrd = aryPresOrd.astype(int)
+    aryPresOrdAprt = aryPresOrd[:, 0].astype(int)
+    aryPresOrdMtn = aryPresOrd[:, 1].astype(int)
 
-    return aryPresOrd
+    return aryPresOrdAprt, aryPresOrdMtn
 
 
 def crtPwBoxCarFn(varNumVol, aryPngData, aryPresOrd, vecMtDrctn):
