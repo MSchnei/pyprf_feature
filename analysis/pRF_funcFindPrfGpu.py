@@ -18,8 +18,11 @@
 # along with this program.  If not, see <http://www.gnu.org/licenses/>.
 
 import numpy as np
-import tensorflow as tf
 import threading
+try:
+    import tensorflow as tf
+except ImportError:
+    pass
 # import time
 
 
