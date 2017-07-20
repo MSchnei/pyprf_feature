@@ -75,17 +75,17 @@ lstNiiFls = ['demean_rafunc01_hpf.nii',
 varTestRun = 6
 
 # Path of mask (to restrict pRF model finding):
-strPathNiiMask = '/media/sf_D_DRIVE/MotionLocaliser/Analysis/P02/Struct/mask.nii'
+strPathNiiMask = '/media/sf_D_DRIVE/MotionLocaliser/Analysis/P02/Struct/testMask.nii'
 
 # Output basename:
 strPathOut = '/media/sf_D_DRIVE/MotionLocaliser/Analysis/P02/FitResults/Compare/MotionNoXvalAoM'
 
 # Which version to use for pRF finding. 'numpy' or 'cython' for pRF finding on
 # CPU, 'gpu' for using GPU.
-strVersion = 'gpu'
+strVersion = 'numpy'
 
 # Create pRF time course models?
-lgcCrteMdl = False
+lgcCrteMdl = True
 
 # reduce presented motion direction from 8 to 4?
 lgcAoM = True

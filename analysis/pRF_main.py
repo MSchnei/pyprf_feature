@@ -140,7 +140,6 @@ aryMask = niiMask.get_data().astype('bool')
 # Load data from functional runs
 aryFunc = loadNiiData(cfg.lstNiiFls, strPathNiiMask=cfg.strPathNiiMask,
                       strPathNiiFunc=cfg.strPathNiiFunc)
-<<<<<<< HEAD
 
 print('---------Consider only training pRF time courses and func data')
 # derive logical for training/test runs
@@ -148,15 +147,6 @@ lgcTrnTst = np.ones(np.sum(cfg.vecRunLngth), dtype=bool)
 lgcTrnTst[np.cumsum(cfg.vecRunLngth)[cfg.varTestRun-1]:np.cumsum(
           cfg.vecRunLngth)[cfg.varTestRun]] = False
 
-=======
-
-print('---------Consider only training pRF time courses and func data')
-# derive logical for training/test runs
-lgcTrnTst = np.ones(np.sum(cfg.vecRunLngth), dtype=bool)
-lgcTrnTst[np.cumsum(cfg.vecRunLngth)[cfg.varTestRun-1]:np.cumsum(
-          cfg.vecRunLngth)[cfg.varTestRun]] = False
-
->>>>>>> master
 # split in training and test runs
 aryPrfTc = aryPrfTc[..., lgcTrnTst]
 aryFunc = aryFunc[..., lgcTrnTst]
@@ -212,10 +202,7 @@ print('---------Number of voxels on which pRF finding will be ' +
 # zscore/demean predictors and responses after smoothing
 aryPrfTc = stats.zscore(aryPrfTc, axis=4, ddof=2)
 aryFunc = np.subtract(aryFunc, np.mean(aryFunc, axis=1)[:, None])
-<<<<<<< HEAD
 
-=======
->>>>>>> master
 if cfg.lgcXval:
 
     if cfg.strVersion != 'gpu':
@@ -293,10 +280,7 @@ print('---------Creating parallel processes')
 if cfg.lgcXval:
 
     if cfg.strVersion != 'gpu':
-<<<<<<< HEAD
-=======
 
->>>>>>> master
         for idxPrc in range(0, cfg.varPar):
             lstPrcs[idxPrc] = mp.Process(target=funcFindPrfXval,
                                          args=(idxPrc, vecMdlXpos, vecMdlYpos,
@@ -310,17 +294,10 @@ if cfg.lgcXval:
             lstPrcs[idxPrc].Daemon = True
     else:
         raise ValueError('Crossvalidation on GPU currently not implemented.')
-<<<<<<< HEAD
-else:
-
-    if cfg.strVersion != 'gpu':
-=======
 
 else:
-
     if cfg.strVersion != 'gpu':
 
->>>>>>> master
         for idxPrc in range(0, cfg.varPar):
             lstPrcs[idxPrc] = mp.Process(target=funcFindPrf,
                                          args=(idxPrc, vecMdlXpos, vecMdlYpos,

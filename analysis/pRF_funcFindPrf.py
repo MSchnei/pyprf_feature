@@ -41,9 +41,6 @@ def funcFindPrf(idxPrc, vecMdlXpos, vecMdlYpos, vecMdlSd, aryFuncChnk,
     # Number of voxels to be fitted in this chunk:
     varNumVoxChnk = aryFuncChnk.shape[0]
 
-    # Number of volumes:
-    varNumVol = aryFuncChnk.shape[1]
-
     # number of motion directions
     varNumMtnDrctns = aryPrfTc.shape[3]
 
