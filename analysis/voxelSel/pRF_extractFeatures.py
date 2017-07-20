@@ -1,9 +1,22 @@
 # -*- coding: utf-8 -*-
-"""
-Created on Fri Dec 16 17:02:01 2016
 
-@author: marian
-"""
+"""Procedure to extract basic features from stimulus.""" 
+
+# Part of py_pRF_motion library
+# Copyright (C) 2016  Marian Schneider
+#
+# This program is free software: you can redistribute it and/or modify
+# it under the terms of the GNU General Public License as published by
+# the Free Software Foundation, either version 3 of the License, or
+# (at your option) any later version.
+#
+# This program is distributed in the hope that it will be useful,
+# but WITHOUT ANY WARRANTY; without even the implied warranty of
+# MERCHANTABILITY or FITNESS FOR A PARTICULAR PURPOSE.  See the
+# GNU General Public License for more details.
+#
+# You should have received a copy of the GNU General Public License
+# along with this program.  If not, see <http://www.gnu.org/licenses/>.
 
 from __future__ import division  # so that 1/3=0.333 instead of 1/3=0
 import os
@@ -19,7 +32,8 @@ strParentPath = os.path.abspath(
 sys.path.insert(0, strParentPath)
 
 # how many times should the display be split along the x and y axis?
-nsplits = 8
+nsplits = 2
+print("------Number of splits was: " + str(nsplits))
 
 # %% Create ary that shows which aperture was presented for every time point
 

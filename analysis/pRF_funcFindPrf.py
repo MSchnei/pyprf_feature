@@ -36,7 +36,7 @@ def funcFindPrf(idxPrc, vecMdlXpos, vecMdlYpos, vecMdlSd, aryFuncChnk,
         aryPrfTc : TODO
         strVersion : TODO
         queOut : TODO
-        
+
     """
     # Number of voxels to be fitted in this chunk:
     varNumVoxChnk = aryFuncChnk.shape[0]
@@ -51,12 +51,18 @@ def funcFindPrf(idxPrc, vecMdlXpos, vecMdlYpos, vecMdlSd, aryFuncChnk,
     vecBstXpos = np.zeros(varNumVoxChnk)
     vecBstYpos = np.zeros(varNumVoxChnk)
     vecBstSd = np.zeros(varNumVoxChnk)
+<<<<<<< HEAD
+    vecBstBetas = np.zeros((varNumVoxChnk, varNumMtnDrctns),
+                           dtype='float32')
+
+=======
     if strVersion == 'cython':
         vecBstBetas = np.zeros((varNumVoxChnk, varNumMtnDrctns),
                                dtype='float32')
     else:
         vecBstBetas = np.zeros((varNumVoxChnk, varNumMtnDrctns+1),
                                dtype='float32')
+>>>>>>> master
 
     # Vector that will hold the temporary residuals from the model fitting:
     vecBstRes = np.zeros(varNumVoxChnk, dtype='float32')
@@ -68,20 +74,8 @@ def funcFindPrf(idxPrc, vecMdlXpos, vecMdlYpos, vecMdlSd, aryFuncChnk,
 
     # Prepare data for cython (i.e. accelerated) least squares finding:
     if strVersion == 'cython':
-        # Instead of fitting a constant term, we subtract the mean from the
-        # data and from the model ("FSL style") First, we subtract the mean
-        # over time from the data:
-        aryFuncChnkTmean = np.array(np.mean(aryFuncChnk, axis=0), ndmin=2)
-        aryFuncChnk = np.subtract(aryFuncChnk, aryFuncChnkTmean[0, None])
-        # Secondly, we subtract the mean over time form the pRF model time
-        # courses. The array has four dimensions, the 4th is time (one to three
-        # are x-position, y-position, and pRF size (SD)).
-        aryPrfTcTmean = np.mean(aryPrfTc, axis=3)
-        aryPrfTc = np.subtract(aryPrfTc, aryPrfTcTmean[:, :, :, None])
-    # Otherwise, create constant term for numpy least squares finding:
-    else:
-        # Constant term for the model:
-        vecConst = np.ones((varNumVol), dtype=np.float32)
+        # currently not implemented
+        raise ValueError("Cython currently not implemented")
 
     # Change type to float 32:
     aryFuncChnk = aryFuncChnk.astype(np.float32)
@@ -156,15 +150,10 @@ def funcFindPrf(idxPrc, vecMdlXpos, vecMdlYpos, vecMdlSd, aryFuncChnk,
                 else:
 
                     # Current pRF time course model:
-                    vecMdlTc = aryPrfTc[idxX, idxY, idxSd, :, :]
-
-                    # We create a design matrix including the current pRF time
-                    # course model, and a constant term:
-                    aryDsgn = np.vstack([vecMdlTc,
-                                         vecConst]).T
+                    vecMdlTc = aryPrfTc[idxX, idxY, idxSd, :, :].T
 
                     # Calculate the least-squares solution for all voxels:
-                    vecTmpBetas, vecTmpRes = np.linalg.lstsq(aryDsgn,
+                    vecTmpBetas, vecTmpRes = np.linalg.lstsq(vecMdlTc,
                                                              aryFuncChnk)[0:2]
 
                 # Check whether current residuals are lower than previously
