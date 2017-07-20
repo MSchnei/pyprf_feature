@@ -18,7 +18,6 @@ Created on Tue Jul 19 11:27:49 2016
 from __future__ import division  # so that 1/3=0.333 instead of 1/3=0
 import numpy as np
 import itertools
-import pickle
 import os
 
 # %%
@@ -577,31 +576,43 @@ for i, cond in enumerate(Conditions):
 
 
 # %%
-"""Save in a pickle"""
+"""Save masks to disk"""
+
+# The masks are saved in separate npz files. They could also be saved in a
+# single file, but for smooth integration with the stimulation script, separate
+# files are used.
+
+print "start saving arrays..."
+
 str_path_parent_up = os.path.abspath(
     os.path.join(os.path.dirname(__file__), '..'))
 
-print "start saving arrays..."
-np.save(os.path.join(str_path_parent_up, "Masks", "mskBar"), mskBar)
-np.save(os.path.join(str_path_parent_up, "Masks", "mskSquare"), mskSquare)
-np.save(os.path.join(str_path_parent_up, "Masks", "mskCircle"), mskCircle)
-np.save(os.path.join(str_path_parent_up, "Masks", "mskCircleBar"),
-        mskCircleBar)
+# Parent path for npz file:
+str_path_parent_up = (str_path_parent_up
+                      + os.path.sep
+                      + 'Masks'
+                      + os.path.sep)
+
+# The arrays with the shape of the masks contain only ones and zeros. In order
+# to save disk space and for speed improvement, they should be stored as int8
+# (boolean would have exactly the same effect).
+mskBar = mskBar.astype(np.int8)
+mskSquare = mskSquare.astype(np.int8)
+mskCircle = mskCircle.astype(np.int8)
+mskCircleBar = mskCircleBar.astype(np.int8)
+
+# Quick, memory efficient, and safe storage of arrays to disk:
+np.savez_compressed((str_path_parent_up + 'mskBar'),
+                    mskBar=mskBar)
+
+np.savez_compressed((str_path_parent_up + 'mskSquare'),
+                    mskSquare=mskSquare)
+
+np.savez_compressed((str_path_parent_up + 'mskCircle'),
+                    mskCircle=mskCircle)
+
+np.savez_compressed((str_path_parent_up + 'mskCircleBar'),
+                    mskCircleBar=mskCircleBar)
 
 print "saving arrays done"
 
-# save all apertures in dictionary and pickle it
-
-print "start pickling..."
-pickleArray = {
-    'mskBar': mskBar,
-    'mskSquare': mskSquare,
-    'mskCircle': mskCircle,
-    'mskCircleBar': mskCircleBar,
-    }
-
-# save dictionary to pickle
-picklePath = os.path.join(str_path_parent_up, "Masks", 'pRFMasks.pickle')
-with open(picklePath, 'wb') as handle:
-    pickle.dump(pickleArray, handle)
-print "pickling done"

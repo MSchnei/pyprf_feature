@@ -107,10 +107,29 @@ logFile.write('fieldSizeinPix=' + unicode(fieldSizeinPix) + '\n')
 
 # %%
 """CONDITIONS"""
-# retrieve masks from npz file (stored in folder Masks)
-str_path_masks = str_path_parent_up + os.path.sep + 'Masks' + \
-    os.path.sep + str(expInfo['maskType']) + '.npy'
-masks = np.load(str_path_masks)
+
+# Path of npz file with masks (masks.npz has to be in ~./Masks/):
+str_path_masks = (str_path_parent_up
+                  + os.path.sep
+                  + 'Masks'
+                  + os.path.sep
+                  + str(expInfo['maskType'])
+                  + '.npz')
+
+# Load npz file content into list:
+with np.load(str_path_masks) as objMsks:
+    lstMsks = objMsks.items()
+
+print(('Loading mask from: ' + str_path_masks))
+
+for objTmp in lstMsks:
+    strMsg = 'Mask type: ' + objTmp[0]
+    # The following print statement prints the name of the mask stored in the
+    # npz array from which the mask shape is retrieved. Can be used to check
+    # whether the correct mask has been retrieved.
+    print(strMsg)
+    masks = objTmp[1]
+
 # turn 0 to -1 (since later on this will be used as mask for GratingStim),
 # where -1 means that values are not passed, 0 means values are half-passed
 masks[masks == 0] = -1

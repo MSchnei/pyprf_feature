@@ -23,7 +23,7 @@ import numpy as np
 
 # %%
 def funcFindPrf(idxPrc, vecMdlXpos, vecMdlYpos, vecMdlSd, aryFuncChnk,
-                aryPrfTc, lgcCython, queOut):
+                aryPrfTc, strVersion, queOut):
     """Find best pRF model for voxel time course (no cross-validation).
 
         Parameters
@@ -34,9 +34,9 @@ def funcFindPrf(idxPrc, vecMdlXpos, vecMdlYpos, vecMdlSd, aryFuncChnk,
         vecMdlSd : TODO
         aryFuncChnk : TODO
         aryPrfTc : TODO
-        lgcCython : TODO
+        strVersion : TODO
         queOut : TODO
-        
+
     """
     # Number of voxels to be fitted in this chunk:
     varNumVoxChnk = aryFuncChnk.shape[0]
@@ -51,9 +51,18 @@ def funcFindPrf(idxPrc, vecMdlXpos, vecMdlYpos, vecMdlSd, aryFuncChnk,
     vecBstXpos = np.zeros(varNumVoxChnk)
     vecBstYpos = np.zeros(varNumVoxChnk)
     vecBstSd = np.zeros(varNumVoxChnk)
+<<<<<<< HEAD
     vecBstBetas = np.zeros((varNumVoxChnk, varNumMtnDrctns),
                            dtype='float32')
 
+=======
+    if strVersion == 'cython':
+        vecBstBetas = np.zeros((varNumVoxChnk, varNumMtnDrctns),
+                               dtype='float32')
+    else:
+        vecBstBetas = np.zeros((varNumVoxChnk, varNumMtnDrctns+1),
+                               dtype='float32')
+>>>>>>> master
 
     # Vector that will hold the temporary residuals from the model fitting:
     vecBstRes = np.zeros(varNumVoxChnk, dtype='float32')
@@ -64,7 +73,7 @@ def funcFindPrf(idxPrc, vecMdlXpos, vecMdlYpos, vecMdlSd, aryFuncChnk,
     aryFuncChnk = aryFuncChnk.T
 
     # Prepare data for cython (i.e. accelerated) least squares finding:
-    if lgcCython:
+    if strVersion == 'cython':
         # currently not implemented
         raise ValueError("Cython currently not implemented")
 
@@ -133,7 +142,7 @@ def funcFindPrf(idxPrc, vecMdlXpos, vecMdlYpos, vecMdlSd, aryFuncChnk,
                             varCntSts01 = varCntSts01 + int(1)
 
                 # Cython version:
-                if lgcCython:
+                if strVersion == 'cython':
                     # currently not implemented
                     raise ValueError("Cython currently not implemented")
 
@@ -196,7 +205,7 @@ def funcFindPrf(idxPrc, vecMdlXpos, vecMdlYpos, vecMdlSd, aryFuncChnk,
 
 # %%
 def funcFindPrfXval(idxPrc, vecMdlXpos, vecMdlYpos, vecMdlSd, lstFuncTrnChnk,
-                    lstFuncTstChnk, lstPrfMdlsTrn, lstPrfMdlsTst, lgcCython,
+                    lstFuncTstChnk, lstPrfMdlsTrn, lstPrfMdlsTst, strVersion,
                     varNumXval, queOut):
     """Find best pRF model for voxel timecourse (with cross-validation).
 
@@ -210,7 +219,7 @@ def funcFindPrfXval(idxPrc, vecMdlXpos, vecMdlYpos, vecMdlSd, lstFuncTrnChnk,
     lstFuncTstChnk : TODO
     lstPrfMdlsTrn : TODO
     lstPrfMdlsTst : TODO
-    lgcCython : TODO
+    strVersion : TODO
     varNumXval : TODO
     queOut : TODO
 
@@ -299,7 +308,7 @@ def funcFindPrfXval(idxPrc, vecMdlXpos, vecMdlYpos, vecMdlSd, lstFuncTrnChnk,
                             varCntSts01 = varCntSts01 + int(1)
 
                 # Cython version:
-                if lgcCython:
+                if strVersion == 'cython':
                     # currently not implemented
                     raise ValueError("Cython currently not implemented")
 
