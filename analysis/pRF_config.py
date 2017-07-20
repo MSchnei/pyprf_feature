@@ -48,12 +48,6 @@ varVoxRes = 0.8
 # [set 0 if not desired]
 varSdSmthTmp = 0
 
-# Intensity cutoff value for fMRI time series. Voxels with a mean intensity
-# lower than the value specified here are not included in the pRF model finding
-# (this speeds up the calculation, and, more importatnly, avoids division by
-# zero):
-varIntCtf = -100.0
-
 # Number of processes to run in parallel:
 varPar = 10
 
@@ -66,7 +60,7 @@ varPar = 10
 tplVslSpcHighSze = (200, 200)
 
 # Parent path to functional data
-strPathNiiFunc = '/home/john/Documents/pRF_motion/func'
+strPathNiiFunc = '/media/sf_D_DRIVE/MotionLocaliser/Analysis/P02/05_SpatSmoothDemean'
 # list of nii files in parent directory (all nii files together need to have
 # same number of volumes as there are PNGs):
 lstNiiFls = ['demean_rafunc01_hpf.nii',
@@ -81,10 +75,10 @@ lstNiiFls = ['demean_rafunc01_hpf.nii',
 varTestRun = 6
 
 # Path of mask (to restrict pRF model finding):
-strPathNiiMask = '/home/john/Documents/pRF_motion/func/testMask.nii'
+strPathNiiMask = '/media/sf_D_DRIVE/MotionLocaliser/Analysis/P02/Struct/mask.nii'
 
 # Output basename:
-strPathOut = '/home/john/Documents/pRF_motion/result/MotionNoXvalAoM_numpy'
+strPathOut = '/media/sf_D_DRIVE/MotionLocaliser/Analysis/P02/FitResults/Compare/MotionNoXvalAoM'
 
 # Which version to use for pRF finding. 'numpy' or 'cython' for pRF finding on
 # CPU, 'gpu' for using GPU.
@@ -97,7 +91,7 @@ lgcCrteMdl = False
 lgcAoM = True
 
 # length of the runs that were done
-vecRunLngth = [172, 172, 172, 172, 172, 172, 172]
+vecRunLngth = [172] * len(lstNiiFls)
 
 # Number of fMRI volumes and png files to load:
 varNumVol = sum(vecRunLngth)
@@ -126,11 +120,11 @@ if lgcXval:
 # For time course model creation, the following parameters have to
 # be provided:
 
-# visual stimuli that were used for this run (if everything is well 1,2,3 )
+# visual stimuli that were used for this run (if everything is well 1,2,3, asf)
 vecVslStim = [1, 2, 3, 4, 5, 6, 7]
 
 # Basename of the filenames that have the presentation orders saved
-strPathPresOrd = ''  #'/media/sf_D_DRIVE/MotionLocaliser/UsedPsychoPyScripts/P02/Conditions/Conditions_run0'
+strPathPresOrd = '/media/sf_D_DRIVE/MotionLocaliser/UsedPsychoPyScripts/P02/Conditions/Conditions_run0'
 
 # Size of png files (pixel*pixel):
 tplPngSize = (128, 128)
@@ -138,11 +132,11 @@ tplPngSize = (128, 128)
 # Basename of the 'binary stimulus files'. The files need to be in png
 # format and number in the order of their presentation during the
 # experiment.
-strPathPng = ''  #'/media/sf_D_DRIVE/MotionLocaliser/Analysis/P02/PNGs/Ima_'
+strPathPng = '/media/sf_D_DRIVE/MotionLocaliser/Analysis/P02/PNGs/Ima_'
 
 # If we use existing pRF time course models, the path to the respective
 # file has to be provided (including file extension, i.e. '*.npy'):
-strPathMdl = '/home/john/Documents/pRF_motion/model/pRF_model_tc_oldSch.npy'  #'/media/sf_D_DRIVE/MotionLocaliser/Analysis/P02/FitResults/6runs_MotionAoMNoXval/pRF_model_tc' + strBasis + '.npy'
+strPathMdl = '/media/sf_D_DRIVE/MotionLocaliser/Analysis/P02/FitResults/Compare/pRF_model_tc' + strBasis + '.npy'
 
 if lgcAoM:
     # number of motion directions
