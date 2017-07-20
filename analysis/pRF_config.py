@@ -80,12 +80,12 @@ strPathNiiMask = '/media/sf_D_DRIVE/MotionLocaliser/Analysis/P02/Struct/mask.nii
 # Output basename:
 strPathOut = '/media/sf_D_DRIVE/MotionLocaliser/Analysis/P02/FitResults/Compare/MotionNoXvalAoM'
 
-# Use cython (i.e. compiled code) for faster performance? (Requires cython to
-# be installed.)
-lgcCython = False
+# Which version to use for pRF finding. 'numpy' or 'cython' for pRF finding on
+# CPU, 'gpu' for using GPU.
+strVersion = 'gpu'
 
 # Create pRF time course models?
-lgcCrteMdl = True
+lgcCrteMdl = False
 
 # reduce presented motion direction from 8 to 4?
 lgcAoM = True
