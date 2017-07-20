@@ -51,18 +51,8 @@ def funcFindPrf(idxPrc, vecMdlXpos, vecMdlYpos, vecMdlSd, aryFuncChnk,
     vecBstXpos = np.zeros(varNumVoxChnk)
     vecBstYpos = np.zeros(varNumVoxChnk)
     vecBstSd = np.zeros(varNumVoxChnk)
-<<<<<<< HEAD
     vecBstBetas = np.zeros((varNumVoxChnk, varNumMtnDrctns),
                            dtype='float32')
-
-=======
-    if strVersion == 'cython':
-        vecBstBetas = np.zeros((varNumVoxChnk, varNumMtnDrctns),
-                               dtype='float32')
-    else:
-        vecBstBetas = np.zeros((varNumVoxChnk, varNumMtnDrctns+1),
-                               dtype='float32')
->>>>>>> master
 
     # Vector that will hold the temporary residuals from the model fitting:
     vecBstRes = np.zeros(varNumVoxChnk, dtype='float32')
