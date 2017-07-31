@@ -32,6 +32,7 @@ def funcFindPrfGpu(idxPrc,
                    vecMdlSd,
                    aryFunc,
                    aryPrfTc,
+                   varL2reg,
                    queOut):
     """
     Find best pRF model for voxel time course.
@@ -227,8 +228,9 @@ def funcFindPrfGpu(idxPrc,
     # Vector for indices of models with minimum residuals:
     vecResSsMinIdx = np.zeros((varNumVox), dtype=np.int32)
 
-    # L2 regularization factor for regression:
-    varL2reg = 0.0
+    # Multiply L2 regularization factor with identity matrix:
+    aryL2reg = np.multiply(np.eye((M, N)),    # SIZE OF DESIGN MATRIX? NO CONSTANT TERM FOR L2 REGULARISATION
+                           varL2reg).astype(np.float32)
 
     # -------------------------------------------------------------------------
     # *** Prepare status indicator
@@ -342,6 +344,10 @@ def funcFindPrfGpu(idxPrc,
             with tf.device('/gpu:0'):
                 objFunc = tf.Variable(aryTmp01)
 
+            # Regularisation factor matrix:
+            with tf.device('/gpu:0'):
+                objL2reg = tf.Variable(aryL2reg)
+
             # The computational graph. Operation that solves matrix (in the
             # least squares sense), and calculates residuals along time
             # dimension:
@@ -353,12 +359,15 @@ def funcFindPrfGpu(idxPrc,
                                                                        tf.matmul(
                                                                                  tf.matmul(
                                                                                            tf.matrix_inverse(
-                                                                                                             tf.matmul(
-                                                                                                                       objDsng,
-                                                                                                                       objDsng,
-                                                                                                                       transpose_a=True,
-                                                                                                                       transpose_b=False
-                                                                                                                       )
+                                                                                                             tf.add(
+                                                                                                                    tf.matmul(
+                                                                                                                               objDsng,
+                                                                                                                               objDsng,
+                                                                                                                               transpose_a=True,
+                                                                                                                               transpose_b=False
+                                                                                                                               ),
+                                                                                                                    objL2reg
+                                                                                                                    )
                                                                                                              ),
                                                                                            objDsng,
                                                                                            transpose_a=False,
