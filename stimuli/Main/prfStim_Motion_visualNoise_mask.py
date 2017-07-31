@@ -168,7 +168,8 @@ TargetPressedArray = np.array([])
 if lgcLogMde:
     # Prepare array for screenshots (one value per pixel per volume; since the
     # stimuli are greyscale we discard 2nd and 3rd RGB dimension):
-    aryFrames = np.zeros((PixH, PixW, len(Conditions)*60), dtype=np.int16)
+    aryFrames = np.zeros((PixH, PixW, len(Conditions)*ExpectedTR*60),
+                         dtype=np.int16)
     # Counter for screenshots:
     idxFrame = 0
 
