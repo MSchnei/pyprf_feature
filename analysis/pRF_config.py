@@ -85,7 +85,7 @@ strPathOut = '/media/sf_D_DRIVE/MotionLocaliser/Analysis/P02/FitResults/Compare/
 strVersion = 'numpy'
 
 # Create pRF time course models?
-lgcCrteMdl = True
+lgcCrteMdl = False
 
 # reduce presented motion direction from 8 to 4?
 lgcAoM = True

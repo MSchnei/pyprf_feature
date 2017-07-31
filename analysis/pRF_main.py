@@ -130,7 +130,7 @@ else:
         vecPrfTcShp[3] == cfg.varNumMtDrctn and \
         vecPrfTcShp[4] == cfg.varNumVol, strErrMsg
 
-# %% Find pRF models for voxel time courses
+# %% Load and prepare mask and nii data
 
 print('------Find pRF models for voxel time courses')
 
@@ -150,6 +150,18 @@ lgcTrnTst[np.cumsum(cfg.vecRunLngth)[cfg.varTestRun-1]:np.cumsum(
 # split in training and test runs
 aryPrfTc = aryPrfTc[..., lgcTrnTst]
 aryFunc = aryFunc[..., lgcTrnTst]
+
+print('---------Number of voxels on which pRF finding will be ' +
+      'performed: ' + str(aryFunc.shape[0]))
+
+# %% Prepare data and models
+
+# Steps include:
+# --- temp smoothing the predictor time courses, if necessary
+# --- preparing model spaces
+# --- preparing lists for parallel processes
+# --- demeaning the data and zscoring the predictors
+# --- preparing crossvalidation, if required
 
 # Convert preprocessing parameters (for temporal and spatial smoothing) from
 # SI units (i.e. [s] and [mm]) into units of data array:
@@ -197,8 +209,6 @@ varCntOut = 0
 # Create a queue to put the results in:
 queOut = mp.Queue()
 
-print('---------Number of voxels on which pRF finding will be ' +
-      'performed: ' + str(aryFunc.shape[0]))
 # zscore/demean predictors and responses after smoothing
 aryPrfTc = stats.zscore(aryPrfTc, axis=4, ddof=2)
 aryFunc = np.subtract(aryFunc, np.mean(aryFunc, axis=1)[:, None])
@@ -270,10 +280,7 @@ else:
     # We don't need the original array with the functional data anymore:
     del(aryFunc)
 
-
-
-
-
+# %% Find the best models
 print('---------Creating parallel processes')
 
 # Create processes:
@@ -287,7 +294,7 @@ if cfg.lgcXval:
                                                vecMdlSd, lstFuncTrn[idxPrc],
                                                lstFuncTst[idxPrc],
                                                lstPrfMdlsTrn, lstPrfMdlsTst,
-                                               cfg.lgcCython, cfg.varNumXval,
+                                               cfg.strVersion, cfg.varNumXval,
                                                queOut)
                                          )
             # Daemon (kills processes when exiting):
@@ -302,7 +309,7 @@ else:
             lstPrcs[idxPrc] = mp.Process(target=funcFindPrf,
                                          args=(idxPrc, vecMdlXpos, vecMdlYpos,
                                                vecMdlSd, lstFunc[idxPrc],
-                                               aryPrfTc, cfg.lgcCython, queOut)
+                                               aryPrfTc, cfg.strVersion, queOut)
                                          )
             # Daemon (kills processes when exiting):
             lstPrcs[idxPrc].Daemon = True
@@ -334,8 +341,8 @@ for idxPrc in range(0, cfg.varPar):
 for idxPrc in range(0, cfg.varPar):
     lstPrcs[idxPrc].join()
 
+# %% prepare collection of results from parallel processes
 print('---------Prepare pRF finding results for export')
-
 
 # Put fitting results into list, in correct order:
 lstPrfRes = sorted(lstPrfRes)
@@ -360,7 +367,8 @@ for idxRes in range(0, cfg.varPar):
 # Delete unneeded large objects:
 del(lstPrfRes)
 
-# %%
+# %% Estimate the betas and R square for the full model
+
 # if we did model finding with cross validation, we never estimated
 # the betas and R square for the full model. Do that now:
 if cfg.lgcXval:
