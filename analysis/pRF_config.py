@@ -51,6 +51,9 @@ varSdSmthTmp = 0
 # Number of processes to run in parallel:
 varPar = 10
 
+# L2 regularisation factor for ridge regression
+varL2reg = 5.0
+
 # Size of high-resolution visual space model in which the pRF models are
 # created (x- and y-dimension). The x and y dimensions specified here need to
 # be the same integer multiple of the number of x- and y-positions to model, as
@@ -60,7 +63,7 @@ varPar = 10
 tplVslSpcHighSze = (200, 200)
 
 # Parent path to functional data
-strPathNiiFunc = '/media/sf_D_DRIVE/MotionLocaliser/Analysis/P02/05_SpatSmoothDemean'
+strPathNiiFunc = '/home/john/Documents/pRF_motion/func'
 # list of nii files in parent directory (all nii files together need to have
 # same number of volumes as there are PNGs):
 lstNiiFls = ['demean_rafunc01_hpf.nii',
@@ -75,14 +78,14 @@ lstNiiFls = ['demean_rafunc01_hpf.nii',
 varTestRun = 6
 
 # Path of mask (to restrict pRF model finding):
-strPathNiiMask = '/media/sf_D_DRIVE/MotionLocaliser/Analysis/P02/Struct/testMask.nii'
+strPathNiiMask = '/home/john/Documents/pRF_motion/func/flatmask.nii.gz'
 
 # Output basename:
-strPathOut = '/media/sf_D_DRIVE/MotionLocaliser/Analysis/P02/FitResults/Compare/MotionNoXvalAoM'
+strPathOut = '/home/john/Documents/pRF_motion/result/MotionNoXvalAoM_gpu_L2'
 
 # Which version to use for pRF finding. 'numpy' or 'cython' for pRF finding on
 # CPU, 'gpu' for using GPU.
-strVersion = 'numpy'
+strVersion = 'gpu'
 
 # Create pRF time course models?
 lgcCrteMdl = False
@@ -136,7 +139,10 @@ strPathPng = '/media/sf_D_DRIVE/MotionLocaliser/Analysis/P02/PNGs/Ima_'
 
 # If we use existing pRF time course models, the path to the respective
 # file has to be provided (including file extension, i.e. '*.npy'):
-strPathMdl = '/media/sf_D_DRIVE/MotionLocaliser/Analysis/P02/FitResults/Compare/pRF_model_tc' + strBasis + '.npy'
+strPathMdl = '/home/john/Documents/pRF_motion/model/pRF_model_tc' + strBasis + '.npy'
+
+# reduce presented motion direction from 8 to 4?
+lgcAoM = True
 
 if lgcAoM:
     # number of motion directions
