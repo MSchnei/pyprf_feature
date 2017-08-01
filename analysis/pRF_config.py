@@ -90,6 +90,9 @@ strVersion = 'gpu'
 # Create pRF time course models?
 lgcCrteMdl = False
 
+# reduce presented motion direction from 8 to 4?
+lgcAoM = True
+
 # length of the runs that were done
 vecRunLngth = [172] * len(lstNiiFls)
 

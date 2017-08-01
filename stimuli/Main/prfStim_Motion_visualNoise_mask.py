@@ -105,6 +105,9 @@ logFile.write('speedPixPerSec=' + unicode(speedPixPerSec) + '\n')
 logFile.write('fieldSizeinDeg=' + unicode(fieldSizeinDeg) + '\n')
 logFile.write('fieldSizeinPix=' + unicode(fieldSizeinPix) + '\n')
 
+# should we take screenshots of the presented frames?
+lgcLogMde = True
+
 # %%
 """CONDITIONS"""
 
@@ -162,10 +165,19 @@ noiseTexture = arrays["NoiseTexture"]
 TriggerPressedArray = np.array([])
 TargetPressedArray = np.array([])
 
+if lgcLogMde:
+    # Prepare array for screenshots (one value per pixel per volume; since the
+    # stimuli are greyscale we discard 2nd and 3rd RGB dimension):
+    aryFrames = np.zeros((PixH, PixW, len(Conditions)*ExpectedTR*60),
+                         dtype=np.int16)
+    # Counter for screenshots:
+    idxFrame = 0
+
 logFile.write('Conditions=' + unicode(Conditions) + '\n')
 logFile.write('Targets=' + unicode(Targets) + '\n')
 logFile.write('TargetOnsetinSec=' + unicode(TargetOnsetinSec) + '\n')
 logFile.write('TargetDur=' + unicode(TargetDur) + '\n')
+
 
 # %%
 """STIMULI"""
@@ -390,6 +402,19 @@ while clock.getTime() < totalTime:
 
         # draw frame
         myWin.flip()
+        
+        # %% Save screenshots to array
+        if lgcLogMde:
+#            print(('---Frame '
+#                  + str(idxFrame)
+#                  + ' out of '
+#                  + str(int(NrOfVols))))
+            # We only save one value per pixel per volume (because the stimuli
+            # are greyscale we discard 2nd and 3rd RGB dimension):
+            temp = myWin.getMovieFrame(buffer='front')
+            # myWin.saveMovieFrames('screenshot' + trial['condition'])
+            aryFrames[:, :, idxFrame] = temp[:, :, 0]
+            idxFrame = idxFrame + 1
 
         # handle key presses each frame
         for key in event.getKeys():
@@ -466,6 +491,11 @@ myWin.close()
 
 # %%
 """SAVE DATA"""
+
+# Save stimulus frame array to npy file:
+aryFrames = aryFrames.astype(np.int16)
+np.savez_compressed((outFileName + '_frames'), aryFrames=aryFrames)
+
 try:
     # create python dictionary
     output = {'ExperimentName': expInfo['expName'],
