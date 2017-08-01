@@ -26,19 +26,61 @@ except ImportError:
 # import time
 
 
-def funcFindPrfGpu(idxPrc,
-                   vecMdlXpos,
-                   vecMdlYpos,
-                   vecMdlSd,
-                   aryFunc,
-                   aryPrfTc,
-                   varL2reg,
-                   queOut):
+def funcFindPrfGpu(idxPrc, vecMdlXpos, vecMdlYpos, vecMdlSd, aryFunc,  # noqa
+                   aryPrfTc, varL2reg, queOut):
     """
     Find best pRF model for voxel time course.
 
-    This version uses a queue that runs in a separate thread to put model time
-    courses on the computational graph.
+    Parameters
+    ----------
+    idxPrc : int
+        Process ID of the process calling this function (for CPU
+        multi-threading). In GPU version, this parameter is 0 (just one thread
+        on CPU).
+    vecMdlXpos : np.array
+        1D array with pRF model x positions.
+    vecMdlYpos : np.array
+        1D array with pRF model y positions.
+    vecMdlSd : np.array
+        1D array with pRF model sizes (SD of Gaussian).
+    aryFunc : np.array
+        2D array with functional MRI data, with shape aryFunc[voxel, time].
+    aryPrfTc : np.array
+        Array with pRF model time courses, with shape
+        aryPrfTc[x-pos, y-pos, SD, motion-direction, time]
+    varL2reg : float
+        L2 regularisation factor for ridge regression.
+    queOut : multiprocessing.queues.Queue
+        Queue to put the results on.
+
+    Returns
+    -------
+    lstOut : list
+        List containing the following objects:
+        idxPrc : int
+            Process ID of the process calling this function (for CPU
+            multi-threading). In GPU version, this parameter is 0.
+        vecBstXpos : np.array
+            1D array with best fitting x-position for each voxel, with shape
+            vecBstXpos[voxel].
+        vecBstYpos : np.array
+            1D array with best fitting y-position for each voxel, with shape
+            vecBstYpos[voxel].
+        vecBstSd : np.array
+            1D array with best fitting pRF size for each voxel, with shape
+            vecBstSd[voxel].
+        vecBstR2 : np.array
+            1D array with R2 value of 'winning' pRF model for each voxel, with
+            shape vecBstR2[voxel].
+        dummy : np.array
+            2D array that is supposed to contain the beta values of 'winning'
+            pRF models for each voxel, with shape aryBeta[voxel, beta]. AT THE
+            MOMENT, CONTAINS EMPTY DUMMY ARRAY (np.zeros).
+
+    Notes
+    -----
+    Uses a queue that runs in a separate thread to put model time courses on
+    the computational graph.
     """
     # -------------------------------------------------------------------------
     # *** Queue-feeding-function that will run in extra thread
