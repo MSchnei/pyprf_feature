@@ -92,8 +92,8 @@ if cfg.lgcCrteMdl:
                            cfg.varExtYmax, cfg.varNumPrfSizes,
                            cfg.varPrfStdMin, cfg.varPrfStdMax, cfg.varPar)
     # aryNrlTc will have shape (25, 25, 22, 5, 1204)
-    name = '/media/sf_D_DRIVE/MotionLocaliser/Analysis/P02/FitResults/Compare/aryNrlTc.npy'
-    np.save(name, aryNrlTc)
+    # name = '/media/sf_D_DRIVE/MotionLocaliser/Analysis/P02/FitResults/Compare/aryNrlTc.npy'
+    # np.save(name, aryNrlTc)
     # aryNrlTc = np.load(name)
 
     # *** convolve every neural time course model with hrf function(s)
@@ -103,8 +103,8 @@ if cfg.lgcCrteMdl:
                               cfg.varPar,
                               )
     # aryPrfTc will have shape (25, 25, 22, 5*1, 1204)
-    name = '/media/sf_D_DRIVE/MotionLocaliser/Analysis/P02/FitResults/Compare/aryPrfTc.npy'
-    np.save(name, aryPrfTc)
+    # name = '/media/sf_D_DRIVE/MotionLocaliser/Analysis/P02/FitResults/Compare/aryPrfTc.npy'
+    # np.save(name, aryPrfTc)
     # aryPrfTc = np.load(name)
 
     # *** Save pRF time course models
@@ -302,7 +302,8 @@ else:
             lstPrcs[idxPrc] = mp.Process(target=funcFindPrf,
                                          args=(idxPrc, vecMdlXpos, vecMdlYpos,
                                                vecMdlSd, lstFunc[idxPrc],
-                                               aryPrfTc, cfg.lgcCython, queOut)
+                                               aryPrfTc, cfg.strVersion,
+                                               queOut)
                                          )
             # Daemon (kills processes when exiting):
             lstPrcs[idxPrc].Daemon = True
@@ -317,6 +318,7 @@ else:
                                                vecMdlSd,
                                                lstFunc[idxPrc],
                                                aryPrfTc,
+                                               cfg.varL2reg,
                                                queOut)
                                          )
             # Daemon (kills processes when exiting):

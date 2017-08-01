@@ -161,11 +161,11 @@ def funcFindPrfGpu(idxPrc, vecMdlXpos, vecMdlYpos, vecMdlSd, aryFunc,  # noqa
     aryPrfTc = np.swapaxes(aryPrfTc, 1, 2)
 
     # Add constant term (ones):
-    aryPrfTc = np.concatenate((aryPrfTc,
-                               np.ones((aryPrfTc.shape[0],
-                                        aryPrfTc.shape[1],
-                                        1)).astype(np.float32)),
-                              axis=2)
+    # aryPrfTc = np.concatenate((aryPrfTc,
+    #                            np.ones((aryPrfTc.shape[0],
+    #                                     aryPrfTc.shape[1],
+    #                                     1)).astype(np.float32)),
+    #                           axis=2)
 
     # Size of pRF time courses in MB:
     varSzePrf = np.divide(float(aryPrfTc.nbytes),
@@ -193,7 +193,7 @@ def funcFindPrfGpu(idxPrc, vecMdlXpos, vecMdlYpos, vecMdlSd, aryFunc,  # noqa
     varNumVox = aryFunc.shape[0]
 
     # Number of volumes:
-    # varNumVol = aryFunc.shape[1]
+    varNumVol = aryFunc.shape[1]
 
     # We reshape the voxel time courses, so that time goes down the column,
     # i.e. from top to bottom.
@@ -271,7 +271,7 @@ def funcFindPrfGpu(idxPrc, vecMdlXpos, vecMdlYpos, vecMdlSd, aryFunc,  # noqa
     vecResSsMinIdx = np.zeros((varNumVox), dtype=np.int32)
 
     # Multiply L2 regularization factor with identity matrix:
-    aryL2reg = np.multiply(np.eye((M, N)),    # SIZE OF DESIGN MATRIX? NO CONSTANT TERM FOR L2 REGULARISATION
+    aryL2reg = np.multiply(np.eye(varNumBeta),
                            varL2reg).astype(np.float32)
 
     # -------------------------------------------------------------------------
@@ -310,6 +310,9 @@ def funcFindPrfGpu(idxPrc, vecMdlXpos, vecMdlYpos, vecMdlSd, aryFunc,  # noqa
     for idxChnk in range(varNumChnk):
 
         print(('---------Chunk: ' + str(idxChnk)))
+
+        print('lstPrfTc[0].shape')
+        print(lstPrfTc[0].shape)
 
         # Define session:
         # objSess = tf.Session()
@@ -392,35 +395,72 @@ def funcFindPrfGpu(idxPrc, vecMdlXpos, vecMdlYpos, vecMdlSd, aryFunc,  # noqa
 
             # The computational graph. Operation that solves matrix (in the
             # least squares sense), and calculates residuals along time
-            # dimension:
-            objMatSlve = tf.reduce_sum(
-                                       tf.squared_difference(
-                                                             objFunc,
-                                                             tf.matmul(
-                                                                       objDsng,
-                                                                       tf.matmul(
-                                                                                 tf.matmul(
-                                                                                           tf.matrix_inverse(
-                                                                                                             tf.add(
-                                                                                                                    tf.matmul(
-                                                                                                                               objDsng,
-                                                                                                                               objDsng,
-                                                                                                                               transpose_a=True,
-                                                                                                                               transpose_b=False
-                                                                                                                               ),
-                                                                                                                    objL2reg
-                                                                                                                    )
-                                                                                                             ),
-                                                                                           objDsng,
-                                                                                           transpose_a=False,
-                                                                                           transpose_b=True
-                                                                                           ),
-                                                                                 objFunc
-                                                                                 )
-                                                                       ),
-                                                             ),
-                                       axis=0
-                                       )
+            # dimension. There are two versions: (1) The number of measurements
+            # (e.g. volumes) is greater than or equal to the number of
+            # predictors (betas). (2) The number of measurements is less than
+            # the number of predictors.
+
+            # (1) Number of measurements greater/equal to number of predictors:
+            if np.greater_equal(varNumVol, varNumBeta):
+                objMatSlve = tf.reduce_sum(
+                                           tf.squared_difference(
+                                                                 objFunc,
+                                                                 tf.matmul(
+                                                                           objDsng,
+                                                                           tf.matmul(
+                                                                                     tf.matmul(
+                                                                                               tf.matrix_inverse(
+                                                                                                                 tf.add(
+                                                                                                                        tf.matmul(
+                                                                                                                                   objDsng,
+                                                                                                                                   objDsng,
+                                                                                                                                   transpose_a=True,
+                                                                                                                                   transpose_b=False
+                                                                                                                                   ),
+                                                                                                                        objL2reg
+                                                                                                                        )
+                                                                                                                 ),
+                                                                                               objDsng,
+                                                                                               transpose_a=False,
+                                                                                               transpose_b=True
+                                                                                               ),
+                                                                                     objFunc
+                                                                                     )
+                                                                           ),
+                                                                 ),
+                                           axis=0
+                                           )
+
+            # (2) Number of measurements less than number of predictors:
+            else:
+                objMatSlve = tf.reduce_sum(
+                                           tf.squared_difference(
+                                                                 objFunc,
+                                                                 tf.matmul(
+                                                                           objDsng,
+                                                                           tf.matmul(
+                                                                                     tf.matmul(
+                                                                                               objDsng,
+                                                                                               tf.matrix_inverse(
+                                                                                                                 tf.add(
+                                                                                                                        tf.matmul(
+                                                                                                                                   objDsng,
+                                                                                                                                   objDsng,
+                                                                                                                                   transpose_a=False,
+                                                                                                                                   transpose_b=True
+                                                                                                                                   ),
+                                                                                                                        objL2reg
+                                                                                                                        )
+                                                                                                                 ),
+                                                                                               transpose_a=True,
+                                                                                               transpose_b=False
+                                                                                               ),
+                                                                                     objFunc
+                                                                                     )
+                                                                           ),
+                                                                 ),
+                                           axis=0
+                                           )
 
             # Variables need to be (re-)initialised:
             objSess.run(tf.global_variables_initializer())
@@ -525,6 +565,6 @@ def funcFindPrfGpu(idxPrc, vecMdlXpos, vecMdlYpos, vecMdlSd, aryFunc,  # noqa
               vecBstYpos,
               vecBstSd,
               vecBstR2,
-              np.zeros((varNumVox, (varNumBeta + 1))).astype(np.float32)]  # BETAS NOT EXPORTED! TODO
+              np.zeros((varNumVox, (varNumBeta))).astype(np.float32)]
 
     queOut.put(lstOut)
