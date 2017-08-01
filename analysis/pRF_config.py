@@ -52,7 +52,7 @@ varSdSmthTmp = 0
 varPar = 10
 
 # L2 regularisation factor for ridge regression
-varL2reg = 0.0
+varL2reg = 5.0
 
 # Size of high-resolution visual space model in which the pRF models are
 # created (x- and y-dimension). The x and y dimensions specified here need to
@@ -81,7 +81,7 @@ varTestRun = 6
 strPathNiiMask = '/home/john/Documents/pRF_motion/func/flatmask.nii.gz'
 
 # Output basename:
-strPathOut = '/home/john/Documents/pRF_motion/result/MotionNoXvalAoM_gpu'
+strPathOut = '/home/john/Documents/pRF_motion/result/MotionNoXvalAoM_gpu_L2'
 
 # Which version to use for pRF finding. 'numpy' or 'cython' for pRF finding on
 # CPU, 'gpu' for using GPU.

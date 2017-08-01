@@ -535,12 +535,14 @@ def funcFindPrfGpu(idxPrc, vecMdlXpos, vecMdlYpos, vecMdlSd, aryFunc,  # noqa
     # The second column is to contain model y positions:
     aryMdl[:, 1] = np.repeat(
                              np.tile(vecMdlYpos,
-                                     varNumPrfSizes),
-                             varNumX
+                                     varNumX),
+                             varNumPrfSizes
                              )
 
     # The third column is to contain model pRF sizes:
     aryMdl[:, 2] = np.tile(vecMdlSd, int(varNumX * varNumY))
+
+    np.save('/home/john/Desktop/tmp/aryMdl.npy', aryMdl)
 
     # Earlier, we had removed models with a variance of zero. Thus, those
     # models were ignored and are not present in the results. We remove them
