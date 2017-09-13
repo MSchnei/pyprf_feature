@@ -17,6 +17,7 @@
 # You should have received a copy of the GNU General Public License
 # along with this program.  If not, see <http://www.gnu.org/licenses/>.
 
+import os
 import numpy as np
 import threading
 try:
@@ -92,7 +93,7 @@ def funcFindPrfGpu(idxPrc, vecMdlXpos, vecMdlYpos, vecMdlSd, aryFunc,  # noqa
         while True:
 
             # Feed example to Tensorflow placeholder
-            aryTmp02 = np.copy(lstPrfTc[idxCnt])
+            aryTmp02 = lstPrfTc[idxCnt]
             dicIn = {objPlcHld01: aryTmp02}
 
             # Push to the queue:
@@ -134,6 +135,10 @@ def funcFindPrfGpu(idxPrc, vecMdlXpos, vecMdlYpos, vecMdlSd, aryFunc,  # noqa
 
     # Now, aryPrfTc has the following dimensions:
     # aryPrfTc[(x-pos * y-pos * SD), motion-direction, time]
+
+    # Original total number of pRF time course models (before removing models
+    # with zero variance):
+    varNumMdlsTtl = aryPrfTc.shape[0]
 
     # Change type to float 32:
     aryPrfTc = aryPrfTc.astype(np.float32)
@@ -259,6 +264,7 @@ def funcFindPrfGpu(idxPrc, vecMdlXpos, vecMdlYpos, vecMdlSd, aryFunc,  # noqa
 
     # We don't need the original array with the functional data anymore (the
     # above seems to have created a hard copy):
+    del(vecFuncDev)
     del(aryFunc)
 
     # -------------------------------------------------------------------------
@@ -273,6 +279,9 @@ def funcFindPrfGpu(idxPrc, vecMdlXpos, vecMdlYpos, vecMdlSd, aryFunc,  # noqa
     # Multiply L2 regularization factor with identity matrix:
     aryL2reg = np.multiply(np.eye(varNumBeta),
                            varL2reg).astype(np.float32)
+
+    # Reduce logging verbosity:
+    os.environ['TF_CPP_MIN_LOG_LEVEL'] = '2'
 
     # -------------------------------------------------------------------------
     # *** Prepare status indicator
@@ -465,6 +474,10 @@ def funcFindPrfGpu(idxPrc, vecMdlXpos, vecMdlYpos, vecMdlSd, aryFunc,  # noqa
             # Variables need to be (re-)initialised:
             objSess.run(tf.global_variables_initializer())
 
+            # Mark graph as read-only (would throw an error in case of memory
+            # leak):
+            objSess.graph.finalize()
+
             # Index of first voxel in current chunk (needed to assign results):
             varChnkStr = int(vecIdxChnks[idxChnk])
 
@@ -522,7 +535,7 @@ def funcFindPrfGpu(idxPrc, vecMdlXpos, vecMdlYpos, vecMdlSd, aryFunc,  # noqa
     # Array for model parameters. At the moment, we have the indices of the
     # best fitting models, so we need an array that tells us what model
     # parameters these indices refer to.
-    aryMdl = np.zeros((varNumMdls, 3), dtype=np.float32)
+    aryMdl = np.zeros((varNumMdlsTtl, 3), dtype=np.float32)
 
     # Model parameter can be represented as float32 as well:
     vecMdlXpos = vecMdlXpos.astype(np.float32)
@@ -541,8 +554,6 @@ def funcFindPrfGpu(idxPrc, vecMdlXpos, vecMdlYpos, vecMdlSd, aryFunc,  # noqa
 
     # The third column is to contain model pRF sizes:
     aryMdl[:, 2] = np.tile(vecMdlSd, int(varNumX * varNumY))
-
-    np.save('/home/john/Desktop/tmp/aryMdl.npy', aryMdl)
 
     # Earlier, we had removed models with a variance of zero. Thus, those
     # models were ignored and are not present in the results. We remove them
