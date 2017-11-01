@@ -1,5 +1,5 @@
 # -*- coding: utf-8 -*-
-"""function for creating pRF model time courses"""
+"""Creating pRF model time courses."""
 
 # Part of py_pRF_motion library
 # Copyright (C) 2016  Marian Schneider, Ingo Marquardt
@@ -27,7 +27,8 @@ import multiprocessing as mp
 
 
 def loadPng(varNumVol, tplPngSize, strPathPng):
-    """This function loads PNG files.
+    """Load PNG files.
+
     Parameters
     ----------
     varNumVol : float
@@ -66,7 +67,8 @@ def loadPng(varNumVol, tplPngSize, strPathPng):
 
 
 def loadPrsOrd(vecRunLngth, strPathPresOrd, vecVslStim):
-    """This function loads presentation order of motion directions.
+    """Load presentation order of motion directions.
+
     Parameters
     ----------
     vecRunLngth : list
@@ -82,7 +84,6 @@ def loadPrsOrd(vecRunLngth, strPathPresOrd, vecVslStim):
     aryPresOrdMtn : 1d numpy array, shape [n_vols]
         Presentation order of motion direction.
     """
-
     print('------Load presentation order of motion directions')
     aryPresOrd = np.empty((0, 2))
     for idx01 in range(0, len(vecRunLngth)):
@@ -105,7 +106,8 @@ def loadPrsOrd(vecRunLngth, strPathPresOrd, vecVslStim):
 
 
 def crtPwBoxCarFn(varNumVol, aryPngData, aryPresOrd, vecMtDrctn):
-    """This function creates pixel-wise boxcar functions.
+    """Create pixel-wise boxcar functions.
+
     Parameters
     ----------
     input1 : 2d numpy array, shape [n_samples, n_measurements]
@@ -135,6 +137,7 @@ def crtPwBoxCarFn(varNumVol, aryPngData, aryPresOrd, vecMtDrctn):
 
 def crtGauss2D(varSizeX, varSizeY, varPosX, varPosY, varSd):
     """Create 2D Gaussian kernel.
+
     Parameters
     ----------
     varSizeX : int, positive
@@ -175,6 +178,7 @@ def crtGauss2D(varSizeX, varSizeY, varPosX, varPosY, varSd):
 def cnvlGauss2D(idxPrc, aryBoxCar, aryMdlParamsChnk, tplPngSize, varNumVol,
                 queOut):
     """Spatially convolve boxcar functions with 2D Gaussian.
+
     Parameters
     ----------
     idxPrc : 2d numpy array, shape [n_samples, n_measurements]
@@ -211,12 +215,10 @@ def cnvlGauss2D(idxPrc, aryBoxCar, aryMdlParamsChnk, tplPngSize, varNumVol,
         # Loop through combinations of model parameters:
         for idxMdl in range(0, varChnkSze):
 
-            # Depending on the relation between the number of x- and y-pos
-            # at which to create pRF models and the size of the super-sampled
-            # visual space, the indicies need to be rounded:
-            varTmpX = np.around(aryMdlParamsChnk[idxMdl, 1], 0)
-            varTmpY = np.around(aryMdlParamsChnk[idxMdl, 2], 0)
-            varTmpSd = np.around(aryMdlParamsChnk[idxMdl, 3], 0)
+            # Spatial parameters of current model:
+            varTmpX = aryMdlParamsChnk[idxMdl, 1]
+            varTmpY = aryMdlParamsChnk[idxMdl, 2]
+            varTmpSd = aryMdlParamsChnk[idxMdl, 3]
 
             # Create pRF model (2D):
             aryGauss = crtGauss2D(tplPngSize[0],
@@ -252,6 +254,7 @@ def crtPrfNrlTc(aryBoxCar, varNumMtDrctn, varNumVol, tplPngSize, varNumX,
                 varExtXmin,  varExtXmax, varNumY, varExtYmin, varExtYmax,
                 varNumPrfSizes, varPrfStdMin, varPrfStdMax, varPar):
     """Create neural model time courses from pixel-wise boxcar functions.
+
     Parameters
     ----------
     aryBoxCar : 4d numpy array, shape [n_x_pix, n_y_pix, n_mtn_dir, n_vol]
@@ -444,7 +447,8 @@ def crtPrfNrlTc(aryBoxCar, varNumMtDrctn, varNumVol, tplPngSize, varNumX,
 
 def cnvlPwBoxCarFn(aryNrlTc, varNumVol, varTr, tplPngSize, varNumMtDrctn,
                    switchHrfSet, lgcOldSchoolHrf, varPar,):
-    """ Create 2D Gaussian kernel.
+    """Create 2D Gaussian kernel.
+
     Parameters
     ----------
     aryNrlTc : 5d numpy array, shape [n_x_pos, n_y_pos, n_sd, n_mtn_dir, n_vol]
@@ -563,7 +567,8 @@ def rsmplInHighRes(aryBoxCarConv,
                    tplVslSpcHighSze,
                    varNumMtDrctn,
                    varNumVol):
-    """ Resample pixel-time courses in high-res visual space.
+    """Resample pixel-time courses in high-res visual space.
+
     Parameters
     ----------
     input1 : 2d numpy array, shape [n_samples, n_measurements]
@@ -578,7 +583,6 @@ def rsmplInHighRes(aryBoxCarConv,
     ---------
     [1]
     """
-
     # Array for super-sampled pixel-time courses:
     aryBoxCarConvHigh = np.zeros((tplVslSpcHighSze[0],
                                   tplVslSpcHighSze[1],
