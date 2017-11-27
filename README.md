@@ -1,9 +1,9 @@
 [![DOI](https://zenodo.org/badge/78625137.svg)](https://zenodo.org/badge/latestdoi/78625137)
 
-# py_pRF_motion
-A free & open source package for finding best-fitting pRF models and motion parameters for fMRI data.
+# PyPRF - Motion
+A free & open source package for finding best-fitting population receptive field (PRF) models and motion parameters for fMRI data.
 
-If you are only interested in the spatial properties of the population receptive fields, not preferred motion directions, check out this related project:  https://github.com/ingo-m/py_pRF_mapping
+If you are only interested in the spatial properties of the population receptive fields, not preferred motion directions, check out this related project:  https://github.com/ingo-m/pypRF
 
 
 ## Dependencies
@@ -35,6 +35,5 @@ This application is based on the following work:
 * Nishimoto, S., Vu, A. T., Naselaris, T., Benjamini, Y., Yu, B., & Gallant, J. L. (2011). Report Reconstructing Visual Experiences from Brain Activity Evoked by Natural Movies, 1641–1646. https://doi.org/10.1016/j.cub.2011.08.031
 
 ## License
-
 The project is licensed under [GNU General Public License Version 3](http://www.gnu.org/licenses/gpl.html).
 
