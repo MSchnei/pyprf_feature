@@ -3,7 +3,7 @@
 # pyprf_feature
 A free & open source package for finding best-fitting population receptive field (PRF) models and feature weights for fMRI data.
 
-If you are only interested in the spatial properties of the population receptive fields, not preferred features, check out this related project:  https://github.com/ingo-m/pypRF
+If you are only interested in the spatial properties of the population receptive fields, not preferred features, check out the [pyprf package](https://github.com/ingo-m/pypRF).
 
 
 ## Dependencies
@@ -33,6 +33,8 @@ This application is based on the following work:
 * Dumoulin, S. O., & Wandell, B. A. (2008). Population receptive field estimates in human visual cortex. NeuroImage, 39(2), 647–660. https://doi.org/10.1016/j.neuroimage.2007.09.034
 
 * Nishimoto, S., Vu, A. T., Naselaris, T., Benjamini, Y., Yu, B., & Gallant, J. L. (2011). Report Reconstructing Visual Experiences from Brain Activity Evoked by Natural Movies, 1641–1646. https://doi.org/10.1016/j.cub.2011.08.031
+
+* St-Yves, G., & Naselaris, T. (2017). The feature-weighted receptive field: An interpretable encoding model for complex feature spaces. NeuroImage, (June), 1–15. https://doi.org/10.1016/j.neuroimage.2017.06.035
 
 ## License
 The project is licensed under [GNU General Public License Version 3](http://www.gnu.org/licenses/gpl.html).
