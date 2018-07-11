@@ -1,0 +1,128 @@
+# Motion pRF mapping experiment parameter definitions.
+
+# Part of py_pRF_motion library
+# Copyright (C) 2018  Marian Schneider, Ingo Marquardt
+#
+# This program is free software: you can redistribute it and/or modify
+# it under the terms of the GNU General Public License as published by
+# the Free Software Foundation, either version 3 of the License, or
+# (at your option) any later version.
+#
+# This program is distributed in the hope that it will be useful,
+# but WITHOUT ANY WARRANTY; without even the implied warranty of
+# MERCHANTABILITY or FITNESS FOR A PARTICULAR PURPOSE.  See the
+# GNU General Public License for more details.
+#
+# You should have received a copy of the GNU General Public License
+# along with this program.  If not, see <http://www.gnu.org/licenses/>.
+
+# Model parameters in cartesian or polar coordinates?
+# set to either pol (polar) or crt (cartesian)
+strKwCrd = 'crt'
+
+# Number of x- or radial positions to model:
+# If strKwCrd is crt: this corresponds to number of x-positions
+# elif strKwCrd is pol: this corresponds to number of radial positions
+varNum1 = 25
+# Number of y- or angular positions to model:
+# If strKwCrd is crt: this corresponds to number of y-positions
+# elif strKwCrd is pol: this corresponds to number of angular positions
+varNum2 = 25
+# Number of pRF sizes to model:
+varNumPrfSizes = 22
+
+# Extent of visual space from centre of the screen in negative x-direction
+# (i.e. from the fixation point to the left end of the screen) in degrees of
+# visual angle.
+varExtXmin = -12.0
+# Extent of visual space from centre of the screen in positive x-direction
+# (i.e. from the fixation point to the right end of the screen) in degrees of
+# visual angle.
+varExtXmax = 12.0
+# Extent of visual space from centre of the screen in negative y-direction
+# (i.e. from the fixation point to the lower end of the screen) in degrees of
+# visual angle.
+varExtYmin = -12.0
+# Extent of visual space from centre of the screen in positive y-direction
+# (i.e. from the fixation point to the upper end of the screen) in degrees of
+# visual angle.
+varExtYmax = 12.0
+
+# Maximum and minimum pRF model size (standard deviation of 2D Gaussian)
+# [degrees of visual angle]:
+varPrfStdMin = 1.0
+varPrfStdMax = 22.0
+
+# Volume TR of input data [s]:
+varTr = 3.0
+
+# Voxel resolution of the fMRI data [mm]:
+varVoxRes = 0.8
+
+# Number of fMRI volumes (across all runs):
+varNumVol = 1232
+
+# Extent of temporal smoothing for fMRI data and pRF time course models
+# [standard deviation of the Gaussian kernel, in seconds]:
+# same temporal smoothing will be applied to pRF model time courses
+varSdSmthTmp = 0.0
+
+# Number of processes to run in parallel:
+varPar = 10
+
+# L2 regularisation factor for ridge regression
+varL2reg = 5.0
+
+# Size of visual space model in which the pRF models are
+# created (x- and y-dimension). The x and y dimensions specified here need to
+# be the same integer multiple of the number of x- and y-positions to model, as
+# specified above. In other words, if the the resolution in x-direction of the
+# visual space model is ten times that of varNumX, the resolution in
+# y-direction also has to be ten times varNumY. The order is: first x, then y.
+varVslSpcSzeX = 128
+varVslSpcSzeY = 128
+
+# Path of functional data (needs to have same number of volumes as there are
+# PNGs):
+lstPathNiiFunc = ['~/fnc01.nii', '~/fnc02.nii', '~/fnc03.nii', '~/fnc04.nii']
+
+# Path of mask (to restrict pRF model finding):
+strPathNiiMask = '~/mask.nii'
+
+# Output basename:
+strPathOut = '~/pRF_results/pRF_results'
+
+# Which version to use for pRF finding. 'numpy' or 'cython' for pRF finding on
+# CPU, 'gpu' for using GPU.
+strVersion = 'cython'
+
+# Which hrf functions should be used?
+# 1: only canonical, 2: can and temp deriv, 3: can, temp and spat deriv
+# Note: Currently only option 1 (canonical hrf) is supported
+switchHrfSet = 1
+
+# Should model fitting be based on k-fold cross-validation?
+# if desired, it is recommended to set this equal to the number of runs
+# if not, set to 1 and no cross-validation will be implemented
+# currently only supported for CPU, set to 1 if using GPU
+varNumXval = 4
+
+# Create pRF time course models?
+lgcCrteMdl = True
+
+# If we create new pRF time course models, the following parameters have to
+# be provided:
+
+# Name of the npy that holds spatial info about conditions
+strSptExpInf = '~/expInfo/sptInfo/arySptExpInf.npy'
+
+# Name of the npy that holds temporal info about conditions
+strTmpExpInf = '~/expInfo/tmpInfo/aryTmpExpInf.npy'
+
+# Factor by which time courses and HRF will be upsampled for the convolutions
+# Higher number might yield more accurate reults but also takes up more RAM.
+varTmpOvsmpl = 20.
+
+# Path to npy file with pRF time course models (to save or load). Without file
+# extension.
+strPathMdl = '~/pRF_results/pRF_model_tc'
