@@ -5,8 +5,7 @@ For development installation:
     pip install -e /path/to/pyprf_feature
 """
 
-import numpy as np
-from setuptools import setup, Extension
+from setuptools import setup
 
 setup(name='pyprf_feature',
       version='1.0.0',
@@ -20,15 +19,11 @@ setup(name='pyprf_feature',
       install_requires=['numpy', 'scipy', 'nibabel',
                         'cython==0.27.1', 'tensorflow==1.4.0',
                         'scikit-learn==0.19.1'],
-      keywords=['pRF', 'fMRI', 'retinotopy', 'feauture weights'],
+      keywords=['pRF', 'fMRI', 'retinotopy', 'feature weights'],
       packages=['pyprf_feature.analysis'],
       py_modules=['pyprf_feature.analysis'],
       entry_points={
           'console_scripts': [
               'pyprf_feature = pyprf_feature.analysis.__main__:main',
               ]},
-      ext_modules=[Extension('pyprf_feature.analysis.cython_leastsquares',
-                             ['pyprf_feature/analysis/cython_leastsquares.c'],
-                             include_dirs=[np.get_include()]
-                             )],
       )
