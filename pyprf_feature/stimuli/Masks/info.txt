@@ -1,0 +1,3 @@
+# The masks will be saved here.
+# Use the CreateMasks.py script in code
+# to create *.npz files
