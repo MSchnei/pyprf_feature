@@ -60,7 +60,7 @@ varTr = 3.0
 varVoxRes = 0.8
 
 # Number of fMRI volumes (across all runs):
-varNumVol = 1232
+varNumVol = 1204
 
 # Extent of temporal smoothing for fMRI data and pRF time course models
 # [standard deviation of the Gaussian kernel, in seconds]:
