@@ -266,6 +266,7 @@ def crt_mdl_rsp(arySptExpInf, tplPngSize, aryMdlParams, varPar):
     Reference
     ---------
     [1]
+
     """
 
     # The long array with all the combinations of model parameters is put into
@@ -319,15 +320,20 @@ def crt_mdl_rsp(arySptExpInf, tplPngSize, aryMdlParams, varPar):
     return aryMdlCndRsp.astype('float16')
 
 
-def crt_nrl_tc(aryMdlRsp, aryTmpExpInf, varTr, varNumVol, varTmpOvsmpl):
+def crt_nrl_tc(aryMdlRsp, aryCnd, aryOns, aryDrt, varTr, varNumVol,
+               varTmpOvsmpl):
     """Create temporally upsampled neural time courses.
 
     Parameters
     ----------
     aryMdlRsp : 2d numpy array, shape [n_x_pos * n_y_pos * n_sd, n_cond]
         Responses of 2D Gauss models to spatial conditions.
-    aryTmpExpInf : 2d numpy array, shape [unknown, 3]
-        Info about nature, onset and duration of conditions during experiments.
+    aryCnd : np.array
+        1D array with condition identifiers (every condition has its own int)
+    aryOns : np.array, same len as aryCnd
+        1D array with condition onset times in seconds.
+    aryDrt : np.array, same len as aryCnd
+        1D array with condition durations of different conditions in seconds.
     varTr : float, positive
         Time to repeat (TR) of the (fMRI) experiment
     varNumVol : float, positive
@@ -342,6 +348,7 @@ def crt_nrl_tc(aryMdlRsp, aryTmpExpInf, varTr, varNumVol, varTmpOvsmpl):
     Reference
     ---------
     [1]
+
     """
     # adjust the input, if necessary, such that input is 2D
     tplInpShp = aryMdlRsp.shape
@@ -349,8 +356,7 @@ def crt_nrl_tc(aryMdlRsp, aryTmpExpInf, varTr, varNumVol, varTmpOvsmpl):
 
     # create boxcar functions in temporally upsampled space
     print('---------Create boxcar functions for spatial condtions')
-    aryBxCarTmp = create_boxcar(aryTmpExpInf[:, 0], aryTmpExpInf[:, 1],
-                                aryTmpExpInf[:, 2], varTr, varNumVol,
+    aryBxCarTmp = create_boxcar(aryCnd, aryOns, aryDrt, varTr, varNumVol,
                                 aryExclCnd=np.array([0.]),
                                 varTmpOvsmpl=varTmpOvsmpl).T
 
@@ -399,6 +405,7 @@ def crt_prf_tc(aryNrlTc, varNumVol, varTr, varTmpOvsmpl, switchHrfSet,
     Reference
     ---------
     [1]
+
     """
 
     # Create hrf time course function:
@@ -471,6 +478,67 @@ def crt_prf_tc(aryNrlTc, varNumVol, varTr, varTmpOvsmpl, switchHrfSet,
 
     # Return:
     return np.reshape(aryNrlTcConv, tplOutShp).astype(np.float32)
+
+
+def crt_prf_ftr_tc(aryMdlRsp, aryTmpExpInf, varNumVol, varTr, varTmpOvsmpl,
+                   switchHrfSet, tplPngSize, varPar):
+    """Create all spatial x feature prf time courses.
+
+    Parameters
+    ----------
+    aryMdlRsp : 2d numpy array, shape [n_x_pos * n_y_pos * n_sd, n_cond]
+        Responses of 2D Gauss models to spatial conditions
+    aryTmpExpInf: 2d numpy array, shape [unknown, 4]
+        Temporal information about conditions
+    varNumVol : float, positive
+        Number of volumes of the (fMRI) data.
+    varTr : float, positive
+        Time to repeat (TR) of the (fMRI) experiment.
+    varTmpOvsmpl : int, positive
+        Factor by which the data hs been temporally upsampled.
+    switchHrfSet : int, (1, 2, 3)
+        Switch to determine which hrf basis functions are used
+    tplPngSize : tuple
+        Pixel dimensions of the visual space (width, height).
+    varPar : int, positive
+        Description of input 1.
+    Returns
+    -------
+    aryNrlTcConv : 3d numpy array,
+                   shape [nr of models, nr of unique feautures, varNumVol]
+        Prf time course models
+    Reference
+    ---------
+    [1]
+
+    """
+
+    # identify number of unique feautures
+    vecFeat = np.nonzero(np.unique(aryTmpExpInf[:, 3]))[0]
+
+    # preallocate the output array
+    aryPrfTc = np.zeros((aryMdlRsp.shape[0], 0, varNumVol),
+                        dtype=np.float32)
+
+    # loop over unique features
+    for indFtr, ftr in enumerate(vecFeat):
+
+        # derive sptial conditions, onsets and durations for this specific
+        # feauture
+        aryTmpCnd = aryTmpExpInf[aryTmpExpInf[:, 3] == ftr, 0]
+        aryTmpOns = aryTmpExpInf[aryTmpExpInf[:, 3] == ftr, 1]
+        aryTmpDrt = aryTmpExpInf[aryTmpExpInf[:, 3] == ftr, 2]
+
+        # Create temporally upsampled neural time courses.
+        aryNrlTcTmp = crt_nrl_tc(aryMdlRsp, aryTmpCnd, aryTmpOns, aryTmpDrt,
+                                 varTr, varNumVol, varTmpOvsmpl)
+
+        aryPrfTcTmp = crt_prf_tc(aryNrlTcTmp, varNumVol, varTr, varTmpOvsmpl,
+                                 switchHrfSet, tplPngSize, varPar)
+
+        aryPrfTc = np.concatenate((aryPrfTc, aryPrfTcTmp), axis=1)
+
+    return aryPrfTc
 
 
 def fnd_unq_rws(A, return_index=False, return_inverse=False):

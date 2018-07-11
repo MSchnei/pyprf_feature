@@ -21,8 +21,8 @@ import numpy as np
 from pyprf_feature.analysis.utils_general import cls_set_config
 from pyprf_feature.analysis.model_creation_utils import (crt_mdl_prms,
                                                          crt_mdl_rsp,
-                                                         crt_nrl_tc,
-                                                         crt_prf_tc)
+                                                         crt_prf_ftr_tc,
+                                                         )
 
 
 def model_creation(dicCnfg):
@@ -99,26 +99,17 @@ def model_creation(dicCnfg):
         # *********************************************************************
 
         # *********************************************************************
-        # *** Create neural time courses in upsampled space
+        # *** Create prf time course models
 
-        print('------Create temporally upsampled neural time courses')
+        print('------Create prf time course models')
 
-        aryNrlTc = crt_nrl_tc(aryMdlRsp, aryTmpExpInf, cfg.varTr,
-                              cfg.varNumVol, cfg.varTmpOvsmpl)
-        del(aryTmpExpInf)
+        aryPrfTc = crt_prf_ftr_tc(aryMdlRsp, aryTmpExpInf, cfg.varNumVol,
+                                  cfg.varTr, cfg.varTmpOvsmpl,
+                                  cfg.switchHrfSet, (int(cfg.varVslSpcSzeX),
+                                                     int(cfg.varVslSpcSzeY)),
+                                  cfg.varPar)
+
         del(aryMdlRsp)
-
-        # *********************************************************************
-
-        # *********************************************************************
-        # *** Convolve every neural time course model with hrf function(s)
-
-        print('------Create pRF time course models by HRF convolution')
-
-        aryPrfTc = crt_prf_tc(aryNrlTc, cfg.varNumVol, cfg.varTr,
-                              cfg.varTmpOvsmpl, cfg.switchHrfSet,
-                              (int(cfg.varVslSpcSzeX), int(cfg.varVslSpcSzeY)),
-                              cfg.varPar)
         del(aryNrlTc)
 
         # *********************************************************************
@@ -127,18 +118,6 @@ def model_creation(dicCnfg):
         # *** Save pRF time course models
 
         print('------Save pRF time course models to disk')
-
-        # The data will come out of the convolution process with an extra
-        # dimension, since in principle different basis functions in addition
-        # to the canonical HRF can be used. But for now the model fitting can
-        # only handle option 1 (canonical convolution). Therefore, we
-        # check that user has set the switchHrfSet in the csv file to 1
-        strErrMsg = 'Stopping program. ' + \
-            'Only canonical hrf fitting is currently supported. ' + \
-            'Set switchHrfSet equal to 1 in csv file in order to continue. '
-        assert cfg.switchHrfSet == 1, strErrMsg
-        # we reduce the dimensions by squeezing
-        aryPrfTc = np.squeeze(aryPrfTc)
 
         # Save the 4D array as '*.npy' file:
         np.save(cfg.strPathMdl, aryPrfTc)
@@ -167,7 +146,7 @@ def model_creation(dicCnfg):
                      'models do not agree with specified model parameters')
         assert vecPrfTcShp[0] == cfg.varNum1 * \
             cfg.varNum2 * cfg.varNumPrfSizes and \
-            vecPrfTcShp[1] == cfg.varNumVol, strErrMsg
+            vecPrfTcShp[-1] == cfg.varNumVol, strErrMsg
 
     # *************************************************************************
 

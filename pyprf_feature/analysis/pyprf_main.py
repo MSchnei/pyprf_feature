@@ -29,7 +29,7 @@ from pyprf_feature.analysis.model_creation_utils import crt_mdl_prms
 from pyprf_feature.analysis.prepare import prep_models, prep_func
 
 ###### DEBUGGING ###############
-#strCsvCnfg = "/media/sf_D_DRIVE/MotDepPrf/Analysis/S02/04_motDepPrf/pRF_results/S02_config_motDepPrf_flck.csv"
+#strCsvCnfg = "/home/marian/Documents/Git/pyprf_feature/pyprf_feature/analysis/config_custom.csv"
 #lgcTest = False
 ################################
 
