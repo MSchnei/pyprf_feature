@@ -86,7 +86,7 @@ def pyprf(strCsvCnfg, lgcTest=False):  #noqa
 
     # The functional data will be masked and demeaned:
     aryLgcMsk, aryLgcVar, hdrMsk, aryAff, aryFunc, tplNiiShp = prep_func(
-        cfg.strPathNiiMask, cfg.lstPathNiiFunc)
+        cfg.strPathNiiMask, cfg.lstPathNiiFunc, varAvgThr=-100.)
     # *************************************************************************
 
     # *************************************************************************
@@ -96,6 +96,9 @@ def pyprf(strCsvCnfg, lgcTest=False):  #noqa
 
     # Number of voxels for which pRF finding will be performed:
     varNumVoxInc = aryFunc.shape[0]
+
+    # Number of feautures
+    varNumFtr = aryPrfTc.shape[1]
 
     print('---------Number of voxels on which pRF finding will be performed: '
           + str(varNumVoxInc))
@@ -206,6 +209,10 @@ def pyprf(strCsvCnfg, lgcTest=False):  #noqa
     for idxPrc in range(0, cfg.varPar):
         lstPrcs[idxPrc].join()
 
+    # *************************************************************************
+
+    # *************************************************************************
+    # *** Prepare pRF finding results for export
     print('---------Prepare pRF finding results for export')
 
     # Put output into correct order:
@@ -216,11 +223,14 @@ def pyprf(strCsvCnfg, lgcTest=False):  #noqa
     aryBstYpos = np.zeros(0)
     aryBstSd = np.zeros(0)
     aryBstR2 = np.zeros(0)
+    aryBstBts = np.zeros((0, varNumFtr))
+
     for idxRes in range(0, cfg.varPar):
         aryBstXpos = np.append(aryBstXpos, lstPrfRes[idxRes][1])
         aryBstYpos = np.append(aryBstYpos, lstPrfRes[idxRes][2])
         aryBstSd = np.append(aryBstSd, lstPrfRes[idxRes][3])
         aryBstR2 = np.append(aryBstR2, lstPrfRes[idxRes][4])
+        aryBstBts = np.concatenate((aryBstBts, lstPrfRes[idxRes][5]), axis=0)
 
     # Concatenate output arrays for R2 maps (saved for every run):
     if np.greater(cfg.varNumXval, 1):
@@ -232,6 +242,19 @@ def pyprf(strCsvCnfg, lgcTest=False):  #noqa
 
     # Delete unneeded large objects:
     del(lstPrfRes)
+
+    np.save('/home/marian/Documents/Testing/pyprf_testing/aryBstXpos', aryBstXpos)
+    np.save('/home/marian/Documents/Testing/pyprf_testing/aryBstYpos', aryBstYpos)
+    np.save('/home/marian/Documents/Testing/pyprf_testing/aryBstSd', aryBstSd)
+    np.save('/home/marian/Documents/Testing/pyprf_testing/aryBstR2', aryBstR2)
+    np.save('/home/marian/Documents/Testing/pyprf_testing/aryBstBts', aryBstBts)
+
+    aryBstXpos = np.load('/home/marian/Documents/Testing/pyprf_testing/aryBstXpos.npy')
+    aryBstYpos = np.load('/home/marian/Documents/Testing/pyprf_testing/aryBstYpos.npy')
+    aryBstSd = np.load('/home/marian/Documents/Testing/pyprf_testing/aryBstSd.npy')
+    aryBstR2 = np.load('/home/marian/Documents/Testing/pyprf_testing/aryBstR2.npy')
+    aryBstBts = np.load('/home/marian/Documents/Testing/pyprf_testing/aryBstBts.npy')
+
 
     # Put results form pRF finding into array (they originally needed to be
     # saved in a list due to parallelisation). Voxels were selected for pRF
@@ -254,16 +277,22 @@ def pyprf(strCsvCnfg, lgcTest=False):  #noqa
     aryPrfRes01[aryLgcVar, 1] = aryBstYpos
     aryPrfRes01[aryLgcVar, 2] = aryBstSd
     aryPrfRes01[aryLgcVar, 3] = aryBstR2
+    # Calculate polar angle map:
+    aryPrfRes01[aryLgcVar, 4] = np.arctan2(aryBstYpos,
+                                           aryBstXpos)
+    # Calculate eccentricity map (r = sqrt( x^2 + y^2 ) ):
+    aryPrfRes01[aryLgcVar, 5] = np.sqrt(np.add(np.square(aryBstXpos),
+                                               np.square(aryBstYpos)))
 
     # Total number of voxels:
     varNumVoxTlt = (tplNiiShp[0] * tplNiiShp[1] * tplNiiShp[2])
 
     # Place voxels based on mask-exclusion:
-    aryPrfRes02 = np.zeros((varNumVoxTlt, 6), dtype=np.float32)
-    aryPrfRes02[aryLgcMsk, 0] = aryPrfRes01[:, 0]
-    aryPrfRes02[aryLgcMsk, 1] = aryPrfRes01[:, 1]
-    aryPrfRes02[aryLgcMsk, 2] = aryPrfRes01[:, 2]
-    aryPrfRes02[aryLgcMsk, 3] = aryPrfRes01[:, 3]
+    aryPrfRes02 = np.zeros((varNumVoxTlt, aryPrfRes01.shape[-1]),
+                           dtype=np.float32)
+
+    for indDim in range(aryPrfRes01.shape[-1]):
+        aryPrfRes02[aryLgcMsk, indDim] = aryPrfRes01[:, indDim]
 
     # Reshape pRF finding results into original image dimensions:
     aryPrfRes = np.reshape(aryPrfRes02,
@@ -274,13 +303,6 @@ def pyprf(strCsvCnfg, lgcTest=False):  #noqa
 
     del(aryPrfRes01)
     del(aryPrfRes02)
-
-    # Calculate polar angle map:
-    aryPrfRes[..., 4] = np.arctan2(aryPrfRes[..., 1], aryPrfRes[..., 0])
-
-    # Calculate eccentricity map (r = sqrt( x^2 + y^2 ) ):
-    aryPrfRes[..., 5] = np.sqrt(np.add(np.square(aryPrfRes[..., 0]),
-                                       np.square(aryPrfRes[..., 1])))
 
     # List with name suffices of output images:
     lstNiiNames = ['_x_pos',
@@ -302,6 +324,46 @@ def pyprf(strCsvCnfg, lgcTest=False):  #noqa
         # Save nii:
         strTmp = (cfg.strPathOut + lstNiiNames[idxOut] + '.nii.gz')
         nb.save(niiOut, strTmp)
+
+    # *************************************************************************
+
+    # *************************************************************************
+    # Save beta parameter estimates for every feauture:
+
+    # Place voxels based on low-variance exlusion:
+    aryPrfRes01 = np.zeros((varNumVoxMsk, varNumFtr),
+                           dtype=np.float32)
+
+    for indDim in range(varNumFtr):
+        aryPrfRes01[aryLgcVar, indDim] = aryBstBts[:, indDim]
+
+    # Place voxels based on mask-exclusion:
+    aryPrfRes02 = np.zeros((varNumVoxTlt, varNumFtr),
+                           dtype=np.float32)
+    for indDim in range(varNumFtr):
+        aryPrfRes02[aryLgcMsk, indDim] = aryPrfRes01[:, indDim]
+
+    # Reshape pRF finding results into original image dimensions:
+    aryBstBtsOut = np.reshape(aryPrfRes02,
+                              [tplNiiShp[0],
+                               tplNiiShp[1],
+                               tplNiiShp[2],
+                               varNumFtr])
+
+    del(aryPrfRes01)
+    del(aryPrfRes02)
+
+    # adjust header
+    hdrMsk.set_data_shape(aryBstBtsOut.shape)
+
+    # Create nii object for results:
+    niiOut = nb.Nifti1Image(aryBstBtsOut,
+                            aryAff,
+                            header=hdrMsk
+                            )
+    # Save nii:
+    strTmp = (cfg.strPathOut + '_Betas' + '.nii.gz')
+    nb.save(niiOut, strTmp)
 
     # *************************************************************************
 

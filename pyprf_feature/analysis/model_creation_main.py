@@ -110,7 +110,6 @@ def model_creation(dicCnfg):
                                   cfg.varPar)
 
         del(aryMdlRsp)
-        del(aryNrlTc)
 
         # *********************************************************************
 

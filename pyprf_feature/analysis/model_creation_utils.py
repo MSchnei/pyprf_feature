@@ -355,7 +355,7 @@ def crt_nrl_tc(aryMdlRsp, aryCnd, aryOns, aryDrt, varTr, varNumVol,
     aryMdlRsp = aryMdlRsp.reshape((-1, aryMdlRsp.shape[-1]))
 
     # create boxcar functions in temporally upsampled space
-    print('---------Create boxcar functions for spatial condtions')
+    print('------------Create boxcar functions for spatial condtions')
     aryBxCarTmp = create_boxcar(aryCnd, aryOns, aryDrt, varTr, varNumVol,
                                 aryExclCnd=np.array([0.]),
                                 varTmpOvsmpl=varTmpOvsmpl).T
@@ -363,7 +363,7 @@ def crt_nrl_tc(aryMdlRsp, aryCnd, aryOns, aryDrt, varTr, varNumVol,
     # pre-allocate pixelwise boxcar array
     aryNrlTc = np.zeros((aryMdlRsp.shape[0], aryBxCarTmp.shape[-1]),
                         dtype='float16')
-    print('---------Insert predicted condition values for all models')
+    print('------------Insert predicted condition values for all models')
     # loop through boxcar functions of conditions
     for ind, vecCndOcc in enumerate(aryBxCarTmp):
         # get response predicted by models for this specific spatial condition
@@ -432,7 +432,7 @@ def crt_prf_tc(aryNrlTc, varNumVol, varTr, varTmpOvsmpl, switchHrfSet,
     # Empty list for results of parallel processes:
     lstConv = [None] * varPar
 
-    print('---------Running parallel processes')
+    print('------------Running parallel processes')
 
     # Create processes:
     for idxPrc in range(0, varPar):
@@ -461,7 +461,7 @@ def crt_prf_tc(aryNrlTc, varNumVol, varTr, varTmpOvsmpl, switchHrfSet,
     for idxPrc in range(0, varPar):
         lstPrcs[idxPrc].join()
 
-    print('---------Collecting results from parallel processes')
+    print('------------Collecting results from parallel processes')
     # Put output into correct order:
     lstConv = sorted(lstConv)
     # Concatenate convolved pixel time courses (into the same order
@@ -523,6 +523,7 @@ def crt_prf_ftr_tc(aryMdlRsp, aryTmpExpInf, varNumVol, varTr, varTmpOvsmpl,
     # loop over unique features
     for indFtr, ftr in enumerate(vecFeat):
 
+        print('---------Create prf time course model for feature ' + str(ftr))
         # derive sptial conditions, onsets and durations for this specific
         # feauture
         aryTmpCnd = aryTmpExpInf[aryTmpExpInf[:, 3] == ftr, 0]

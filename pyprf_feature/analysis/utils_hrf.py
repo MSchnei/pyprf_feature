@@ -309,8 +309,6 @@ def cnvl_tc(idxPrc, aryPrfTcChunk, lstHrf, varTr, varNumVol, varTmpOvsmpl,
     # Prepare an empty array for ouput
     aryConv = np.zeros((aryPrfTcChunk.shape[0], len(lstHrf), varNumVol),
                        dtype='float16')
-    print("---------Process " + str(idxPrc) +
-          ": Convolve")
     # Each time course is convolved with the HRF separately, because the
     # numpy convolution function can only be used on one-dimensional data.
     # Thus, we have to loop through time courses:

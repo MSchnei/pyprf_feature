@@ -20,7 +20,6 @@ lstPickleFiles = [
     'Conditions_run04.pickle',
     'Conditions_run05.pickle',
     'Conditions_run06.pickle',
-    'Conditions_run07.pickle'
     ]
 
 # provide the TR in seconds
@@ -45,7 +44,6 @@ for ind, cond in enumerate(lstPickleFiles):
 
 # join conditions across runs
 aryCond = np.vstack(lstCond)
-
 
 # create empty array
 aryTmpCond = np.empty((len(aryCond), 4), dtype='float16')

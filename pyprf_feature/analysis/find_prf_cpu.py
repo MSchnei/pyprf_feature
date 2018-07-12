@@ -35,7 +35,7 @@ def find_prf_cpu(idxPrc, aryFuncChnk, aryPrfTc, aryMdlParams, strVersion,
         2D array with functional MRI data, with shape aryFunc[voxel, time].
     aryPrfTc : np.array
         Array with pRF model time courses, with shape
-        aryPrfTc[x-pos*y-pos*SD, number of volumes]
+        aryPrfTc[x-pos*y-pos*SD, number of feautures, number of volumes]
     aryMdlParams : np.array
         2D array with all pRF model parameter combinations.
     strVersion : str
@@ -66,16 +66,23 @@ def find_prf_cpu(idxPrc, aryFuncChnk, aryPrfTc, aryMdlParams, strVersion,
         vecBstR2 : np.array
             1D array with R2 value of 'winning' pRF model for each voxel, with
             shape vecBstR2[voxel].
+        aryBstBts : np.array
+            2D array with beta parameter estimates of 'winning' pRF model for
+            each voxel, with shape aryBstBts[voxel, feautures].
 
     Notes
     -----
     The list with results is not returned directly, but placed on a
     multiprocessing queue. This version performs the model finding on the CPU,
     using numpy or cython (depending on the value of `strVersion`).
+
     """
 
     # Number of models in the visual space:
     varNumMdls = aryPrfTc.shape[0]
+
+    # Number of feautures
+    varNumFtr = aryPrfTc.shape[1]
 
     # Number of voxels to be fitted in this chunk:
     varNumVoxChnk = aryFuncChnk.shape[0]
@@ -92,6 +99,10 @@ def find_prf_cpu(idxPrc, aryFuncChnk, aryPrfTc, aryMdlParams, strVersion,
     # compared to this, and updated if it is lower than the best-fitting
     # solution so far. We initialise with an arbitrary, high value
     vecBstRes = np.add(np.zeros(varNumVoxChnk), np.inf).astype(np.float32)
+
+    # array for best beta values. If we update the residual value above because
+    # it is lower, we also update the beta values of these voxels
+    aryBstBts = np.zeros((varNumVoxChnk, varNumFtr)).astype(np.float32)
 
     # In case we cross-validate we also save and replace the best
     # residual values for every fold (not only mean across folds):
@@ -155,7 +166,7 @@ def find_prf_cpu(idxPrc, aryFuncChnk, aryPrfTc, aryMdlParams, strVersion,
     # models that are not actually responsive to the stimuli). For time
     # efficiency, and in order to avoid division by zero, we ignore these
     # model time courses.
-    aryPrfTcVar = np.var(aryPrfTc, axis=1)
+    aryPrfTcVar = np.var(aryPrfTc, axis=-1)
 
     # Zero with float32 precision for comparison:
     varZero32 = np.array(([0.0])).astype(np.float32)[0]
@@ -185,8 +196,9 @@ def find_prf_cpu(idxPrc, aryFuncChnk, aryPrfTc, aryMdlParams, strVersion,
                 if varCntSts01 < varStsStpSze:
                     varCntSts01 = varCntSts01 + int(1)
 
-        # Only fit pRF model if variance is not zero:
-        if np.greater(aryPrfTcVar[idxMdl], varZero32):
+        # Only fit pRF model if all of the feauture predictos have a variance
+        # that is greater than zero:
+        if np.all(np.greater(aryPrfTcVar[idxMdl], varZero32), axis=0):
 
             # Check whether we need to crossvalidate
             if lgcXval:
@@ -198,16 +210,18 @@ def find_prf_cpu(idxPrc, aryFuncChnk, aryPrfTc, aryMdlParams, strVersion,
                 # Cython version:
                 if strVersion == 'cython':
 
-                    vecMdl = aryPrfTc[idxMdl, :]
+                    print('Cython version is currently not implemented')
 
-                    # A cython function is used to loop over the folds
-                    # of the cross-validation, and within each fold to
-                    # calculate the parameter estimates of the current
-                    # model and the crossvalidation error:
-                    aryResXval = cy_lst_sq_xval(vecMdl,
-                                                aryFuncChnk,
-                                                aryIdxTrn,
-                                                aryIdxTst)
+#                    vecMdl = aryPrfTc[idxMdl, :]
+#
+#                    # A cython function is used to loop over the folds
+#                    # of the cross-validation, and within each fold to
+#                    # calculate the parameter estimates of the current
+#                    # model and the crossvalidation error:
+#                    aryResXval = cy_lst_sq_xval(vecMdl,
+#                                                aryFuncChnk,
+#                                                aryIdxTrn,
+#                                                aryIdxTst)
 
                 # Numpy version:
                 elif strVersion == 'numpy':
@@ -263,38 +277,43 @@ def find_prf_cpu(idxPrc, aryFuncChnk, aryPrfTc, aryMdlParams, strVersion,
 
                 # Cython version:
                 if strVersion == 'cython':
+                    print('Cython version is currently not implemented')
 
-                    # A cython function is used to calculate the
-                    # residuals of the current model:
-                    vecTmpRes = cy_lst_sq(
-                        aryPrfTc[idxMdl, :],
-                        aryFuncChnk)
+#                    # A cython function is used to calculate the
+#                    # residuals of the current model:
+#                    vecTmpRes = cy_lst_sq(
+#                        aryPrfTc[idxMdl, :],
+#                        aryFuncChnk)
 
                 # Numpy version:
                 elif strVersion == 'numpy':
 
                     # Reshape pRF time course model so it has the
                     # required shape for np.linalg.lstsq
-                    vecDsgn = np.reshape(
-                        aryPrfTc[idxMdl, :], (-1, 1))
+                    vecDsgn = aryPrfTc[idxMdl, ...].T
 
                     # Numpy linalg.lstsq is used to calculate the
-                    # residuals of the current model:
-                    vecTmpRes = np.linalg.lstsq(vecDsgn, aryFuncChnk,
-                                                rcond=-1)[1]
+                    # beta values and residuals of the current model:
+                    aryTmpBts, vecTmpRes = np.linalg.lstsq(vecDsgn,
+                                                           aryFuncChnk,
+                                                           rcond=-1)[:2]
 
             # Check whether current crossvalidation error (xval=True)
             # or residuals (xval=False) are lower than previously
             # calculated ones:
             vecLgcTmpRes = np.less(vecTmpRes, vecBstRes)
 
-            # Replace best x and y position values, and SD values.
+            # Replace best x and y position values, and SD values:
             vecBstXpos[vecLgcTmpRes] = aryMdlParams[idxMdl, 0]
             vecBstYpos[vecLgcTmpRes] = aryMdlParams[idxMdl, 1]
             vecBstSd[vecLgcTmpRes] = aryMdlParams[idxMdl, 2]
 
             # Replace best mean residual values:
             vecBstRes[vecLgcTmpRes] = vecTmpRes[vecLgcTmpRes]
+
+            # Replace best beta values:
+            aryBstBts[vecLgcTmpRes, :] = aryTmpBts[:, vecLgcTmpRes].T
+
             # In case we cross-validate we also save and replace the best
             # residual values for every fold (not only mean across folds):
             if lgcXval:
@@ -417,6 +436,7 @@ def find_prf_cpu(idxPrc, aryFuncChnk, aryPrfTc, aryMdlParams, strVersion,
                   vecBstXpos,
                   vecBstYpos,
                   vecBstSd,
-                  vecBstR2]
+                  vecBstR2,
+                  aryBstBts]
 
         queOut.put(lstOut)

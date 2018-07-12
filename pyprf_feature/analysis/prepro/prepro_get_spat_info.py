@@ -23,10 +23,14 @@ strFileName = 'mskCircleBar.npy'
 factorX = 8
 factorY = 8
 
-# %% load and downsample
+# %% load, downsample, invert, save
 
+# load
 arySptExpInf = np.load(os.path.join(strPthPrnt, strFileName))
+# downsample
 arySptExpInf = arySptExpInf[::factorX, ::factorY, :]
+# since psychopy shows images upside down, we swap it here:
+arySptExpInf = arySptExpInf[::-1, :, :]
 
 # save
 strAryPth = os.path.join(strPthOut, 'arySptExpInf')
