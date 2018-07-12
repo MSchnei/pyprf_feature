@@ -20,6 +20,7 @@
 import numpy as np
 from sklearn.model_selection import KFold
 
+
 def find_prf_cpu(idxPrc, aryFuncChnk, aryPrfTc, aryMdlParams, strVersion,
                  lgcXval, varNumXval, queOut):
     """

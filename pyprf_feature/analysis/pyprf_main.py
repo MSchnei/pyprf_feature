@@ -243,19 +243,6 @@ def pyprf(strCsvCnfg, lgcTest=False):  #noqa
     # Delete unneeded large objects:
     del(lstPrfRes)
 
-    np.save('/home/marian/Documents/Testing/pyprf_testing/aryBstXpos', aryBstXpos)
-    np.save('/home/marian/Documents/Testing/pyprf_testing/aryBstYpos', aryBstYpos)
-    np.save('/home/marian/Documents/Testing/pyprf_testing/aryBstSd', aryBstSd)
-    np.save('/home/marian/Documents/Testing/pyprf_testing/aryBstR2', aryBstR2)
-    np.save('/home/marian/Documents/Testing/pyprf_testing/aryBstBts', aryBstBts)
-
-    aryBstXpos = np.load('/home/marian/Documents/Testing/pyprf_testing/aryBstXpos.npy')
-    aryBstYpos = np.load('/home/marian/Documents/Testing/pyprf_testing/aryBstYpos.npy')
-    aryBstSd = np.load('/home/marian/Documents/Testing/pyprf_testing/aryBstSd.npy')
-    aryBstR2 = np.load('/home/marian/Documents/Testing/pyprf_testing/aryBstR2.npy')
-    aryBstBts = np.load('/home/marian/Documents/Testing/pyprf_testing/aryBstBts.npy')
-
-
     # Put results form pRF finding into array (they originally needed to be
     # saved in a list due to parallelisation). Voxels were selected for pRF
     # model finding in two stages: First, a mask was applied. Second, voxels

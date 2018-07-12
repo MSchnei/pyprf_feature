@@ -87,7 +87,7 @@ varVslSpcSzeY = 128
 lstPathNiiFunc = ['/media/sf_D_DRIVE/MotionLocaliser/Analysis/P02/05_SpatSmoothDemean/demean_rafunc01_hpf.nii', '/media/sf_D_DRIVE/MotionLocaliser/Analysis/P02/05_SpatSmoothDemean/demean_rafunc02_hpf.nii', '/media/sf_D_DRIVE/MotionLocaliser/Analysis/P02/05_SpatSmoothDemean/demean_rafunc03_hpf.nii', '/media/sf_D_DRIVE/MotionLocaliser/Analysis/P02/05_SpatSmoothDemean/demean_rafunc04_hpf.nii','/media/sf_D_DRIVE/MotionLocaliser/Analysis/P02/05_SpatSmoothDemean/demean_rafunc05_hpf.nii', '/media/sf_D_DRIVE/MotionLocaliser/Analysis/P02/05_SpatSmoothDemean/demean_rafunc06_hpf.nii']
 
 # Path of mask (to restrict pRF model finding):
-strPathNiiMask = '/media/sf_D_DRIVE/MotionLocaliser/Analysis/P02/Struct/testMask.nii'
+strPathNiiMask = '/home/marian/Documents/Testing/pyprf_testing/mask.nii.gz'
 
 # Output basename:
 strPathOut = '/home/marian/Documents/Testing/pyprf_testing/pRF_results'
