@@ -236,7 +236,7 @@ def pyprf(strCsvCnfg, lgcTest=False):  #noqa
     if np.greater(cfg.varNumXval, 1):
         lstBstR2Single = []
         for idxRes in range(0, cfg.varPar):
-            lstBstR2Single.append(lstPrfRes[idxRes][5])
+            lstBstR2Single.append(lstPrfRes[idxRes][6])
         aryBstR2Single = np.concatenate(lstBstR2Single, axis=0)
         del(lstBstR2Single)
 

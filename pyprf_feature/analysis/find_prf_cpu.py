@@ -19,6 +19,7 @@
 
 import numpy as np
 from sklearn.model_selection import KFold
+from pyprf_feature.analysis.model_creation_utils import fnd_unq_rws
 
 
 def find_prf_cpu(idxPrc, aryFuncChnk, aryPrfTc, aryMdlParams, strVersion,
@@ -236,9 +237,9 @@ def find_prf_cpu(idxPrc, aryFuncChnk, aryPrfTc, aryMdlParams, strVersion,
                     # loop over cross-validation folds
                     for idxXval in range(varNumXval):
                         # Get pRF time course models for trn and tst:
-                        vecMdlTrn = aryPrfTc[idxMdl,
+                        vecMdlTrn = aryPrfTc[idxMdl, :,
                                              aryIdxTrn[:, idxXval]]
-                        vecMdlTst = aryPrfTc[idxMdl,
+                        vecMdlTst = aryPrfTc[idxMdl, :,
                                              aryIdxTst[:, idxXval]]
                         # Get functional data for trn and tst:
                         aryFuncChnkTrn = aryFuncChnk[
@@ -248,7 +249,7 @@ def find_prf_cpu(idxPrc, aryFuncChnk, aryPrfTc, aryMdlParams, strVersion,
 
                         # Reshape pRF time course model so it has the
                         # required shape for np.linalg.lstsq
-                        vecMdlTrn = np.reshape(vecMdlTrn, (-1, 1))
+                        vecMdlTrn = np.reshape(vecMdlTrn, (-1, varNumFtr))
 
                         # Numpy linalg.lstsq is used to calculate the
                         # parameter estimates of the current model:
@@ -258,8 +259,8 @@ def find_prf_cpu(idxPrc, aryFuncChnk, aryPrfTc, aryMdlParams, strVersion,
 
                         # calculate model prediction time course
                         aryMdlPrdTc = np.dot(
-                            np.reshape(vecMdlTst, (-1, 1)),
-                            np.reshape(vecTmpPe, (1, -1)))
+                            np.reshape(vecMdlTst, (-1, varNumFtr)),
+                            np.reshape(vecTmpPe, (varNumFtr, -1)))
 
                         # calculate residual sum of squares between
                         # test data and model prediction time course
@@ -312,8 +313,9 @@ def find_prf_cpu(idxPrc, aryFuncChnk, aryPrfTc, aryMdlParams, strVersion,
             # Replace best mean residual values:
             vecBstRes[vecLgcTmpRes] = vecTmpRes[vecLgcTmpRes]
 
-            # Replace best beta values:
-            aryBstBts[vecLgcTmpRes, :] = aryTmpBts[:, vecLgcTmpRes].T
+            if not lgcXval:
+                # Replace best beta values:
+                aryBstBts[vecLgcTmpRes, :] = aryTmpBts[:, vecLgcTmpRes].T
 
             # In case we cross-validate we also save and replace the best
             # residual values for every fold (not only mean across folds):
@@ -340,16 +342,14 @@ def find_prf_cpu(idxPrc, aryFuncChnk, aryPrfTc, aryMdlParams, strVersion,
 
         # Since we did not do this during finding the best model, we still need
         # to calculate deviation from a mean model for every voxel and fold
-        # arySsTotXval
+        # arySsTotXval as well as calculate the best betas for the full model
 
         # concatenate vectors with best x, y, sigma params
         aryBstPrm = np.stack((vecBstXpos, vecBstYpos, vecBstSd), axis=1)
         # find unique rows
-        vecUnqIdx = np.ascontiguousarray(aryBstPrm).view(
-            np.dtype((np.void, aryBstPrm.dtype.itemsize * aryBstPrm.shape[1])))
-        _, vecUnqIdx = np.unique(vecUnqIdx, return_index=True)
-        # get rows with all best-fitting model parameter combinations found
-        aryUnqRows = aryBstPrm[vecUnqIdx]
+
+        aryUnqRows = fnd_unq_rws(aryBstPrm, return_index=False,
+                                 return_inverse=False)
 
         # calculate deviation from a mean model for every voxel and fold
         arySsTotXval = np.zeros((aryBstResFlds.shape),
@@ -359,6 +359,10 @@ def find_prf_cpu(idxPrc, aryFuncChnk, aryPrfTc, aryMdlParams, strVersion,
         for vecPrm in aryUnqRows:
             # get logical for voxels for which this prm combi was the best
             lgcVxl = np.isclose(aryBstPrm, vecPrm, atol=1e-04).all(axis=1)
+            # get logical index for the model number, can only be one
+            lgcIndMdl = np.where(np.isclose(aryMdlParams, vecPrm,
+                                            atol=1e-04).all(axis=1))[0][0]
+
             if np.all(np.invert(lgcVxl)):
                 print('------------No voxel found, process ' + str(idxPrc))
             # mark those voxels that were visited
@@ -366,6 +370,15 @@ def find_prf_cpu(idxPrc, aryFuncChnk, aryPrfTc, aryMdlParams, strVersion,
 
             # get voxel time course
             aryVxlTc = aryFuncChnk[:, lgcVxl]
+
+            # get model time courses
+            aryMdlTc = aryPrfTc[lgcIndMdl, :, :].T
+
+            # calculate beta parameter estimates for entire model
+            aryBstBts[lgcVxl, :] = np.linalg.lstsq(aryMdlTc,
+                                                   aryVxlTc,
+                                                   rcond=-1)[0].T
+
             # loop over cross-validation folds
             for idxXval in range(varNumXval):
                 # Get functional data for tst:
@@ -412,6 +425,7 @@ def find_prf_cpu(idxPrc, aryFuncChnk, aryPrfTc, aryMdlParams, strVersion,
                   vecBstYpos,
                   vecBstSd,
                   vecBstR2,
+                  aryBstBts,
                   aryBstR2fld]
 
         queOut.put(lstOut)
