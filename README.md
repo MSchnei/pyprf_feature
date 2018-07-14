@@ -5,6 +5,31 @@ A free & open source package for finding best-fitting population receptive field
 
 If you are only interested in the spatial properties of the population receptive fields, not preferred features, check out the [pyprf package](https://github.com/ingo-m/pypRF).
 
+## Installation
+
+For installation, follow these steps:
+
+0. (Optional) Create conda environment
+```bash
+conda create -n env_pyprf_feature python=2.7
+source activate env_pyprf_feature
+conda install pip
+```
+
+1. Clone repository
+```bash
+git clone https://github.com/MSchnei/pyprf_feature.git
+```
+
+2. Install numpy, e.g. by running:
+```bash
+pip install numpy
+```
+
+3. Install pyprf_feature with pip
+```bash
+pip install /path/to/cloned/pyprf_feature
+```
 
 ## Dependencies
 [**Python 2.7**](https://www.python.org/download/releases/2.7/)
@@ -16,16 +41,33 @@ If you are only interested in the spatial properties of the population receptive
 | [NiBabel](http://nipy.org/nibabel/)  | 2.0.2          |
 
 ## How to use
-1. Record fMRI data: The PsychoPy scripts in the Stimulation folder can be used for presenting appropriate visual stimuli.
+### 1. Present stimuli and record fMRI data
+The PsychoPy scripts in the Stimulation folder can be used for presenting appropriate visual stimuli.
 
-2. Prepare the PNG presentation files: The "pRF_createPNGs.py" script in the PrePro takes the msk.npy and Conditions.pickle from the Stimulation folder and converts the presentation files to PNG images. The PNG images contain aperture information for every volume that was presented during the functional runs. Run this script, with the correct inputs, before you run the pRF_main.py script.
+### 2. Prepare spatial and temporal information for experiment as arrays
+1. Run prepro_get_spat_info.py in the prepro folder to obtain an array with the spatial information of the experiment.
+   This should result in a 3d numpy array with shape [pixel x pixel x nr of spatial aperture conditions] that represents
+   images of the spatial apertures stacked on top of each other.
 
-3. Prepare the input data: The input data should be motion-corrected, high-pass filtered and demeaned. If desired, distortion correction and temporal as well as spatial smoothing can be applied.
-The PrePro folder contains some auxiliary scripts to perfom some of these functions, using either fsl or python functions.
+2. Run prepro_get_temp_info.py in the prepro folder to obtain an array with the temporal information of the experiment.
+   This should result in a 2d numpy array with shape [nr of volumes across all runs x 4]. The first column represents
+   unique identifiers of spatial aperture conditions. The second column represents onset times and the third durations
+   (both in s).The fourth column represents unique feature identifiers.
 
-4. Adjust the pRF_config: Adjust the inputs to the "pRF_config.py" file in the Analysis folder, such that the provided information is correct.
+### 3. Prepare the input data
+The input data should be motion-corrected, high-pass filtered and (optionally) distortion-corrected.
+If desired, spatial as well as temporal smoothing can be applied.
+The PrePro folder contains some auxiliary scripts to perform some of these functions.
 
-5. Run the pRF_main.py script: Open a terminal, navigate to the Analysis folder, containing the "pRF_main.py" script and run "python pRF_main.py". If desired, a custom made pRF_config.py script can additionally be provided by running "python pRF_main.py path/to/custom_config.py". If no custom config script is provided, the pRF_main script will default to the pRF_config.py file in the Analysis folder.
+### 4. Adjust the csv file
+Adjust the information in the config_default.csv file in the Analysis folder, such that the provided information is correct.
+It is recommended to make a specific copy of the csv file for every subject.
+
+### 5. Run pyprf_motion
+Open a terminal and run
+```
+pyprf_feauture -config path/to/custom_config.csv
+```
 
 ## References
 This application is based on the following work:
