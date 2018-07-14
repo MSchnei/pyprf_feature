@@ -75,6 +75,10 @@ def pyprf(strCsvCnfg, lgcTest=False):  #noqa
     # *** Create or load pRF time course models
 
     aryPrfTc = model_creation(dicCnfg)
+
+    # Deduce the number of features from the pRF time course models array
+    cfg.varNumFtr = aryPrfTc.shape[1]
+
     # *************************************************************************
 
     # *************************************************************************
@@ -87,30 +91,9 @@ def pyprf(strCsvCnfg, lgcTest=False):  #noqa
     # The functional data will be masked and demeaned:
     aryLgcMsk, aryLgcVar, hdrMsk, aryAff, aryFunc, tplNiiShp = prep_func(
         cfg.strPathNiiMask, cfg.lstPathNiiFunc, varAvgThr=-100.)
-    # *************************************************************************
 
     # *************************************************************************
-    # *** Find pRF models for voxel time courses
-
-    print('------Find pRF models for voxel time courses')
-
-    # Number of voxels for which pRF finding will be performed:
-    varNumVoxInc = aryFunc.shape[0]
-
-    # Number of feautures
-    varNumFtr = aryPrfTc.shape[1]
-
-    print('---------Number of voxels on which pRF finding will be performed: '
-          + str(varNumVoxInc))
-
-    print('---------Preparing parallel pRF model finding')
-
-    # For the GPU version, we need to set down the parallelisation to 1 now,
-    # because no separate CPU threads are to be created. We may still use CPU
-    # parallelisation for preprocessing, which is why the parallelisation
-    # factor is only reduced now, not earlier.
-    if cfg.strVersion == 'gpu':
-        cfg.varPar = 1
+    # *** Checks
 
     # Make sure that if gpu fitting is used, the number of cross-validations is
     # set to 1, not higher
@@ -119,6 +102,43 @@ def pyprf(strCsvCnfg, lgcTest=False):  #noqa
             'Cross-validation on GPU is currently not supported. ' + \
             'Set varNumXval equal to 1 in csv file in order to continue. '
         assert cfg.varNumXval == 1, strErrMsg
+
+    # For the GPU version, we need to set down the parallelisation to 1 now,
+    # because no separate CPU threads are to be created. We may still use CPU
+    # parallelisation for preprocessing, which is why the parallelisation
+    # factor is only reduced now, not earlier.
+    if cfg.strVersion == 'gpu':
+        cfg.varPar = 1
+
+    # Make sure that if cython is used, the number of features is set to 1,
+    # not higher
+    if cfg.strVersion == 'cython':
+        strErrMsg = 'Stopping program. ' + \
+            'Cython is not supported for more features than 1. ' + \
+            'Set strVersion equal \'numpy\'.'
+        assert cfg.varNumFtr == 1, strErrMsg
+
+    # check whether we need to crossvalidate
+    if np.greater(cfg.varNumXval, 1):
+        cfg.lgcXval = True
+    elif np.equal(cfg.varNumXval, 1):
+        cfg.lgcXval = False
+    strErrMsg = 'Stopping program. ' + \
+        'Set numXval (number of crossvalidation folds) to 1 or higher'
+    assert np.greater_equal(cfg.varNumXval, 1), strErrMsg
+
+    # *************************************************************************
+    # *** Find pRF models for voxel time courses
+
+    print('------Find pRF models for voxel time courses')
+
+    # Number of voxels for which pRF finding will be performed:
+    cfg.varNumVoxInc = aryFunc.shape[0]
+
+    print('---------Number of voxels on which pRF finding will be performed: '
+          + str(cfg.varNumVoxInc))
+
+    print('---------Preparing parallel pRF model finding')
 
     # Get array with all possible model parameter combination:
     # [x positions, y positions, sigmas]
@@ -143,16 +163,6 @@ def pyprf(strCsvCnfg, lgcTest=False):  #noqa
     lstFunc = np.array_split(aryFunc, cfg.varPar)
     # We don't need the original array with the functional data anymore:
     del(aryFunc)
-
-    # check whether we need to crossvalidate
-    if np.greater(cfg.varNumXval, 1):
-        cfg.lgcXval = True
-    elif np.equal(cfg.varNumXval, 1):
-        cfg.lgcXval = False
-    else:
-        print("Please set number of crossvalidation folds (numXval) to 1 \
-              (meaning no cross validation) or greater than 1 (meaning number \
-              of cross validation folds)")
 
     # CPU version (using numpy or cython for pRF finding):
     if ((cfg.strVersion == 'numpy') or (cfg.strVersion == 'cython')):
@@ -223,7 +233,7 @@ def pyprf(strCsvCnfg, lgcTest=False):  #noqa
     aryBstYpos = np.zeros(0)
     aryBstSd = np.zeros(0)
     aryBstR2 = np.zeros(0)
-    aryBstBts = np.zeros((0, varNumFtr))
+    aryBstBts = np.zeros((0, cfg.varNumFtr))
 
     for idxRes in range(0, cfg.varPar):
         aryBstXpos = np.append(aryBstXpos, lstPrfRes[idxRes][1])
@@ -318,16 +328,16 @@ def pyprf(strCsvCnfg, lgcTest=False):  #noqa
     # Save beta parameter estimates for every feauture:
 
     # Place voxels based on low-variance exlusion:
-    aryPrfRes01 = np.zeros((varNumVoxMsk, varNumFtr),
+    aryPrfRes01 = np.zeros((varNumVoxMsk, cfg.varNumFtr),
                            dtype=np.float32)
 
-    for indDim in range(varNumFtr):
+    for indDim in range(cfg.varNumFtr):
         aryPrfRes01[aryLgcVar, indDim] = aryBstBts[:, indDim]
 
     # Place voxels based on mask-exclusion:
-    aryPrfRes02 = np.zeros((varNumVoxTlt, varNumFtr),
+    aryPrfRes02 = np.zeros((varNumVoxTlt, cfg.varNumFtr),
                            dtype=np.float32)
-    for indDim in range(varNumFtr):
+    for indDim in range(cfg.varNumFtr):
         aryPrfRes02[aryLgcMsk, indDim] = aryPrfRes01[:, indDim]
 
     # Reshape pRF finding results into original image dimensions:
@@ -335,7 +345,7 @@ def pyprf(strCsvCnfg, lgcTest=False):  #noqa
                               [tplNiiShp[0],
                                tplNiiShp[1],
                                tplNiiShp[2],
-                               varNumFtr])
+                               cfg.varNumFtr])
 
     del(aryPrfRes01)
     del(aryPrfRes02)
