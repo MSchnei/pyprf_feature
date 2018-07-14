@@ -20,6 +20,8 @@
 import numpy as np
 from sklearn.model_selection import KFold
 from pyprf_feature.analysis.model_creation_utils import fnd_unq_rws
+from pyprf_feature.analysis.find_prf_py_functions import (np_lst_sq,
+                                                          np_lst_sq_xval)
 
 
 def find_prf_cpu(idxPrc, aryFuncChnk, aryPrfTc, aryMdlParams, strVersion,
@@ -228,45 +230,12 @@ def find_prf_cpu(idxPrc, aryFuncChnk, aryPrfTc, aryMdlParams, strVersion,
                 # Numpy version:
                 elif strVersion == 'numpy':
 
-                    # pre-allocate ary to collect cross-validation
-                    # error for every xval fold
-                    aryResXval = np.empty((varNumVoxChnk,
-                                           varNumXval),
-                                          dtype=np.float32)
+                    vecMdl = aryPrfTc[idxMdl, :, :]
 
-                    # loop over cross-validation folds
-                    for idxXval in range(varNumXval):
-                        # Get pRF time course models for trn and tst:
-                        vecMdlTrn = aryPrfTc[idxMdl, :,
-                                             aryIdxTrn[:, idxXval]]
-                        vecMdlTst = aryPrfTc[idxMdl, :,
-                                             aryIdxTst[:, idxXval]]
-                        # Get functional data for trn and tst:
-                        aryFuncChnkTrn = aryFuncChnk[
-                            aryIdxTrn[:, idxXval], :]
-                        aryFuncChnkTst = aryFuncChnk[
-                            aryIdxTst[:, idxXval], :]
-
-                        # Reshape pRF time course model so it has the
-                        # required shape for np.linalg.lstsq
-                        vecMdlTrn = np.reshape(vecMdlTrn, (-1, varNumFtr))
-
-                        # Numpy linalg.lstsq is used to calculate the
-                        # parameter estimates of the current model:
-                        vecTmpPe = np.linalg.lstsq(vecMdlTrn,
-                                                   aryFuncChnkTrn,
-                                                   rcond=-1)[0]
-
-                        # calculate model prediction time course
-                        aryMdlPrdTc = np.dot(
-                            np.reshape(vecMdlTst, (-1, varNumFtr)),
-                            np.reshape(vecTmpPe, (varNumFtr, -1)))
-
-                        # calculate residual sum of squares between
-                        # test data and model prediction time course
-                        aryResXval[:, idxXval] = np.sum(
-                            (np.subtract(aryFuncChnkTst,
-                                         aryMdlPrdTc))**2, axis=0)
+                    aryResXval = np_lst_sq_xval(vecMdl,
+                                                aryFuncChnk,
+                                                aryIdxTrn,
+                                                aryIdxTst)
 
                 # calculate the average cross validation error across
                 # all folds
@@ -292,13 +261,11 @@ def find_prf_cpu(idxPrc, aryFuncChnk, aryPrfTc, aryMdlParams, strVersion,
 
                     # Reshape pRF time course model so it has the
                     # required shape for np.linalg.lstsq
-                    vecDsgn = aryPrfTc[idxMdl, ...].T
+                    vecMdl = aryPrfTc[idxMdl, :, :].T
 
                     # Numpy linalg.lstsq is used to calculate the
                     # beta values and residuals of the current model:
-                    aryTmpBts, vecTmpRes = np.linalg.lstsq(vecDsgn,
-                                                           aryFuncChnk,
-                                                           rcond=-1)[:2]
+                    aryTmpBts, vecTmpRes = np_lst_sq(vecMdl, aryFuncChnk)
 
             # Check whether current crossvalidation error (xval=True)
             # or residuals (xval=False) are lower than previously
@@ -346,35 +313,36 @@ def find_prf_cpu(idxPrc, aryFuncChnk, aryPrfTc, aryMdlParams, strVersion,
 
         # concatenate vectors with best x, y, sigma params
         aryBstPrm = np.stack((vecBstXpos, vecBstYpos, vecBstSd), axis=1)
-        # find unique rows
 
+        # Find unique rows
         aryUnqRows = fnd_unq_rws(aryBstPrm, return_index=False,
                                  return_inverse=False)
 
-        # calculate deviation from a mean model for every voxel and fold
+        # Calculate deviation from a mean model for every voxel and fold
         arySsTotXval = np.zeros((aryBstResFlds.shape),
                                 dtype=aryBstResFlds.dtype)
 
-        # loop over all best-fitting model parameter combinations found
+        # Loop over all best-fitting model parameter combinations found
         for vecPrm in aryUnqRows:
-            # get logical for voxels for which this prm combi was the best
+            # Get logical for voxels for which this prm combi was the best
             lgcVxl = np.isclose(aryBstPrm, vecPrm, atol=1e-04).all(axis=1)
-            # get logical index for the model number, can only be one
+            # Get logical index for the model number
+            # This can only be 1 index, so we directly get 1st entry of array
             lgcIndMdl = np.where(np.isclose(aryMdlParams, vecPrm,
                                             atol=1e-04).all(axis=1))[0][0]
 
             if np.all(np.invert(lgcVxl)):
                 print('------------No voxel found, process ' + str(idxPrc))
-            # mark those voxels that were visited
+            # Mark those voxels that were visited
             vecVxlTst[lgcVxl] += 1
 
-            # get voxel time course
+            # Get voxel time course
             aryVxlTc = aryFuncChnk[:, lgcVxl]
 
-            # get model time courses
+            # Get model time courses
             aryMdlTc = aryPrfTc[lgcIndMdl, :, :].T
 
-            # calculate beta parameter estimates for entire model
+            # Calculate beta parameter estimates for entire model
             aryBstBts[lgcVxl, :] = np.linalg.lstsq(aryMdlTc,
                                                    aryVxlTc,
                                                    rcond=-1)[0].T
