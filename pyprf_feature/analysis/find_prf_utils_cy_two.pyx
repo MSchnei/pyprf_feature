@@ -207,7 +207,7 @@ cpdef np.ndarray[np.float32_t, ndim=2] cy_lst_sq_xval_two(
     Parameters
     ----------
     vecPrfTc : np.array
-        1D numpy array, at float32 precision, containing a single pRF model
+        2D numpy array, at float32 precision, containing a single pRF model
         time course (along time dimension).
     aryFuncChnk : np.array
         2D numpy array, at float32 precision, containing a chunk of functional

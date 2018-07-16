@@ -217,7 +217,7 @@ def find_prf_cpu(idxPrc, aryFuncChnk, aryPrfTc, aryMdlParams, strVersion,
                 # Cython version:
                 if strVersion == 'cython':
 
-                    vecMdl = aryPrfTc[idxMdl, :, :]
+                    vecMdl = aryPrfTc[idxMdl, :, :].T
 
                     # A cython function is used to calculate the residuals and
                     # beta parameter estimates of the current model:
@@ -240,7 +240,7 @@ def find_prf_cpu(idxPrc, aryFuncChnk, aryPrfTc, aryMdlParams, strVersion,
                 # Numpy version:
                 elif strVersion == 'numpy':
 
-                    vecMdl = aryPrfTc[idxMdl, :, :]
+                    vecMdl = aryPrfTc[idxMdl, :, :].T
 
                     aryResXval = np_lst_sq_xval(vecMdl, aryFuncChnk,
                                                 aryIdxTrn, aryIdxTst)
