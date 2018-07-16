@@ -137,6 +137,8 @@ def pyprf(strCsvCnfg, lgcTest=False):  #noqa
 
     print('---------Number of voxels on which pRF finding will be performed: '
           + str(cfg.varNumVoxInc))
+    print('---------Number of feautures pRF finding will be performed with: '
+          + str(cfg.varNumFtr))
 
     print('---------Preparing parallel pRF model finding')
 
