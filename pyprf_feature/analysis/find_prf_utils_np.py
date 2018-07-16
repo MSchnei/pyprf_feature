@@ -38,8 +38,8 @@ def np_lst_sq_xval(vecMdl, aryFuncChnk, aryIdxTrn, aryIdxTst):
     # loop over cross-validation folds
     for idxXval in range(varNumXval):
         # Get pRF time course models for trn and tst:
-        vecMdlTrn = vecMdl[:, aryIdxTrn[:, idxXval]].T
-        vecMdlTst = vecMdl[:, aryIdxTst[:, idxXval]].T
+        vecMdlTrn = vecMdl[aryIdxTrn[:, idxXval], :]
+        vecMdlTst = vecMdl[aryIdxTst[:, idxXval], :]
         # Get functional data for trn and tst:
         aryFuncChnkTrn = aryFuncChnk[
             aryIdxTrn[:, idxXval], :]

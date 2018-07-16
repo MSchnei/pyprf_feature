@@ -110,13 +110,13 @@ def pyprf(strCsvCnfg, lgcTest=False):  #noqa
     if cfg.strVersion == 'gpu':
         cfg.varPar = 1
 
-    # Make sure that if cython is used, the number of features is set to 1,
+    # Make sure that if cython is used, the number of features is 1 or 2,
     # not higher
     if cfg.strVersion == 'cython':
         strErrMsg = 'Stopping program. ' + \
             'Cython is not supported for more features than 1. ' + \
             'Set strVersion equal \'numpy\'.'
-        assert cfg.varNumFtr == 1, strErrMsg
+        assert cfg.varNumFtr in [1, 2], strErrMsg
 
     # check whether we need to crossvalidate
     if np.greater(cfg.varNumXval, 1):
@@ -137,6 +137,8 @@ def pyprf(strCsvCnfg, lgcTest=False):  #noqa
 
     print('---------Number of voxels on which pRF finding will be performed: '
           + str(cfg.varNumVoxInc))
+    print('---------Number of feautures pRF finding will be performed with: '
+          + str(cfg.varNumFtr))
 
     print('---------Preparing parallel pRF model finding')
 
