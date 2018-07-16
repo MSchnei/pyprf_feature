@@ -257,7 +257,6 @@ def find_prf_cpu(idxPrc, aryFuncChnk, aryPrfTc, aryMdlParams, strVersion,
 
                 # Cython version:
                 if strVersion == 'cython':
-                    print('Cython version is currently not implemented')
 
                     # A cython function is used to calculate the residuals and
                     # beta parameter estimates of the current model:
