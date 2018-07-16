@@ -207,6 +207,9 @@ def find_prf_cpu(idxPrc, aryFuncChnk, aryPrfTc, aryMdlParams, strVersion,
         # that is greater than zero:
         if np.all(np.greater(aryPrfTcVar[idxMdl], varZero32), axis=0):
 
+            # get predictor time courses for this specific model
+            vecMdl = aryPrfTc[idxMdl, :, :].T
+
             # Check whether we need to crossvalidate
             if lgcXval:
                 # We do crossvalidate. In this case, we loop through
@@ -216,8 +219,6 @@ def find_prf_cpu(idxPrc, aryFuncChnk, aryPrfTc, aryMdlParams, strVersion,
 
                 # Cython version:
                 if strVersion == 'cython':
-
-                    vecMdl = aryPrfTc[idxMdl, :, :].T
 
                     # A cython function is used to calculate the residuals and
                     # beta parameter estimates of the current model:
@@ -230,8 +231,10 @@ def find_prf_cpu(idxPrc, aryFuncChnk, aryPrfTc, aryMdlParams, strVersion,
 
                     elif varNumFtr == 2:
                         # For time course with two predictors
-                        aryResXval = cy_lst_sq_xval_two(vecMdl, aryFuncChnk,
-                                                        aryIdxTrn, aryIdxTst)
+                        aryResXval = cy_lst_sq_xval_two(vecMdl,
+                                                        aryFuncChnk,
+                                                        aryIdxTrn,
+                                                        aryIdxTst)
 
                     else:
                         print('Cython currently not implemented for more ' +
@@ -239,8 +242,6 @@ def find_prf_cpu(idxPrc, aryFuncChnk, aryPrfTc, aryMdlParams, strVersion,
 
                 # Numpy version:
                 elif strVersion == 'numpy':
-
-                    vecMdl = aryPrfTc[idxMdl, :, :].T
 
                     aryResXval = np_lst_sq_xval(vecMdl, aryFuncChnk,
                                                 aryIdxTrn, aryIdxTst)
@@ -257,8 +258,6 @@ def find_prf_cpu(idxPrc, aryFuncChnk, aryPrfTc, aryMdlParams, strVersion,
                 # Cython version:
                 if strVersion == 'cython':
                     print('Cython version is currently not implemented')
-
-                    vecMdl = aryPrfTc[idxMdl, :, :].T
 
                     # A cython function is used to calculate the residuals and
                     # beta parameter estimates of the current model:
@@ -277,10 +276,6 @@ def find_prf_cpu(idxPrc, aryFuncChnk, aryPrfTc, aryMdlParams, strVersion,
 
                 # Numpy version:
                 elif strVersion == 'numpy':
-
-                    # Reshape pRF time course model so it has the
-                    # required shape for np.linalg.lstsq
-                    vecMdl = aryPrfTc[idxMdl, :, :].T
 
                     # Numpy linalg.lstsq is used to calculate the
                     # beta values and residuals of the current model:
