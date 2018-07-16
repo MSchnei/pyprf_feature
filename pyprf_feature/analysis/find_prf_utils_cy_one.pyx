@@ -33,7 +33,7 @@ from libc.math cimport pow, sqrt
 
 
 # *****************************************************************************
-# *** Main function for least squares solution, with 1 predictor
+# *** Main function least squares solution, no cross-validation, 1 predictor
 
 cpdef tuple cy_lst_sq_one(
     np.ndarray[np.float32_t, ndim=1] vecPrfTc,
@@ -112,7 +112,7 @@ cpdef tuple cy_lst_sq_one(
 # *****************************************************************************
 
 # *****************************************************************************
-# *** Function for fast calculation of residuals, with 1 predictor
+# *** Function fast calculation residuals, no cross-validation, 1 predictor
 
 cdef (float[:], float[:]) func_cy_res(float[:] vecPrfTc_view,
                                       float[:, :] aryFuncChnk_view,
@@ -160,7 +160,7 @@ cdef (float[:], float[:]) func_cy_res(float[:] vecPrfTc_view,
 # *****************************************************************************
 
 # *****************************************************************************
-# *** Main function for least squares solution, with cross validation
+# *** Main function least squares solution, with cross-validation, 1 predictor
 
 cpdef np.ndarray[np.float32_t, ndim=2] cy_lst_sq_xval_one(
     np.ndarray[np.float32_t, ndim=1] vecPrfTc,
@@ -263,7 +263,7 @@ cpdef np.ndarray[np.float32_t, ndim=2] cy_lst_sq_xval_one(
 # *****************************************************************************
 
 # *****************************************************************************
-# *** Function for fast calculation of residuals, with cross-validation
+# *** Function fast calculation residuals, with cross-validation, 1 predictor
 
 cdef float[:, :] func_cy_res_xval(float[:] vecPrfTc_view,
                                   float[:, :] aryFuncChnk_view,
@@ -318,4 +318,5 @@ cdef float[:, :] func_cy_res_xval(float[:] vecPrfTc_view,
 
     # Return memory view
     return aryResXval_view
+
 # *****************************************************************************
