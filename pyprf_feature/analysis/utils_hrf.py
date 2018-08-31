@@ -330,9 +330,14 @@ def cnvl_tc(idxPrc, aryPrfTcChunk, lstHrf, varTr, varNumVol, varTmpOvsmpl,
     # determine output shape
     tplOutShp = tplInpShp[:-1] + (len(lstHrf), ) + (varNumVol, )
 
-    # Create list containing the convolved timecourses, and the process ID:
-    lstOut = [idxPrc,
-              aryConv.reshape(tplOutShp)]
+    if queOut is None:
+        # if user is not using multiprocessing, return the array directly
+        return aryConv.reshape(tplOutShp)
 
-    # Put output to queue:
-    queOut.put(lstOut)
+    else:
+        # Create list containing the convolved timecourses, and the process ID:
+        lstOut = [idxPrc,
+                  aryConv.reshape(tplOutShp)]
+
+        # Put output to queue:
+        queOut.put(lstOut)

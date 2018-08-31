@@ -56,12 +56,17 @@ def model_creation(dicCnfg):
 
         arySptExpInf = np.load(cfg.strSptExpInf)
 
-        # Since we assume scientific convention and orientation of images where
-        # the x-axisfalls on the height and the y-axis falls on the width
-        # dimension of the screen and we assume that the first dimension that
-        # the user provides index x and the second y and since python is column
+        # Here we assume scientific convention and orientation of images where
+        # the origin should fall in the lower left corner, the x-axis occupies
+        # the width and the y-axis occupies the height dimension of the screen.
+        # We also assume that the first dimension that the user provides
+        # indexes x and the second indexes the y-axis. Since python is column
         # major (i.e. first indexes columns, only then rows), we need to rotate
-        # arySptExpInf by 90 degrees rightward.
+        # arySptExpInf by 90 degrees rightward. This will insure that with the
+        # 0th axis we index the scientific x-axis and higher values move us to
+        # the right on that x-axis. It will also ensure that the 1st
+        # python axis indexes the scientific y-axis and higher values will 
+        # move us up.
         arySptExpInf = np.rot90(arySptExpInf, k=3)
 
         # *********************************************************************

@@ -90,7 +90,7 @@ def pyprf(strCsvCnfg, lgcTest=False):  #noqa
 
     # The functional data will be masked and demeaned:
     aryLgcMsk, aryLgcVar, hdrMsk, aryAff, aryFunc, tplNiiShp = prep_func(
-        cfg.strPathNiiMask, cfg.lstPathNiiFunc, varAvgThr=-100.)
+        cfg.strPathNiiMask, cfg.lstPathNiiFunc)
 
     # *************************************************************************
     # *** Checks
@@ -137,7 +137,7 @@ def pyprf(strCsvCnfg, lgcTest=False):  #noqa
 
     print('---------Number of voxels on which pRF finding will be performed: '
           + str(cfg.varNumVoxInc))
-    print('---------Number of feautures pRF finding will be performed with: '
+    print('---------Number of features pRF finding will be performed with: '
           + str(cfg.varNumFtr))
 
     print('---------Preparing parallel pRF model finding')
@@ -314,7 +314,7 @@ def pyprf(strCsvCnfg, lgcTest=False):  #noqa
     print('---------Exporting results')
 
     # Save nii results:
-    for idxOut in range(0, 6):
+    for idxOut in range(0, len(lstNiiNames)):
         # Create nii object for results:
         niiOut = nb.Nifti1Image(aryPrfRes[..., idxOut],
                                 aryAff,

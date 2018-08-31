@@ -1,6 +1,8 @@
 [![DOI](https://zenodo.org/badge/78625137.svg)](https://zenodo.org/badge/latestdoi/78625137)
 
 # pyprf_feature
+<img src="logo/logo.png" width=200 align="right" />
+
 A free & open source package for finding best-fitting population receptive field (PRF) models and feature weights for fMRI data.
 
 If you are only interested in the spatial properties of the population receptive fields, not preferred features, check out the [pyprf package](https://github.com/ingo-m/pypRF).
