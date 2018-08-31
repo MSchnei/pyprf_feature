@@ -10,7 +10,9 @@ import numpy as np
 import pickle
 
 # %% set parameters
-strPthPrnt = "/home/marian/Documents/Testing/pyprf_testing/expInfo"
+
+# set input path
+strPthPrnt = "/media/sf_D_DRIVE/MotionLocaliser/UsedPsychoPyScripts/P02/Conditions"
 
 # provide names of condition files in the order that they were shown
 lstPickleFiles = [
@@ -33,7 +35,7 @@ varStmTm = 3.0
 # Loop through npz files in target directory:
 lstCond = []
 for ind, cond in enumerate(lstPickleFiles):
-    inputFile = os.path.join(strPthPrnt, 'conditions', cond)
+    inputFile = os.path.join(strPthPrnt, cond)
 
     with open(inputFile, 'rb') as handle:
         array1 = pickle.load(handle)
@@ -55,7 +57,6 @@ aryTmpCond[:, 1] = np.cumsum(np.ones(len(aryCond))*varTr) - varTr
 aryTmpCond[:, 2] = np.ones(len(aryCond))*varStmTm
 # add the feature identifier
 aryTmpCond[:, 3] = aryCond[:, 1]
-
-strPthAry = os.path.join(strPthPrnt, 'tmpInfo',
-                         'aryTmpExpInf')
-np.save(strPthAry, aryTmpCond)
+# set output name
+strPthOut = os.path.join(strPthPrnt,'Conditions')
+np.save(strPthOut, aryTmpCond)
