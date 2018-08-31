@@ -25,8 +25,8 @@ from pyprf_feature.analysis.utils_general import (rmp_rng, map_pol_to_crt,
 from pyprf_feature.analysis.utils_hrf import create_boxcar
 
 
-def rmp_deg_pixel_x_y_s(vecX, vecY, vecPrfSd, tplPngSize,
-                        varExtXmin, varExtXmax, varExtYmin, varExtYmax):
+def rmp_deg_pixel_xys(vecX, vecY, vecPrfSd, tplPngSize,
+                      varExtXmin, varExtXmax, varExtYmin, varExtYmax):
     """Remap x, y, sigma parameters from degrees to pixel.
 
     Parameters
@@ -55,7 +55,9 @@ def rmp_deg_pixel_x_y_s(vecX, vecY, vecPrfSd, tplPngSize,
         Array with possible y parametrs in pixel
     vecPrfSd : 1D numpy array
         Array with possible sd parametrs in pixel
+
     """
+
     # Remap modelled x-positions of the pRFs:
     vecXpxl = rmp_rng(vecX, 0.0, (tplPngSize[0] - 1), varOldThrMin=varExtXmin,
                       varOldAbsMax=varExtXmax)
@@ -67,20 +69,77 @@ def rmp_deg_pixel_x_y_s(vecX, vecY, vecPrfSd, tplPngSize,
     # We calculate the scaling factor from degrees of visual angle to
     # pixels separately for the x- and the y-directions (the two should
     # be the same).
-    varDgr2PixX = tplPngSize[0] / (varExtXmax - varExtXmin)
-    varDgr2PixY = tplPngSize[1] / (varExtYmax - varExtYmin)
+    varDgr2PixX = np.divide(tplPngSize[0], (varExtXmax - varExtXmin))
+    varDgr2PixY = np.divide(tplPngSize[1], (varExtYmax - varExtYmin))
 
     # Check whether varDgr2PixX and varDgr2PixY are similar:
     strErrMsg = 'ERROR. The ratio of X and Y dimensions in ' + \
-        'stimulus space (in degrees of visual angle) and the ' + \
-        'ratio of X and Y dimensions in the upsampled visual space' + \
-        'do not agree'
+        'stimulus space (in degree of visual angle) do not agree'
     assert 0.5 > np.absolute((varDgr2PixX - varDgr2PixY)), strErrMsg
 
     # Convert prf sizes from degrees of visual angles to pixel
     vecPrfSdpxl = np.multiply(vecPrfSd, varDgr2PixX)
 
+    # Return new values.
     return vecXpxl, vecYpxl, vecPrfSdpxl
+
+
+def rmp_pixel_deg_xys(vecX, vecY, vecPrfSd, tplPngSize,
+                      varExtXmin, varExtXmax, varExtYmin, varExtYmax):
+    """Remap x, y, sigma parameters from pixel to degree.
+
+    Parameters
+    ----------
+    vecX : 1D numpy array
+        Array with possible x parametrs in pixels
+    vecY : 1D numpy array
+        Array with possible y parametrs in pixels
+    vecPrfSd : 1D numpy array
+        Array with possible sd parametrs in pixels
+    tplPngSize : tuple, 2
+        Pixel dimensions of the visual space in pixel (width, height).
+    varExtXmin : float
+        Extent of visual space from centre in negative x-direction (width)
+    varExtXmax : float
+        Extent of visual space from centre in positive x-direction (width)
+    varExtYmin : int
+        Extent of visual space from centre in negative y-direction (height)
+    varExtYmax : float
+        Extent of visual space from centre in positive y-direction (height)
+    Returns
+    -------
+    vecX : 1D numpy array
+        Array with possible x parametrs in degree
+    vecY : 1D numpy array
+        Array with possible y parametrs in degree
+    vecPrfSd : 1D numpy array
+        Array with possible sd parametrs in degree
+
+    """
+
+    # Remap modelled x-positions of the pRFs:
+    vecXdgr = rmp_rng(vecX, varExtXmin, varExtXmax, varOldThrMin=0.0,
+                      varOldAbsMax=(tplPngSize[0] - 1))
+
+    # Remap modelled y-positions of the pRFs:
+    vecYdgr = rmp_rng(vecY, varExtYmin, varExtYmax, varOldThrMin=0.0,
+                      varOldAbsMax=(tplPngSize[1] - 1))
+
+    # We calculate the scaling factor from pixels to degrees of visual angle to
+    # separately for the x- and the y-directions (the two should be the same).
+    varPix2DgrX = np.divide((varExtXmax - varExtXmin), tplPngSize[0])
+    varPix2DgrY = np.divide((varExtYmax - varExtYmin), tplPngSize[1])
+
+    # Check whether varDgr2PixX and varDgr2PixY are similar:
+    strErrMsg = 'ERROR. The ratio of X and Y dimensions in ' + \
+        'stimulus space (in pixels) do not agree'
+    assert 0.5 > np.absolute((varPix2DgrX - varPix2DgrY)), strErrMsg
+
+    # Convert prf sizes from degrees of visual angles to pixel
+    vecPrfSdDgr = np.multiply(vecPrfSd, varPix2DgrX)
+
+    # Return new values.
+    return vecXdgr, vecYdgr, vecPrfSdDgr
 
 
 def crt_mdl_prms(tplPngSize, varNum1, varExtXmin,  varExtXmax, varNum2,
@@ -158,10 +217,10 @@ def crt_mdl_prms(tplPngSize, varNum1, varExtXmin,  varExtXmax, varNum2,
 
         elif kwUnt == 'pix':
             # convert parameters to pixels
-            vecX, vecY, vecPrfSd = rmp_deg_pixel_x_y_s(vecX, vecY, vecPrfSd,
-                                                       tplPngSize, varExtXmin,
-                                                       varExtXmax, varExtYmin,
-                                                       varExtYmax)
+            vecX, vecY, vecPrfSd = rmp_deg_pixel_xys(vecX, vecY, vecPrfSd,
+                                                     tplPngSize, varExtXmin,
+                                                     varExtXmax, varExtYmin,
+                                                     varExtYmax)
 
         else:
             print('Unknown keyword provided for possible model parameter ' +
@@ -217,11 +276,10 @@ def crt_mdl_prms(tplPngSize, varNum1, varExtXmin,  varExtXmax, varNum2,
 
         elif kwUnt == 'pix':
             # convert parameters to pixels
-            vecX, vecY, vecPrfSd = rmp_deg_pixel_x_y_s(vecX, vecY, vecPrfSd,
-                                                       tplPngSize, varExtXmin,
-                                                       varExtXmax, varExtYmin,
-                                                       varExtYmax)
-
+            vecX, vecY, vecPrfSd = rmp_deg_pixel_xys(vecX, vecY, vecPrfSd,
+                                                     tplPngSize, varExtXmin,
+                                                     varExtXmax, varExtYmin,
+                                                     varExtYmax)
         # Put all combinations of x-position, y-position, and standard
         # deviations into the array:
 
@@ -269,53 +327,64 @@ def crt_mdl_rsp(arySptExpInf, tplPngSize, aryMdlParams, varPar):
 
     """
 
-    # The long array with all the combinations of model parameters is put into
-    # separate chunks for parallelisation, using a list of arrays.
-    lstMdlParams = np.array_split(aryMdlParams, varPar)
+    if varPar == 1:
+        # if the number of cores requested by the user is equal to 1,
+        # we save the overhead of multiprocessing by calling aryMdlCndRsp
+        # directly
+        aryMdlCndRsp = cnvl_2D_gauss(0, aryMdlParams, arySptExpInf,
+                                     tplPngSize, None)
 
-    # Create a queue to put the results in:
-    queOut = mp.Queue()
+    else:
 
-    # Empty list for results from parallel processes (for pRF model responses):
-    lstMdlTc = [None] * varPar
+        # The long array with all the combinations of model parameters is put
+        # into separate chunks for parallelisation, using a list of arrays.
+        lstMdlParams = np.array_split(aryMdlParams, varPar)
 
-    # Empty list for processes:
-    lstPrcs = [None] * varPar
+        # Create a queue to put the results in:
+        queOut = mp.Queue()
 
-    print('---------Running parallel processes')
+        # Empty list for results from parallel processes (for pRF model
+        # responses):
+        lstMdlTc = [None] * varPar
 
-    # Create processes:
-    for idxPrc in range(0, varPar):
-        lstPrcs[idxPrc] = mp.Process(target=cnvl_2D_gauss,
-                                     args=(idxPrc, lstMdlParams[idxPrc],
-                                           arySptExpInf, tplPngSize, queOut
-                                           )
-                                     )
-        # Daemon (kills processes when exiting):
-        lstPrcs[idxPrc].Daemon = True
+        # Empty list for processes:
+        lstPrcs = [None] * varPar
 
-    # Start processes:
-    for idxPrc in range(0, varPar):
-        lstPrcs[idxPrc].start()
+        print('---------Running parallel processes')
 
-    # Collect results from queue:
-    for idxPrc in range(0, varPar):
-        lstMdlTc[idxPrc] = queOut.get(True)
+        # Create processes:
+        for idxPrc in range(0, varPar):
+            lstPrcs[idxPrc] = mp.Process(target=cnvl_2D_gauss,
+                                         args=(idxPrc, lstMdlParams[idxPrc],
+                                               arySptExpInf, tplPngSize, queOut
+                                               )
+                                         )
+            # Daemon (kills processes when exiting):
+            lstPrcs[idxPrc].Daemon = True
 
-    # Join processes:
-    for idxPrc in range(0, varPar):
-        lstPrcs[idxPrc].join()
+        # Start processes:
+        for idxPrc in range(0, varPar):
+            lstPrcs[idxPrc].start()
 
-    print('---------Collecting results from parallel processes')
-    # Put output arrays from parallel process into one big array
-    lstMdlTc = sorted(lstMdlTc)
-    aryMdlCndRsp = np.empty((0, arySptExpInf.shape[-1]))
-    for idx in range(0, varPar):
-        aryMdlCndRsp = np.concatenate((aryMdlCndRsp, lstMdlTc[idx][1]), axis=0)
+        # Collect results from queue:
+        for idxPrc in range(0, varPar):
+            lstMdlTc[idxPrc] = queOut.get(True)
 
-    # Clean up:
-    del(lstMdlParams)
-    del(lstMdlTc)
+        # Join processes:
+        for idxPrc in range(0, varPar):
+            lstPrcs[idxPrc].join()
+
+        print('---------Collecting results from parallel processes')
+        # Put output arrays from parallel process into one big array
+        lstMdlTc = sorted(lstMdlTc)
+        aryMdlCndRsp = np.empty((0, arySptExpInf.shape[-1]))
+        for idx in range(0, varPar):
+            aryMdlCndRsp = np.concatenate((aryMdlCndRsp, lstMdlTc[idx][1]),
+                                          axis=0)
+
+        # Clean up:
+        del(lstMdlParams)
+        del(lstMdlTc)
 
     return aryMdlCndRsp.astype('float16')
 
@@ -340,14 +409,23 @@ def crt_nrl_tc(aryMdlRsp, aryCnd, aryOns, aryDrt, varTr, varNumVol,
         Number of data point (volumes) in the (fMRI) data
     varTmpOvsmpl : float, positive
         Factor by which the time courses should be temporally upsampled.
+
     Returns
     -------
     aryNrlTc : 2d numpy array,
                shape [n_x_pos * n_y_pos * n_sd, varNumVol*varTmpOvsmpl]
         Neural time course models in temporally upsampled space
-    Reference
+
+    Notes
     ---------
-    [1]
+    [1] This function first creates boxcar functions based on the  conditions
+        as they are specified in the temporal experiment information, provided
+        by the user in the csv file. Second, it then replaces the 1s in the
+        boxcar function by predicted condition values that were previously
+        calculated based on the overlap between the assumed 2D Gaussian for the
+        current model and the presented stimulus aperture for that condition.
+        Since the 2D Gaussian is normalized, the overlap value will be between
+        0 and 1.
 
     """
     # adjust the input, if necessary, such that input is 2D
@@ -355,7 +433,6 @@ def crt_nrl_tc(aryMdlRsp, aryCnd, aryOns, aryDrt, varTr, varNumVol,
     aryMdlRsp = aryMdlRsp.reshape((-1, aryMdlRsp.shape[-1]))
 
     # create boxcar functions in temporally upsampled space
-    print('------------Create boxcar functions for spatial condtions')
     aryBxCarTmp = create_boxcar(aryCnd, aryOns, aryDrt, varTr, varNumVol,
                                 aryExclCnd=np.array([0.]),
                                 varTmpOvsmpl=varTmpOvsmpl).T
@@ -363,7 +440,6 @@ def crt_nrl_tc(aryMdlRsp, aryCnd, aryOns, aryDrt, varTr, varNumVol,
     # pre-allocate pixelwise boxcar array
     aryNrlTc = np.zeros((aryMdlRsp.shape[0], aryBxCarTmp.shape[-1]),
                         dtype='float16')
-    print('------------Insert predicted condition values for all models')
     # loop through boxcar functions of conditions
     for ind, vecCndOcc in enumerate(aryBxCarTmp):
         # get response predicted by models for this specific spatial condition
@@ -420,58 +496,66 @@ def crt_prf_tc(aryNrlTc, varNumVol, varTr, varTmpOvsmpl, switchHrfSet,
     tplInpShp = aryNrlTc.shape
     aryNrlTc = np.reshape(aryNrlTc, (-1, aryNrlTc.shape[-1]))
 
-    # Put input data into chunks:
-    lstNrlTc = np.array_split(aryNrlTc, varPar)
+    if varPar == 1:
+        # if the number of cores requested by the user is equal to 1,
+        # we save the overhead of multiprocessing by calling aryMdlCndRsp
+        # directly
+        aryNrlTcConv = cnvl_tc(0, aryNrlTc, lstHrf, varTr,
+                               varNumVol, varTmpOvsmpl, None)
 
-    # Create a queue to put the results in:
-    queOut = mp.Queue()
+    else:
+        # Put input data into chunks:
+        lstNrlTc = np.array_split(aryNrlTc, varPar)
 
-    # Empty list for processes:
-    lstPrcs = [None] * varPar
+        # Create a queue to put the results in:
+        queOut = mp.Queue()
 
-    # Empty list for results of parallel processes:
-    lstConv = [None] * varPar
+        # Empty list for processes:
+        lstPrcs = [None] * varPar
 
-    print('------------Running parallel processes')
+        # Empty list for results of parallel processes:
+        lstConv = [None] * varPar
 
-    # Create processes:
-    for idxPrc in range(0, varPar):
-        lstPrcs[idxPrc] = mp.Process(target=cnvl_tc,
-                                     args=(idxPrc,
-                                           lstNrlTc[idxPrc],
-                                           lstHrf,
-                                           varTr,
-                                           varNumVol,
-                                           varTmpOvsmpl,
-                                           queOut)
-                                     )
+        print('------------Running parallel processes')
 
-        # Daemon (kills processes when exiting):
-        lstPrcs[idxPrc].Daemon = True
+        # Create processes:
+        for idxPrc in range(0, varPar):
+            lstPrcs[idxPrc] = mp.Process(target=cnvl_tc,
+                                         args=(idxPrc,
+                                               lstNrlTc[idxPrc],
+                                               lstHrf,
+                                               varTr,
+                                               varNumVol,
+                                               varTmpOvsmpl,
+                                               queOut)
+                                         )
 
-    # Start processes:
-    for idxPrc in range(0, varPar):
-        lstPrcs[idxPrc].start()
+            # Daemon (kills processes when exiting):
+            lstPrcs[idxPrc].Daemon = True
 
-    # Collect results from queue:
-    for idxPrc in range(0, varPar):
-        lstConv[idxPrc] = queOut.get(True)
+        # Start processes:
+        for idxPrc in range(0, varPar):
+            lstPrcs[idxPrc].start()
 
-    # Join processes:
-    for idxPrc in range(0, varPar):
-        lstPrcs[idxPrc].join()
+        # Collect results from queue:
+        for idxPrc in range(0, varPar):
+            lstConv[idxPrc] = queOut.get(True)
 
-    print('------------Collecting results from parallel processes')
-    # Put output into correct order:
-    lstConv = sorted(lstConv)
-    # Concatenate convolved pixel time courses (into the same order
-    aryNrlTcConv = np.zeros((0, switchHrfSet, varNumVol), dtype=np.float32)
-    for idxRes in range(0, varPar):
-        aryNrlTcConv = np.concatenate((aryNrlTcConv, lstConv[idxRes][1]),
-                                      axis=0)
-    # clean up
-    del(aryNrlTc)
-    del(lstConv)
+        # Join processes:
+        for idxPrc in range(0, varPar):
+            lstPrcs[idxPrc].join()
+
+        print('------------Collecting results from parallel processes')
+        # Put output into correct order:
+        lstConv = sorted(lstConv)
+        # Concatenate convolved pixel time courses (into the same order
+        aryNrlTcConv = np.zeros((0, switchHrfSet, varNumVol), dtype=np.float32)
+        for idxRes in range(0, varPar):
+            aryNrlTcConv = np.concatenate((aryNrlTcConv, lstConv[idxRes][1]),
+                                          axis=0)
+        # clean up
+        del(aryNrlTc)
+        del(lstConv)
 
     # Reshape results:
     tplOutShp = tplInpShp[:-1] + (len(lstHrf), ) + (varNumVol, )
@@ -523,9 +607,11 @@ def crt_prf_ftr_tc(aryMdlRsp, aryTmpExpInf, varNumVol, varTr, varTmpOvsmpl,
     # loop over unique features
     for indFtr, ftr in enumerate(vecFeat):
 
-        print('---------Create prf time course model for feature ' + str(ftr))
+        if varPar > 1:
+            print('---------Create prf time course model for feature ' +
+                  str(ftr))
         # derive sptial conditions, onsets and durations for this specific
-        # feauture
+        # feature
         aryTmpCnd = aryTmpExpInf[aryTmpExpInf[:, 3] == ftr, 0]
         aryTmpOns = aryTmpExpInf[aryTmpExpInf[:, 3] == ftr, 1]
         aryTmpDrt = aryTmpExpInf[aryTmpExpInf[:, 3] == ftr, 2]
