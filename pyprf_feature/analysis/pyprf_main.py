@@ -314,7 +314,7 @@ def pyprf(strCsvCnfg, lgcTest=False):  #noqa
     print('---------Exporting results')
 
     # Save nii results:
-    for idxOut in range(0, 6):
+    for idxOut in range(0, len(lstNiiNames)):
         # Create nii object for results:
         niiOut = nb.Nifti1Image(aryPrfRes[..., idxOut],
                                 aryAff,
