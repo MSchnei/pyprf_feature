@@ -243,8 +243,6 @@ def export_nii(ary2dNii, lstNiiNames, aryLgcMsk, aryLgcVar, tplNiiShp, aryAff,
                             tplNiiShp[2],
                             aryPrfRes01.shape[-1]])
 
-    print('---------Exporting results')
-
     if outFormat == '3D':
         # Save nii results:
         for idxOut in range(0, aryPrfRes.shape[-1]):

@@ -256,6 +256,8 @@ def pyprf(strCsvCnfg, lgcTest=False):  #noqa
     # *************************************************************************
     # Export each map of best parameters as a 3D nii file
 
+    print('---------Exporting results')
+
     # Xoncatenate all the best voxel maps
     aryBstMaps = np.stack([aryBstXpos, aryBstYpos, aryBstSd, aryBstR2,
                            aryPlrAng, aryEcc], axis=1)
