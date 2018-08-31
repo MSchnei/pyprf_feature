@@ -23,7 +23,8 @@ import nibabel as nb
 import multiprocessing as mp
 
 from pyprf_feature.analysis.load_config import load_config
-from pyprf_feature.analysis.utils_general import cls_set_config
+from pyprf_feature.analysis.utils_general import (cls_set_config, export_nii,
+                                                  joinRes)
 from pyprf_feature.analysis.model_creation_main import model_creation
 from pyprf_feature.analysis.model_creation_utils import crt_mdl_prms
 from pyprf_feature.analysis.prepare import prep_models, prep_func
@@ -230,78 +231,34 @@ def pyprf(strCsvCnfg, lgcTest=False):  #noqa
     # Put output into correct order:
     lstPrfRes = sorted(lstPrfRes)
 
-    # Concatenate output vectors:
-    aryBstXpos = np.zeros(0)
-    aryBstYpos = np.zeros(0)
-    aryBstSd = np.zeros(0)
-    aryBstR2 = np.zeros(0)
-    aryBstBts = np.zeros((0, cfg.varNumFtr))
-
-    for idxRes in range(0, cfg.varPar):
-        aryBstXpos = np.append(aryBstXpos, lstPrfRes[idxRes][1])
-        aryBstYpos = np.append(aryBstYpos, lstPrfRes[idxRes][2])
-        aryBstSd = np.append(aryBstSd, lstPrfRes[idxRes][3])
-        aryBstR2 = np.append(aryBstR2, lstPrfRes[idxRes][4])
-        aryBstBts = np.concatenate((aryBstBts, lstPrfRes[idxRes][5]), axis=0)
-
-    # Concatenate output arrays for R2 maps (saved for every run):
+    # collect results from parallelization
+    aryBstXpos = joinRes(lstPrfRes, cfg.varPar, 1, inFormat='1D')
+    aryBstYpos = joinRes(lstPrfRes, cfg.varPar, 2, inFormat='1D')
+    aryBstSd = joinRes(lstPrfRes, cfg.varPar, 3, inFormat='1D')
+    aryBstR2 = joinRes(lstPrfRes, cfg.varPar, 4, inFormat='1D')
+    aryBstBts = joinRes(lstPrfRes, cfg.varPar, 5, inFormat='2D')
     if np.greater(cfg.varNumXval, 1):
-        lstBstR2Single = []
-        for idxRes in range(0, cfg.varPar):
-            lstBstR2Single.append(lstPrfRes[idxRes][6])
-        aryBstR2Single = np.concatenate(lstBstR2Single, axis=0)
-        del(lstBstR2Single)
+        aryBstR2Single = joinRes(lstPrfRes, cfg.varPar, 6, inFormat='2D')
 
     # Delete unneeded large objects:
     del(lstPrfRes)
 
-    # Put results form pRF finding into array (they originally needed to be
-    # saved in a list due to parallelisation). Voxels were selected for pRF
-    # model finding in two stages: First, a mask was applied. Second, voxels
-    # with low variance were removed. Voxels are put back into the original
-    # format accordingly.
+    # *************************************************************************
 
-    # Number of voxels that were included in the mask:
-    varNumVoxMsk = np.sum(aryLgcMsk)
-
-    # Array for pRF finding results, of the form aryPrfRes[voxel-count, 0:3],
-    # where the 2nd dimension contains the parameters of the best-fitting pRF
-    # model for the voxel, in the order (0) pRF-x-pos, (1) pRF-y-pos, (2)
-    # pRF-SD, (3) pRF-R2. At this step, only the voxels included in the mask
-    # are represented.
-    aryPrfRes01 = np.zeros((varNumVoxMsk, 6), dtype=np.float32)
-
-    # Place voxels based on low-variance exlusion:
-    aryPrfRes01[aryLgcVar, 0] = aryBstXpos
-    aryPrfRes01[aryLgcVar, 1] = aryBstYpos
-    aryPrfRes01[aryLgcVar, 2] = aryBstSd
-    aryPrfRes01[aryLgcVar, 3] = aryBstR2
+    # *************************************************************************
     # Calculate polar angle map:
-    aryPrfRes01[aryLgcVar, 4] = np.arctan2(aryBstYpos,
-                                           aryBstXpos)
+    aryPlrAng = np.arctan2(aryBstYpos, aryBstXpos)
     # Calculate eccentricity map (r = sqrt( x^2 + y^2 ) ):
-    aryPrfRes01[aryLgcVar, 5] = np.sqrt(np.add(np.square(aryBstXpos),
-                                               np.square(aryBstYpos)))
+    aryEcc = np.sqrt(np.add(np.square(aryBstXpos),
+                            np.square(aryBstYpos)))
+    # *************************************************************************
 
-    # Total number of voxels:
-    varNumVoxTlt = (tplNiiShp[0] * tplNiiShp[1] * tplNiiShp[2])
+    # *************************************************************************
+    # Export each map of best parameters as a 3D nii file
 
-    # Place voxels based on mask-exclusion:
-    aryPrfRes02 = np.zeros((varNumVoxTlt, aryPrfRes01.shape[-1]),
-                           dtype=np.float32)
-
-    for indDim in range(aryPrfRes01.shape[-1]):
-        aryPrfRes02[aryLgcMsk, indDim] = aryPrfRes01[:, indDim]
-
-    # Reshape pRF finding results into original image dimensions:
-    aryPrfRes = np.reshape(aryPrfRes02,
-                           [tplNiiShp[0],
-                            tplNiiShp[1],
-                            tplNiiShp[2],
-                            6])
-
-    del(aryPrfRes01)
-    del(aryPrfRes02)
+    # Xoncatenate all the best voxel maps
+    aryBstMaps = np.stack([aryBstXpos, aryBstYpos, aryBstSd, aryBstR2,
+                           aryPlrAng, aryEcc], axis=1)
 
     # List with name suffices of output images:
     lstNiiNames = ['_x_pos',
@@ -311,101 +268,50 @@ def pyprf(strCsvCnfg, lgcTest=False):  #noqa
                    '_polar_angle',
                    '_eccentricity']
 
-    print('---------Exporting results')
+    # Create full path names from nii file names and output path
+    lstNiiNames = [cfg.strPathOut + strNii + '.nii.gz' for strNii in
+                   lstNiiNames]
 
-    # Save nii results:
-    for idxOut in range(0, len(lstNiiNames)):
-        # Create nii object for results:
-        niiOut = nb.Nifti1Image(aryPrfRes[..., idxOut],
-                                aryAff,
-                                header=hdrMsk
-                                )
-        # Save nii:
-        strTmp = (cfg.strPathOut + lstNiiNames[idxOut] + '.nii.gz')
-        nb.save(niiOut, strTmp)
+    # export map results as seperate 3D nii files
+    export_nii(aryBstMaps, lstNiiNames, aryLgcMsk, aryLgcVar, tplNiiShp,
+               aryAff, hdrMsk, outFormat='3D')
 
     # *************************************************************************
 
     # *************************************************************************
-    # Save beta parameter estimates for every feauture:
+    # Save beta parameter estimates for every feature:
 
-    # Place voxels based on low-variance exlusion:
-    aryPrfRes01 = np.zeros((varNumVoxMsk, cfg.varNumFtr),
-                           dtype=np.float32)
+    # List with name suffices of output images:
+    lstNiiNames = ['_Betas']
 
-    for indDim in range(cfg.varNumFtr):
-        aryPrfRes01[aryLgcVar, indDim] = aryBstBts[:, indDim]
+    # Create full path names from nii file names and output path
+    lstNiiNames = [cfg.strPathOut + strNii + '.nii.gz' for strNii in
+                   lstNiiNames]
 
-    # Place voxels based on mask-exclusion:
-    aryPrfRes02 = np.zeros((varNumVoxTlt, cfg.varNumFtr),
-                           dtype=np.float32)
-    for indDim in range(cfg.varNumFtr):
-        aryPrfRes02[aryLgcMsk, indDim] = aryPrfRes01[:, indDim]
-
-    # Reshape pRF finding results into original image dimensions:
-    aryBstBtsOut = np.reshape(aryPrfRes02,
-                              [tplNiiShp[0],
-                               tplNiiShp[1],
-                               tplNiiShp[2],
-                               cfg.varNumFtr])
-
-    del(aryPrfRes01)
-    del(aryPrfRes02)
-
-    # adjust header
-    hdrMsk.set_data_shape(aryBstBtsOut.shape)
-
-    # Create nii object for results:
-    niiOut = nb.Nifti1Image(aryBstBtsOut,
-                            aryAff,
-                            header=hdrMsk
-                            )
-    # Save nii:
-    strTmp = (cfg.strPathOut + '_Betas' + '.nii.gz')
-    nb.save(niiOut, strTmp)
+    # export beta parameter as a single 4D nii file
+    export_nii(aryBstBts, lstNiiNames, aryLgcMsk, aryLgcVar, tplNiiShp,
+               aryAff, hdrMsk, outFormat='4D')
 
     # *************************************************************************
 
     # *************************************************************************
     # Save R2 maps from crossvalidation (saved for every run) as nii:
+
     if np.greater(cfg.varNumXval, 1):
+
         # truncate extremely negative R2 values
         aryBstR2Single[np.where(np.less_equal(aryBstR2Single, -1.0))] = -1.0
 
-        # Place voxels based on low-variance exlusion:
-        aryPrfRes01 = np.zeros((varNumVoxMsk, cfg.varNumXval),
-                               dtype=np.float32)
+        # List with name suffices of output images:
+        lstNiiNames = ['_R2_single']
 
-        for indDim in range(cfg.varNumXval):
-            aryPrfRes01[aryLgcVar, indDim] = aryBstR2Single[:, indDim]
+        # Create full path names from nii file names and output path
+        lstNiiNames = [cfg.strPathOut + strNii + '.nii.gz' for strNii in
+                       lstNiiNames]
 
-        # Place voxels based on mask-exclusion:
-        aryPrfRes02 = np.zeros((varNumVoxTlt, cfg.varNumXval),
-                               dtype=np.float32)
-        for indDim in range(cfg.varNumXval):
-            aryPrfRes02[aryLgcMsk, indDim] = aryPrfRes01[:, indDim]
-
-        # Reshape pRF finding results into original image dimensions:
-        aryR2snglRes = np.reshape(aryPrfRes02,
-                                  [tplNiiShp[0],
-                                   tplNiiShp[1],
-                                   tplNiiShp[2],
-                                   cfg.varNumXval])
-
-        del(aryPrfRes01)
-        del(aryPrfRes02)
-
-        # adjust header
-        hdrMsk.set_data_shape(aryR2snglRes.shape)
-
-        # Create nii object for results:
-        niiOut = nb.Nifti1Image(aryR2snglRes,
-                                aryAff,
-                                header=hdrMsk
-                                )
-        # Save nii:
-        strTmp = (cfg.strPathOut + '_R2_single' + '.nii.gz')
-        nb.save(niiOut, strTmp)
+        # export R2 maps as a single 4D nii file
+        export_nii(aryBstR2Single, lstNiiNames, aryLgcMsk, aryLgcVar,
+                   tplNiiShp, aryAff, hdrMsk, outFormat='4D')
 
     # *************************************************************************
 
