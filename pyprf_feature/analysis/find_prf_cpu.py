@@ -28,7 +28,7 @@ from pyprf_feature.analysis.find_prf_utils_cy_two import (cy_lst_sq_two,
 
 
 def find_prf_cpu(idxPrc, aryFuncChnk, aryPrfTc, aryMdlParams, strVersion,
-                 lgcXval, varNumXval, queOut):
+                 lgcXval, varNumXval, queOut, lgcPrint=True):
     """
     Find best fitting pRF model for voxel time course, using the CPU.
 
@@ -53,6 +53,8 @@ def find_prf_cpu(idxPrc, aryFuncChnk, aryPrfTc, aryMdlParams, strVersion,
         Number of folds for k-fold cross-validation.
     queOut : multiprocessing.queues.Queue
         Queue to put the results on.
+    lgcPrint : boolean
+        Whether print statements should be executed.
 
     Returns
     -------
@@ -195,8 +197,8 @@ def find_prf_cpu(idxPrc, aryFuncChnk, aryPrfTc, aryMdlParams, strVersion,
                              str(vecStatPrf[varCntSts01]) +
                              ' pRF models out of ' +
                              str(varNumMdls))
-
-                print(strStsMsg)
+                if lgcPrint:
+                    print(strStsMsg)
 
                 # Only increment counter if the last value has not been
                 # reached yet:
@@ -237,8 +239,9 @@ def find_prf_cpu(idxPrc, aryFuncChnk, aryPrfTc, aryMdlParams, strVersion,
                                                         aryIdxTst)
 
                     else:
-                        print('Cython currently not implemented for more ' +
-                              'two predictors.')
+                        if lgcPrint:
+                            print('Cython currently not implemented for ' +
+                                  'more than two predictors.')
 
                 # Numpy version:
                 elif strVersion == 'numpy':
@@ -270,8 +273,9 @@ def find_prf_cpu(idxPrc, aryFuncChnk, aryPrfTc, aryMdlParams, strVersion,
                         aryTmpBts, vecTmpRes = cy_lst_sq_two(vecMdl,
                                                              aryFuncChnk)
                     else:
-                        print('Cython currently not implemented for more ' +
-                              'two predictors.')
+                        if lgcPrint:
+                            print('Cython currently not implemented for ' +
+                                  'more than two two predictors.')
 
                 # Numpy version:
                 elif strVersion == 'numpy':
@@ -345,7 +349,8 @@ def find_prf_cpu(idxPrc, aryFuncChnk, aryPrfTc, aryMdlParams, strVersion,
                                             atol=1e-04).all(axis=1))[0][0]
 
             if np.all(np.invert(lgcVxl)):
-                print('------------No voxel found, process ' + str(idxPrc))
+                if lgcPrint:
+                    print('------------No voxel found, process ' + str(idxPrc))
             # Mark those voxels that were visited
             vecVxlTst[lgcVxl] += 1
 
@@ -386,8 +391,10 @@ def find_prf_cpu(idxPrc, aryFuncChnk, aryPrfTc, aryMdlParams, strVersion,
         # voxels and folds
         lgcExclZeros = np.all(np.greater(arySsTotXval,  np.array([0.0])),
                               axis=1)
-        print('------------Nr of voxels: ' + str(len(lgcExclZeros)))
-        print('------------Nr of voxels avove 0: ' + str(np.sum(lgcExclZeros)))
+        if lgcPrint:
+            print('------------Nr of voxels: ' + str(len(lgcExclZeros)))
+            print('------------Nr of voxels avove 0: ' +
+                  str(np.sum(lgcExclZeros)))
 
         # Calculate R2 for every crossvalidation fold seperately
         aryBstR2fld = np.subtract(
