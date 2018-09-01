@@ -21,7 +21,7 @@ strDir = os.path.dirname(os.path.abspath(__file__))
 
 
 def main():
-    """py_pRF_mapping entry point."""
+    """pyprf_feature entry point."""
     # Get list of input arguments (without first one, which is the path to the
     # function that is called):  --NOTE: This is another way of accessing
     # input arguments, but since we use 'argparse' it is redundant.
@@ -41,30 +41,8 @@ def main():
                                  testing mode.'
                            )
 
-    # # Add argument to namespace - test flag:
-    # objParser.add_argument('-test',
-    #                        action='store_true',
-    #                        help='Whether to run a test with pytest.'
-    #                        )
-
     # Namespace object containign arguments and values:
     objNspc = objParser.parse_args()
-
-    # # Get test flag from argument parser ('True' if the '-test' flag is
-    # # provided, otherwise 'False'):
-    # lgcTest = objNspc.test
-
-    # if lgcTest:
-
-    #     print('Test mode initiated...')
-
-    #     # Path of config file for tests:
-    #     strCsvCnfg = (strDir + '/testing/config_testing.csv')
-
-    #     # Signal test mode to lower functions:
-    #     lgcTest = True
-
-    # else:
 
     # Get path of config file from argument parser:
     strCsvCnfg = objNspc.config
