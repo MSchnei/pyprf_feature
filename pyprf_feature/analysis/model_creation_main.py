@@ -65,7 +65,7 @@ def model_creation(dicCnfg):
         # arySptExpInf by 90 degrees rightward. This will insure that with the
         # 0th axis we index the scientific x-axis and higher values move us to
         # the right on that x-axis. It will also ensure that the 1st
-        # python axis indexes the scientific y-axis and higher values will 
+        # python axis indexes the scientific y-axis and higher values will
         # move us up.
         arySptExpInf = np.rot90(arySptExpInf, k=3)
 
