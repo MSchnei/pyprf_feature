@@ -19,7 +19,6 @@
 
 import time
 import numpy as np
-import nibabel as nb
 import multiprocessing as mp
 
 from pyprf_feature.analysis.load_config import load_config
