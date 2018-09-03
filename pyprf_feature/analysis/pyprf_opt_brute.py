@@ -146,6 +146,9 @@ def pyprf_opt_brute(strCsvCnfg, objNspc, lgcTest=False):  #noqa
     # Calculate polar angles
     aryPlrAng = np.arctan2(aryIntGssPrm[:, 1], aryIntGssPrm[:, 0])
 
+    # round off polar angle, so there are less unique models
+    aryPlrAng = np.round(aryPlrAng, decimals=2)
+
     # Get an array of unique polar angles
     aryUnqPlrAng, aryUnqPlrAngInd = np.unique(aryPlrAng, return_inverse=True)
 
