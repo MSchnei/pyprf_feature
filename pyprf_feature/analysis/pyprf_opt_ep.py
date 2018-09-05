@@ -32,10 +32,16 @@ def get_arg_parse():
                                  Ignored if in testing mode.'
                            )
 
-    # Add argument to namespace - varNumOpt flag:
-    objParser.add_argument('-varNumOpt', type=int,
+    # Add argument to namespace - varNumOpt1 flag:
+    objParser.add_argument('-varNumOpt1', type=int,
                            metavar='N', required=True,
                            help='Number of radial positions.'
+                           )
+
+    # Add argument to namespace - varNumOpt2 flag:
+    objParser.add_argument('-varNumOpt2', type=int,
+                           metavar='N', required=True,
+                           help='Number of angular positions.'
                            )
 
     # Namespace object containign arguments and values:
@@ -56,15 +62,11 @@ def main():
 
     objNspc = get_arg_parse()
 
-    # Get path of config file from argument parser:
-    strCsvCnfg = objNspc.config
-    strPthPrior = objNspc.strPthPrior
-    varNumOpt = objNspc.varNumOpt
-
     # Print info if no config argument is provided.
-    if any(item is None for item in [strCsvCnfg, strPthPrior, varNumOpt]):
+    if any(item is None for item in [objNspc.config, objNspc.strPthPrior,
+                                     objNspc.varNumOpt1, objNspc.varNumOpt2]):
         print('Please provide the necessary input arguments, i.e.:')
-        print('   -strCsvCnfg -strPthPrior and -varNumOpt')
+        print('-strCsvCnfg -strPthPrior -varNumOpt1 and -varNumOpt2')
 
     else:
 
@@ -72,7 +74,7 @@ def main():
         lgcTest = False
 
         # Call to main function, to invoke pRF analysis:
-        pyprf_opt_brute(strCsvCnfg, objNspc, lgcTest)
+        pyprf_opt_brute(objNspc.config, objNspc, lgcTest)
 
 
 if __name__ == "__main__":
