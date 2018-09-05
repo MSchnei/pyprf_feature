@@ -92,6 +92,10 @@ def pyprf(strCsvCnfg, lgcTest=False):  #noqa
     aryLgcMsk, aryLgcVar, hdrMsk, aryAff, aryFunc, tplNiiShp = prep_func(
         cfg.strPathNiiMask, cfg.lstPathNiiFunc)
 
+    # set the precision of the header to np.float32 so that the prf results
+    # will be saved in this precision later
+    hdrMsk.set_data_dtype(np.float32)
+
     # *************************************************************************
     # *** Checks
 
