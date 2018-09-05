@@ -146,6 +146,19 @@ def pyprf_opt_brute(strCsvCnfg, objNspc, lgcTest=False):  #noqa
     # Calculate polar angles
     aryPlrAng = np.arctan2(aryIntGssPrm[:, 1], aryIntGssPrm[:, 0])
 
+    def find_near_pol_angle(aryEmpPlrAng, aryExpPlrAng):
+        """Return index of nearest expected polar angle."""
+
+        # Expected polar angle values are range from 0 to 2*pi, while
+        # The calculated angle values will range from -pi to pi
+        # Thus, bring empirical values from range -pi, pi to range 0, 2pi
+        aryEmpPlrAng = (aryEmpPlrAng + 2 * np.pi) % (2 * np.pi)
+
+        dist = np.abs(np.subtract(aryEmpPlrAng[:, None],
+                                  aryExpPlrAng[None, :]))
+
+        return np.argmin(dist, axis=-1), np.min(dist, axis=-1)
+
     # round off polar angle, so there are less unique models
     aryPlrAng = np.round(aryPlrAng, decimals=2)
 
