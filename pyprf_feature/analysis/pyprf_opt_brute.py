@@ -38,7 +38,7 @@ from pyprf_feature.analysis.prepare import prep_models, prep_func
 #objNspc = Object()
 #objNspc.strPthPrior = "/media/sf_D_DRIVE/MotDepPrf/Analysis/S02/03_motLoc/pRF_results/pRF_results_tmpSmth"
 #objNspc.varNumOpt1 = 90
-#objNspc.varNumOpt1 = 64
+#objNspc.varNumOpt2 = 64
 #lgcTest = False
 ################################
 
@@ -88,6 +88,13 @@ def pyprf_opt_brute(strCsvCnfg, objNspc, lgcTest=False):  #noqa
     # The functional data will be masked and demeaned:
     aryLgcMsk, aryLgcVar, hdrMsk, aryAff, aryFunc, tplNiiShp = prep_func(
         cfg.strPathNiiMask, cfg.lstPathNiiFunc)
+
+    # set the precision of the header to np.float32 so that the prf results
+    # will be saved in this precision later
+    hdrMsk.set_data_dtype(np.float32)
+
+    print('---Number of voxels included in analysis: ' +
+          str(np.sum(aryLgcVar)))
 
     # *************************************************************************
     # *** Checks
@@ -160,6 +167,12 @@ def pyprf_opt_brute(strCsvCnfg, objNspc, lgcTest=False):  #noqa
 
     # Make sure that the maximum distance between grid points of polar angles
     assert np.max(aryDstPlrAng) < np.divide(2*np.pi, objNspc.varNumOpt2)
+
+    # Update unique polar angles such that it contains only the ones which
+    # were found in data
+    aryUnqPlrAng = aryUnqPlrAng[np.unique(aryUnqPlrAngInd)]
+    # Update indices
+    aryUnqPlrAngInd, aryDstPlrAng = find_near_pol_ang(aryPlrAng, aryUnqPlrAng)
 
     # Get logical arrays that index voxels with particular polar angle
     lstLgcUnqPlrAng = []
