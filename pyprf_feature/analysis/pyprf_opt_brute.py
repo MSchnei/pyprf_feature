@@ -24,7 +24,8 @@ import multiprocessing as mp
 from pyprf_feature.analysis.load_config import load_config
 from pyprf_feature.analysis.utils_general import (cls_set_config, load_res_prm,
                                                   export_nii, joinRes,
-                                                  map_pol_to_crt)
+                                                  map_pol_to_crt,
+                                                  find_near_pol_ang)
 from pyprf_feature.analysis.model_creation_opt import model_creation_opt
 from pyprf_feature.analysis.model_creation_utils import rmp_deg_pixel_xys
 from pyprf_feature.analysis.prepare import prep_models, prep_func
@@ -32,6 +33,12 @@ from pyprf_feature.analysis.prepare import prep_models, prep_func
 
 ###### DEBUGGING ###############
 #strCsvCnfg = "/media/sf_D_DRIVE/MotDepPrf/Analysis/S07/04_motDepPrf/pRF_results/S07_config_motDepPrf_flck_smooth.csv"
+#class Object(object):
+#    pass
+#objNspc = Object()
+#objNspc.strPthPrior = "/media/sf_D_DRIVE/MotDepPrf/Analysis/S02/03_motLoc/pRF_results/pRF_results_tmpSmth"
+#objNspc.varNumOpt1 = 90
+#objNspc.varNumOpt1 = 64
 #lgcTest = False
 ################################
 
@@ -100,14 +107,6 @@ def pyprf_opt_brute(strCsvCnfg, objNspc, lgcTest=False):  #noqa
     if cfg.strVersion == 'gpu':
         cfg.varPar = 1
 
-#    # Make sure that if cython is used, the number of features is 1 or 2,
-#    # not higher
-#    if cfg.strVersion == 'cython':
-#        strErrMsg = 'Stopping program. ' + \
-#            'Cython is not supported for more features than 1. ' + \
-#            'Set strVersion equal \'numpy\'.'
-#        assert cfg.varNumFtr in [1, 2], strErrMsg
-
     # check whether we need to crossvalidate
     if np.greater(cfg.varNumXval, 1):
         cfg.lgcXval = True
@@ -143,36 +142,35 @@ def pyprf_opt_brute(strCsvCnfg, objNspc, lgcTest=False):  #noqa
     # *************************************************************************
     # *** Sort voxels by polar angle/previous parameters
 
-    # Calculate polar angles
+    # Calculate the polar angles that were found in independent localiser
     aryPlrAng = np.arctan2(aryIntGssPrm[:, 1], aryIntGssPrm[:, 0])
 
-    def find_near_pol_angle(aryEmpPlrAng, aryExpPlrAng):
-        """Return index of nearest expected polar angle."""
+    # Calculate the unique polar angles that are expected from grid search
+    aryUnqPlrAng = np.linspace(0.0, 2*np.pi, objNspc.varNumOpt2,
+                               endpoint=False)
 
-        # Expected polar angle values are range from 0 to 2*pi, while
-        # The calculated angle values will range from -pi to pi
-        # Thus, bring empirical values from range -pi, pi to range 0, 2pi
-        aryEmpPlrAng = (aryEmpPlrAng + 2 * np.pi) % (2 * np.pi)
+    # Expected polar angle values are range from 0 to 2*pi, while
+    # the calculated angle values will range from -pi to pi
+    # Thus, bring empirical values from range -pi, pi to range 0, 2pi
+    aryPlrAng = (aryPlrAng + 2 * np.pi) % (2 * np.pi)
 
-        dist = np.abs(np.subtract(aryEmpPlrAng[:, None],
-                                  aryExpPlrAng[None, :]))
+    # For every empirically found polar angle get the index of the nearest
+    # theoretically expected polar angle, this is to offset small imprecisions
+    aryUnqPlrAngInd, aryDstPlrAng = find_near_pol_ang(aryPlrAng, aryUnqPlrAng)
 
-        return np.argmin(dist, axis=-1), np.min(dist, axis=-1)
-
-    # round off polar angle, so there are less unique models
-    aryPlrAng = np.round(aryPlrAng, decimals=2)
-
-    # Get an array of unique polar angles
-    aryUnqPlrAng, aryUnqPlrAngInd = np.unique(aryPlrAng, return_inverse=True)
+    # Make sure that the maximum distance between grid points of polar angles
+    assert np.max(aryDstPlrAng) < np.divide(2*np.pi, objNspc.varNumOpt2)
 
     # Get logical arrays that index voxels with particular polar angle
     lstLgcUnqPlrAng = []
     for indPlrAng in range(len(aryUnqPlrAng)):
         lstLgcUnqPlrAng.append([aryUnqPlrAngInd == indPlrAng][0])
 
-    print('---Number of (radial position) options provided by user: ' +
-          str(objNspc.varNumOpt))
-    print('---Number of unique polar angles found in prior results: ' +
+    print('---Number of radial position options provided by user: ' +
+          str(objNspc.varNumOpt1))
+    print('---Number of angular position options provided by user: ' +
+          str(objNspc.varNumOpt2))
+    print('---Number of polar angles that will be used for optmization: ' +
           str(len(aryUnqPlrAng)))
 
     # *************************************************************************
@@ -211,7 +209,7 @@ def pyprf_opt_brute(strCsvCnfg, objNspc, lgcTest=False):  #noqa
         # *** Create time course models for this particular polar angle
 
         # Vector with the radial position:
-        vecRad = np.linspace(0.0, cfg.varExtXmax, objNspc.varNumOpt,
+        vecRad = np.linspace(0.0, cfg.varExtXmax, objNspc.varNumOpt1,
                              endpoint=True)
 
         # Get all possible combinations on the grid, using matrix indexing ij
@@ -267,7 +265,8 @@ def pyprf_opt_brute(strCsvCnfg, objNspc, lgcTest=False):  #noqa
         # The model time courses will be preprocessed such that they are
         # smoothed (temporally) with same factor as the data and that they will
         # be z-scored:
-        aryPrfTc = prep_models(aryPrfTc, varSdSmthTmp=cfg.varSdSmthTmp)
+        aryPrfTc = prep_models(aryPrfTc, varSdSmthTmp=cfg.varSdSmthTmp,
+                               lgcPrint=False)
 
         # *********************************************************************
 
