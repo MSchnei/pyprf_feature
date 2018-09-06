@@ -13,7 +13,7 @@ strDir = os.path.dirname(os.path.abspath(__file__))
 
 
 def get_arg_parse():
-    """"Parses the Command Line Arguments using argparse."""
+    """Parses the Command Line Arguments using argparse."""
     # Create parser object:
     objParser = argparse.ArgumentParser()
 
