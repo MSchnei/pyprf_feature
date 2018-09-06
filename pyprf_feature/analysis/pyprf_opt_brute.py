@@ -389,6 +389,14 @@ def pyprf_opt_brute(strCsvCnfg, objNspc, lgcTest=False):  #noqa
     # Calculate eccentricity map (r = sqrt( x^2 + y^2 ) ):
     aryEcc = np.sqrt(np.add(np.square(aryBstXpos),
                             np.square(aryBstYpos)))
+    # It is possible that after optimization the pRF has moved to location 0, 0
+    # In this cases, the polar angle parameter is arbitrary and will be
+    # assigned either 0 or pi. To preserve smoothness of the map, assign the
+    # initial polar angle value from independent localiser
+    lgcMvdOrgn = np.logical_and(aryBstXpos == 0.0, aryBstYpos == 0.0)
+    aryIntPlrAng = np.arctan2(aryIntGssPrm[:, 1], aryIntGssPrm[:, 0])
+    aryPlrAng[lgcMvdOrgn] = np.copy(aryIntPlrAng[lgcMvdOrgn])
+
     # *************************************************************************
 
     # *************************************************************************
