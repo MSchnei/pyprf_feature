@@ -86,7 +86,9 @@ def pyprf(strCsvCnfg, lgcTest=False):  #noqa
 
     # The model time courses will be preprocessed such that they are smoothed
     # (temporally) with same factor as the data and that they will be z-scored:
-    aryPrfTc = prep_models(aryPrfTc, varSdSmthTmp=cfg.varSdSmthTmp)
+    # Also return logical for inclusion of model parameters which will be
+    # needed later when we create model parameters in degree.
+    aryPrfTc, lgcMdlInc = prep_models(aryPrfTc, varSdSmthTmp=cfg.varSdSmthTmp)
 
     # The functional data will be masked and demeaned:
     aryLgcMsk, aryLgcVar, hdrMsk, aryAff, aryFunc, tplNiiShp = prep_func(
@@ -155,6 +157,8 @@ def pyprf(strCsvCnfg, lgcTest=False):  #noqa
                                 cfg.varNumPrfSizes, cfg.varPrfStdMin,
                                 cfg.varPrfStdMax, kwUnt='deg',
                                 kwCrd=cfg.strKwCrd)
+    # Restrict model parameters to pRF with center on stimualted area
+    aryMdlParams = aryMdlParams[lgcMdlInc, :]
 
     # Empty list for results (parameters of best fitting pRF model):
     lstPrfRes = [None] * cfg.varPar

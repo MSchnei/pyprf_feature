@@ -38,7 +38,10 @@ def model_creation(dicCnfg):
     -------
     aryPrfTc : np.array
         4D numpy array with pRF time course models, with following dimensions:
-        `aryPrfTc[x-position, y-position, SD, volume]`.
+        'aryPrfTc[x-position, y-position, SD, volume]'.
+    lgcMdlInc : np.array, boolean
+        Logical to only include models with pRF center on stimulated area.
+
     """
     # *************************************************************************
     # *** Load parameters from config file
@@ -69,6 +72,9 @@ def model_creation(dicCnfg):
         # move us up.
         arySptExpInf = np.rot90(arySptExpInf, k=3)
 
+        # Calculate the areas that were stimulated during the experiment
+        aryStimArea = np.sum(arySptExpInf, axis=-1).astype(np.bool)
+
         # *********************************************************************
 
         # *********************************************************************
@@ -90,6 +96,18 @@ def model_creation(dicCnfg):
                                     kwUnt='pix', kwCrd=cfg.strKwCrd)
 
         # *********************************************************************
+        # *** Exclude model parameters whose prf center would lie outside the
+        # stimulated area
+        print('------Exclude model params with prf center outside stim area')
+        varNumMdlBfr = aryMdlParams.shape[0]
+        # Get logical for model inclusion
+        lgcMdlInc = aryStimArea[aryMdlParams[:, 0].astype(np.int32),
+                                aryMdlParams[:, 1].astype(np.int32)]
+        # Exclude models with prf center outside stimulated area
+        aryMdlParams = aryMdlParams[lgcMdlInc, :]
+
+        print('---------Number of models excluded: ' +
+              str(varNumMdlBfr-aryMdlParams.shape[0]))
 
         # *********************************************************************
         # *** Create 2D Gauss model responses to spatial conditions.
@@ -154,4 +172,4 @@ def model_creation(dicCnfg):
 
     # *************************************************************************
 
-    return aryPrfTc
+    return aryPrfTc, lgcMdlInc
