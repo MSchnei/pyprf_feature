@@ -74,7 +74,10 @@ def pyprf(strCsvCnfg, lgcTest=False):  #noqa
     # *************************************************************************
     # *** Create or load pRF time course models
 
-    aryPrfTc = model_creation(dicCnfg)
+    # Create model time courses. Also return logical for inclusion of model
+    # parameters which will be needed later when we create model parameters
+    # in degree.
+    aryPrfTc, lgcMdlInc = model_creation(dicCnfg)
 
     # Deduce the number of features from the pRF time course models array
     cfg.varNumFtr = aryPrfTc.shape[1]
@@ -86,9 +89,7 @@ def pyprf(strCsvCnfg, lgcTest=False):  #noqa
 
     # The model time courses will be preprocessed such that they are smoothed
     # (temporally) with same factor as the data and that they will be z-scored:
-    # Also return logical for inclusion of model parameters which will be
-    # needed later when we create model parameters in degree.
-    aryPrfTc, lgcMdlInc = prep_models(aryPrfTc, varSdSmthTmp=cfg.varSdSmthTmp)
+    aryPrfTc = prep_models(aryPrfTc, varSdSmthTmp=cfg.varSdSmthTmp)
 
     # The functional data will be masked and demeaned:
     aryLgcMsk, aryLgcVar, hdrMsk, aryAff, aryFunc, tplNiiShp = prep_func(
@@ -97,6 +98,7 @@ def pyprf(strCsvCnfg, lgcTest=False):  #noqa
     # set the precision of the header to np.float32 so that the prf results
     # will be saved in this precision later
     hdrMsk.set_data_dtype(np.float32)
+    # *************************************************************************
 
     # *************************************************************************
     # *** Checks
@@ -124,7 +126,7 @@ def pyprf(strCsvCnfg, lgcTest=False):  #noqa
             'Set strVersion equal \'numpy\'.'
         assert cfg.varNumFtr in [1, 2], strErrMsg
 
-    # check whether we need to crossvalidate
+    # Check whether we need to crossvalidate
     if np.greater(cfg.varNumXval, 1):
         cfg.lgcXval = True
     elif np.equal(cfg.varNumXval, 1):
