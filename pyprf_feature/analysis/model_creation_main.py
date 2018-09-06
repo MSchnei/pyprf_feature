@@ -83,6 +83,13 @@ def model_creation(dicCnfg):
         print('------Load temporal condition information')
 
         aryTmpExpInf = np.load(cfg.strTmpExpInf)
+        # add fourth column to make it appropriate for pyprf_feature
+        if aryTmpExpInf.shape[-1] == 3:
+            print('---------Added fourth column')
+            vecNewCol = np.greater(aryTmpExpInf[:, 0], 0).astype(np.float16)
+            aryTmpExpInf = np.concatenate(
+                (aryTmpExpInf, np.expand_dims(vecNewCol, axis=1)), axis=1)
+
         # *********************************************************************
 
         # *********************************************************************
