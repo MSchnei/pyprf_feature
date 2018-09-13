@@ -120,7 +120,7 @@ def prep_models(aryPrfTc, varSdSmthTmp=2.0, lgcPrint=True):
     return aryPrfTc
 
 
-def prep_func(strPathNiiMask, lstPathNiiFunc, varAvgThr=100.,
+def prep_func(strPathNiiMask, lstPathNiiFunc, varAvgThr=-100.,
               varVarThr=0.0001):
     """
     Load & prepare functional data.
@@ -262,7 +262,7 @@ def prep_func(strPathNiiMask, lstPathNiiFunc, varAvgThr=100.,
 
     # Especially if data were recorded in different sessions, there can
     # sometimes be voxels that have close to zero signal in runs from one
-    # session but regular signalin the runs from another session. These voxels
+    # session but regular signal in the runs from another session. These voxels
     # are very few, are located at the edge of the functional and can cause
     # problems during model fitting. They are therefore excluded.
 
@@ -285,9 +285,15 @@ def prep_func(strPathNiiMask, lstPathNiiFunc, varAvgThr=100.,
     # Variance needs to be greater than threshold in every single run
     vecLgcVar = np.all(aryLgcVar, axis=1)
 
+    # Are there any nan values in the functional time series?
+    vecLgcNan = np.invert(np.any(np.isnan(aryFunc), axis=1))
+
     # combine the logical vectors for exclusion resulting from low variance and
     # low mean signal time course
     vecLgcIncl = np.logical_and(vecLgcAvg, vecLgcVar)
+
+    # combine logical vectors for mean/variance with vector for nan exclsion
+    vecLgcIncl = np.logical_and(vecLgcIncl, vecLgcNan)
 
     # Array with functional data for which conditions (mask inclusion and
     # cutoff value) are fullfilled:
