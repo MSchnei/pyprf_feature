@@ -272,6 +272,18 @@ def pyprf_opt_brute(strCsvCnfg, objNspc, lgcTest=False):  #noqa
 
         aryMdlParamsPxl = np.column_stack((vecIntX, vecIntY, vecIntSd))
 
+        # Calculate the areas that were stimulated during the experiment
+        arySptExpInf = np.load(cfg.strSptExpInf)
+        arySptExpInf = np.rot90(arySptExpInf, k=3)
+        aryStimArea = np.sum(arySptExpInf, axis=-1).astype(np.bool)
+
+        # Get logical to exclude models with pRF centre outside stim area
+        lgcMdlInc = aryStimArea[aryMdlParamsPxl[:, 0].astype(np.int32),
+                                aryMdlParamsPxl[:, 1].astype(np.int32)]
+        # Exclude models with prf center outside stimulated area
+        aryMdlParams = aryMdlParams[lgcMdlInc, :]
+        aryMdlParamsPxl = aryMdlParamsPxl[lgcMdlInc, :]
+
         # Create model time courses
         aryPrfTc = model_creation_opt(dicCnfg, aryMdlParamsPxl)
 
