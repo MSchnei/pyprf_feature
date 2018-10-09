@@ -29,7 +29,7 @@ from pyprf_feature.analysis.model_creation_utils import crt_mdl_prms
 from pyprf_feature.analysis.prepare import prep_models, prep_func
 
 ###### DEBUGGING ###############
-#strCsvCnfg = "/home/marian/Documents/Git/pyprf_feature/pyprf_feature/analysis/config_custom.csv"
+#strCsvCnfg = "/home/marian/Documents/Testing/pyprf_feature_devel/S02_config_motDepPrf_flck_smooth_inw.csv"
 #lgcTest = False
 ################################
 
@@ -77,7 +77,7 @@ def pyprf(strCsvCnfg, lgcTest=False):  #noqa
     # Create model time courses. Also return logical for inclusion of model
     # parameters which will be needed later when we create model parameters
     # in degree.
-    aryPrfTc, lgcMdlInc = model_creation(dicCnfg)
+    aryPrfTc = model_creation(dicCnfg)
 
     # Deduce the number of features from the pRF time course models array
     cfg.varNumFtr = aryPrfTc.shape[1]
@@ -159,8 +159,6 @@ def pyprf(strCsvCnfg, lgcTest=False):  #noqa
                                 cfg.varNumPrfSizes, cfg.varPrfStdMin,
                                 cfg.varPrfStdMax, kwUnt='deg',
                                 kwCrd=cfg.strKwCrd)
-    # Restrict model parameters to pRF with center on stimualted area
-    aryMdlParams = aryMdlParams[lgcMdlInc, :]
 
     # Empty list for results (parameters of best fitting pRF model):
     lstPrfRes = [None] * cfg.varPar
@@ -175,6 +173,10 @@ def pyprf(strCsvCnfg, lgcTest=False):  #noqa
     lstFunc = np.array_split(aryFunc, cfg.varPar)
     # We don't need the original array with the functional data anymore:
     del(aryFunc)
+
+    # Prepare dictionary to pass as kwargs to find_prf_cpu
+    dctKw = {'lgcRstr': None,
+             'lgcPrint': True}
 
     # CPU version (using numpy or cython for pRF finding):
     if ((cfg.strVersion == 'numpy') or (cfg.strVersion == 'cython')):
@@ -193,7 +195,8 @@ def pyprf(strCsvCnfg, lgcTest=False):  #noqa
                                                cfg.strVersion,
                                                cfg.lgcXval,
                                                cfg.varNumXval,
-                                               queOut)
+                                               queOut),
+                                         kwargs=dctKw,
                                          )
             # Daemon (kills processes when exiting):
             lstPrcs[idxPrc].Daemon = True
@@ -210,7 +213,8 @@ def pyprf(strCsvCnfg, lgcTest=False):  #noqa
                                                aryMdlParams,
                                                lstFunc[idxPrc],
                                                aryPrfTc,
-                                               queOut)
+                                               queOut),
+                                         kwargs=dctKw,
                                          )
             # Daemon (kills processes when exiting):
             lstPrcs[idxPrc].Daemon = True
