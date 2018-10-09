@@ -32,13 +32,15 @@ from pyprf_feature.analysis.prepare import prep_models, prep_func
 
 
 ###### DEBUGGING ###############
-#strCsvCnfg = "/media/sf_D_DRIVE/MotDepPrf/Analysis/S07/04_motDepPrf/pRF_results/S07_config_motDepPrf_flck_smooth.csv"
+#strCsvCnfg = "/home/marian/Documents/Testing/pyprf_feature_devel/S02_config_motDepPrf_flck_smooth.csv"
 #class Object(object):
 #    pass
 #objNspc = Object()
 #objNspc.strPthPrior = "/media/sf_D_DRIVE/MotDepPrf/Analysis/S02/03_motLoc/pRF_results/pRF_results_tmpSmth"
 #objNspc.varNumOpt1 = 90
 #objNspc.varNumOpt2 = 64
+#objNspc.varNumOpt3 = 1
+#objNspc.lgcRstrCentre = False
 #lgcTest = False
 ################################
 
@@ -132,7 +134,8 @@ def pyprf_opt_brute(strCsvCnfg, objNspc, lgcTest=False):  #noqa
     # Load the x, y, sigma winner parameters from pyprf_feature
     lstWnrPrm = [objNspc.strPthPrior + '_x_pos.nii',
                  objNspc.strPthPrior + '_y_pos.nii',
-                 objNspc.strPthPrior + '_SD.nii']
+                 objNspc.strPthPrior + '_SD.nii',
+                 objNspc.strPthPrior + '_eccentricity.nii']
     lstPrmInt, objHdr, aryAff = load_res_prm(lstWnrPrm,
                                              lstFlsMsk=[cfg.strPathNiiMask])
     # Convert list to array
@@ -183,8 +186,10 @@ def pyprf_opt_brute(strCsvCnfg, objNspc, lgcTest=False):  #noqa
           str(objNspc.varNumOpt1))
     print('---Number of angular position options provided by user: ' +
           str(objNspc.varNumOpt2))
-    print('---Number of polar angles that will be used for optmization: ' +
+    print('---Number of polar angles that will be used for optimization: ' +
           str(len(aryUnqPlrAng)))
+    print('---Maximum displacement in radial direction that is allowed: ' +
+          str(objNspc.varNumOpt3))
 
     # *************************************************************************
     # *** Perform prf fitting
@@ -210,6 +215,9 @@ def pyprf_opt_brute(strCsvCnfg, objNspc, lgcTest=False):  #noqa
 
         # get logical array to index voxels with this particular polar angle
         lgcUnqPlrAng = lstLgcUnqPlrAng[indPlrAng]
+
+        # get prior eccentricities for current voxel batch
+        vecPrrEcc = aryIntGssPrm[lgcUnqPlrAng, 3]
 
         print('------Number of voxels: ' + str(np.sum(lgcUnqPlrAng)))
 
@@ -272,17 +280,18 @@ def pyprf_opt_brute(strCsvCnfg, objNspc, lgcTest=False):  #noqa
 
         aryMdlParamsPxl = np.column_stack((vecIntX, vecIntY, vecIntSd))
 
-        # Calculate the areas that were stimulated during the experiment
-        arySptExpInf = np.load(cfg.strSptExpInf)
-        arySptExpInf = np.rot90(arySptExpInf, k=3)
-        aryStimArea = np.sum(arySptExpInf, axis=-1).astype(np.bool)
+        if objNspc.lgcRstrCentre:
+            # Calculate the areas that were stimulated during the experiment
+            arySptExpInf = np.load(cfg.strSptExpInf)
+            arySptExpInf = np.rot90(arySptExpInf, k=3)
+            aryStimArea = np.sum(arySptExpInf, axis=-1).astype(np.bool)
 
-        # Get logical to exclude models with pRF centre outside stim area
-        lgcMdlInc = aryStimArea[aryMdlParamsPxl[:, 0].astype(np.int32),
-                                aryMdlParamsPxl[:, 1].astype(np.int32)]
-        # Exclude models with prf center outside stimulated area
-        aryMdlParams = aryMdlParams[lgcMdlInc, :]
-        aryMdlParamsPxl = aryMdlParamsPxl[lgcMdlInc, :]
+            # Get logical to exclude models with pRF centre outside stim area
+            lgcMdlInc = aryStimArea[aryMdlParamsPxl[:, 0].astype(np.int32),
+                                    aryMdlParamsPxl[:, 1].astype(np.int32)]
+            # Exclude models with prf center outside stimulated area
+            aryMdlParams = aryMdlParams[lgcMdlInc, :]
+            aryMdlParamsPxl = aryMdlParamsPxl[lgcMdlInc, :]
 
         # Create model time courses
         aryPrfTc = model_creation_opt(dicCnfg, aryMdlParamsPxl)
@@ -294,7 +303,24 @@ def pyprf_opt_brute(strCsvCnfg, objNspc, lgcTest=False):  #noqa
                                lgcPrint=False)
 
         # *********************************************************************
+        # *** Create logical to restrict model fitting in radial direction
 
+        # Calculate eccentricity of currently tested model parameters
+        vecMdlEcc = np.sqrt(np.add(np.square(aryMdlParams[:, 0]),
+                                   np.square(aryMdlParams[:, 1])))
+        # Compare model eccentricity against prior eccentricity
+        vecPrrEccGrd, vecMdlEccGrdi = np.meshgrid(vecPrrEcc, vecMdlEcc,
+                                                  indexing='ij')
+        # Consider allowed eccentricity shift as specified by user
+        lgcRstr = np.logical_and(np.less_equal(vecMdlEccGrdi,
+                                               np.add(vecPrrEccGrd,
+                                                      objNspc.varNumOpt3)),
+                                 np.greater(vecMdlEccGrdi,
+                                            np.subtract(vecPrrEccGrd,
+                                                        objNspc.varNumOpt3)))
+        # Put logical for model restriction in list
+        lstRst = np.array_split(lgcRstr, cfg.varPar)
+        del(lgcRstr)
         # *********************************************************************
         # *** Find best model for voxels with this particular polar angle
 
@@ -306,8 +332,6 @@ def pyprf_opt_brute(strCsvCnfg, objNspc, lgcTest=False):  #noqa
 
         # Create a queue to put the results in:
         queOut = mp.Queue()
-
-        dctKw = {'lgcPrint': False}
 
         # CPU version (using numpy or cython for pRF finding):
         if ((cfg.strVersion == 'numpy') or (cfg.strVersion == 'cython')):
@@ -323,7 +347,8 @@ def pyprf_opt_brute(strCsvCnfg, objNspc, lgcTest=False):  #noqa
                                                    cfg.lgcXval,
                                                    cfg.varNumXval,
                                                    queOut),
-                                             kwargs=dctKw,
+                                             kwargs={'lgcRstr': lstRst[idxPrc],
+                                                     'lgcPrint': False},
                                              )
                 # Daemon (kills processes when exiting):
                 lstPrcs[idxPrc].Daemon = True

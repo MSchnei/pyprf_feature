@@ -217,9 +217,12 @@ def find_prf_cpu(idxPrc, aryFuncChnk, aryPrfTc, aryMdlParams, strVersion,
                 if varCntSts01 < varStsStpSze:
                     varCntSts01 = varCntSts01 + int(1)
 
-        # Only fit pRF model if all of the feauture predictos have a variance
-        # that is greater than zero:
-        if np.all(np.greater(aryPrfTcVar[idxMdl], varZero32), axis=0):
+        # Only fit pRF model if:
+        # 1) all feature predictors have a variance greater than zero AND
+        # 2) at least one voxel is being tested
+        if np.logical_and(np.all(np.greater(aryPrfTcVar[idxMdl], varZero32),
+                                 axis=0),
+                          np.any(lgcVxl)):
 
             # Get predictor time courses for this specific model
             vecMdl = aryPrfTc[idxMdl, :, :].T
