@@ -194,6 +194,8 @@ def find_prf_cpu(idxPrc, aryFuncChnk, aryPrfTc, aryMdlParams, strVersion,
         # models are restricted to particular voxels
         if lgcRstr is not None:
             lgcVxl = lgcRstr[:, idxMdl]
+            if idxPrc == 0:
+                print('------------Number of voxels: ' + str(np.sum(lgcVxl)))
 
         # Status indicator (only used in the first of the parallel
         # processes):

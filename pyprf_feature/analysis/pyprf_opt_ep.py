@@ -44,6 +44,18 @@ def get_arg_parse():
                            help='Number of angular positions.'
                            )
 
+    # Add argument to namespace - varNumOpt3 flag:
+    objParser.add_argument('-varNumOpt3', required=True, type=float,
+                           metavar='N3',
+                           help='Max displacement in radial direction.'
+                           )
+
+    # Add argument to namespace - varNumOpt3 flag:
+    objParser.add_argument('-lgcRstrCentre', required=False, type=bool,
+                           metavar='lgcRstrCentre', default=True,
+                           help='Restrict models to stimaluted area.'
+                           )
+
     # Namespace object containign arguments and values:
     objNspc = objParser.parse_args()
 

@@ -364,7 +364,8 @@ def pyprf_opt_brute(strCsvCnfg, objNspc, lgcTest=False):  #noqa
                                                    lstFunc[idxPrc],
                                                    aryPrfTc,
                                                    queOut),
-                                             kwargs=dctKw,
+                                             kwargs={'lgcRstr': lstRst[idxPrc],
+                                                     'lgcPrint': False},
                                              )
                 # Daemon (kills processes when exiting):
                 lstPrcs[idxPrc].Daemon = True
