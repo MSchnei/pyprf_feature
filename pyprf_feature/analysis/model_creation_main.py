@@ -101,20 +101,25 @@ def model_creation(dicCnfg):
                                     cfg.varExtYmax, cfg.varNumPrfSizes,
                                     cfg.varPrfStdMin, cfg.varPrfStdMax,
                                     kwUnt='pix', kwCrd=cfg.strKwCrd)
+        # *********************************************************************
 
         # *********************************************************************
         # *** Exclude model parameters whose prf center would lie outside the
         # stimulated area
-        print('------Exclude model params with prf center outside stim area')
-        varNumMdlBfr = aryMdlParams.shape[0]
-        # Get logical for model inclusion
-        lgcMdlInc = aryStimArea[aryMdlParams[:, 0].astype(np.int32),
-                                aryMdlParams[:, 1].astype(np.int32)]
-        # Exclude models with prf center outside stimulated area
-        aryMdlParams = aryMdlParams[lgcMdlInc, :]
-
-        print('---------Number of models excluded: ' +
-              str(varNumMdlBfr-aryMdlParams.shape[0]))
+#        print('------Exclude model params with prf center outside stim area')
+#        varNumMdlBfr = aryMdlParams.shape[0]
+#        # Get logical for model inclusion
+#        lgcMdlInc = aryStimArea[aryMdlParams[:, 0].astype(np.int32),
+#                                aryMdlParams[:, 1].astype(np.int32)]
+#        # Exclude models with prf center outside stimulated area
+#        aryMdlParams = aryMdlParams[lgcMdlInc, :]
+#
+#        print('---------Number of models excluded: ' +
+#              str(varNumMdlBfr-aryMdlParams.shape[0]))
+#        
+        
+        lgcMdlInc = np.ones(aryMdlParams.shape[0]).astype(np.bool)
+        # *********************************************************************
 
         # *********************************************************************
         # *** Create 2D Gauss model responses to spatial conditions.

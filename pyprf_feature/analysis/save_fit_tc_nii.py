@@ -16,7 +16,7 @@ from pyprf_feature.analysis.model_creation_main import model_creation
 
 # %% Set configuration (csv) file that was used for the fitting
 
-strCsvCnfg = '/media/sf_D_DRIVE/MotDepPrf/Analysis/S02/04_motDepPrf/pRF_results/Average/S02_config_motDepPrf_expn_smooth_otw.csv'
+strCsvCnfg = '/home/marian/Documents/Testing/pyprf_feature_devel/S02_config_motDepPrf_flck_smooth_lowCnt.csv'
 
 # %% Load configuration settings that were used for fitting
 
@@ -41,7 +41,7 @@ aryBetas = load_res_prm(lstPathBeta, lstFlsMsk=[cfg.strPathNiiMask])[0][0]
 # Some voxels were excluded because they did not have sufficient mean
 # and/or variance - exclude their initial parameters, too
 # Get inclusion mask and nii header
-aryLgcMsk, aryLgcVar, hdrMsk, aryAff, _, tplNiiShp = prep_func(
+aryLgcMsk, aryLgcVar, hdrMsk, aryAff, aryFunc, tplNiiShp = prep_func(
     cfg.strPathNiiMask, cfg.lstPathNiiFunc)
 # Apply inclusion mask
 aryIntGssPrm = aryIntGssPrm[aryLgcVar, :]
@@ -102,10 +102,23 @@ for indRow, vecPrm in enumerate(aryUnqRows):
 errMsg = 'At least one voxel visited more than once for SStot calc'
 assert len(vecVxlTst) == np.sum(vecVxlTst), errMsg
 
+# %% Export preprocessed voxel time courses
+
+# List with name suffices of output images:
+lstNiiNames = ['_EmpTc']
+
+# Create full path names from nii file names and output path
+lstNiiNames = [cfg.strPathOut + strNii + '.nii.gz' for strNii in
+               lstNiiNames]
+
+# export beta parameter as a single 4D nii file
+export_nii(aryFunc, lstNiiNames, aryLgcMsk, aryLgcVar, tplNiiShp,
+           aryAff, hdrMsk, outFormat='4D')
+
 # %% Export fitted time courses as nii
 
 # List with name suffices of output images:
-lstNiiNames = ['_FittedTc']
+lstNiiNames = ['_FitTc']
 
 # Create full path names from nii file names and output path
 lstNiiNames = [cfg.strPathOut + strNii + '.nii.gz' for strNii in
