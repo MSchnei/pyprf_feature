@@ -168,7 +168,8 @@ def pyprf_opt_brute(strCsvCnfg, objNspc, lgcTest=False):  #noqa
     # theoretically expected polar angle, this is to offset small imprecisions
     aryUnqPlrAngInd, aryDstPlrAng = find_near_pol_ang(aryPlrAng, aryUnqPlrAng)
 
-    # Make sure that the maximum distance between grid points of polar angles
+    # Make sure that the maximum distance from a found polar angle to a grid
+    # point is smaller than the distance between two neighbor grid points
     assert np.max(aryDstPlrAng) < np.divide(2*np.pi, objNspc.varNumOpt2)
 
     # Update unique polar angles such that it contains only the ones which
@@ -186,10 +187,12 @@ def pyprf_opt_brute(strCsvCnfg, objNspc, lgcTest=False):  #noqa
           str(objNspc.varNumOpt1))
     print('---Number of angular position options provided by user: ' +
           str(objNspc.varNumOpt2))
-    print('---Number of polar angles that will be used for optimization: ' +
+    print('---Number of unique polar angles found in prior estimates: ' +
           str(len(aryUnqPlrAng)))
     print('---Maximum displacement in radial direction that is allowed: ' +
           str(objNspc.varNumOpt3))
+    print('---Fitted modelled are restricted to stimulated area: ' +
+          str(objNspc.lgcRstrCentre))
 
     # *************************************************************************
     # *** Perform prf fitting
@@ -207,7 +210,7 @@ def pyprf_opt_brute(strCsvCnfg, objNspc, lgcTest=False):  #noqa
     # loop over all found instances of polar angle/previous parameters
     for indPlrAng in range(len(aryUnqPlrAng)):
 
-        print('------Polar angle number ' + str(indPlrAng) + ' out of ' +
+        print('------Polar angle number ' + str(indPlrAng+1) + ' out of ' +
               str(len(aryUnqPlrAng)))
 
         # get the polar angle for the current voxel batch
@@ -219,10 +222,8 @@ def pyprf_opt_brute(strCsvCnfg, objNspc, lgcTest=False):  #noqa
         # get prior eccentricities for current voxel batch
         vecPrrEcc = aryIntGssPrm[lgcUnqPlrAng, 3]
 
-        print('------Number of voxels: ' + str(np.sum(lgcUnqPlrAng)))
-
-        # Create list with chunks of functional data for parallel processes:
-        lstFunc = np.array_split(aryFunc[lgcUnqPlrAng, :], cfg.varPar)
+        print('---------Number of voxels of this polar angle: ' +
+              str(np.sum(lgcUnqPlrAng)))
 
         # *********************************************************************
 
@@ -309,117 +310,141 @@ def pyprf_opt_brute(strCsvCnfg, objNspc, lgcTest=False):  #noqa
         vecMdlEcc = np.sqrt(np.add(np.square(aryMdlParams[:, 0]),
                                    np.square(aryMdlParams[:, 1])))
         # Compare model eccentricity against prior eccentricity
-        vecPrrEccGrd, vecMdlEccGrdi = np.meshgrid(vecPrrEcc, vecMdlEcc,
-                                                  indexing='ij')
+        vecPrrEccGrd, vecMdlEccGrd = np.meshgrid(vecPrrEcc, vecMdlEcc,
+                                                 indexing='ij')
         # Consider allowed eccentricity shift as specified by user
-        lgcRstr = np.logical_and(np.less_equal(vecMdlEccGrdi,
+        lgcRstr = np.logical_and(np.less_equal(vecMdlEccGrd,
                                                np.add(vecPrrEccGrd,
                                                       objNspc.varNumOpt3)),
-                                 np.greater(vecMdlEccGrdi,
+                                 np.greater(vecMdlEccGrd,
                                             np.subtract(vecPrrEccGrd,
                                                         objNspc.varNumOpt3)))
-        # Put logical for model restriction in list
-        lstRst = np.array_split(lgcRstr, cfg.varPar)
-        del(lgcRstr)
+
+        # *********************************************************************
+        # *** Check for every voxel there is at least one model being tried
+
+        # Is there at least 1 model for each voxel?
+        lgcMdlPerVxl = np.greater(np.sum(lgcRstr, axis=1), 0)
+        print('---------Number of voxels fitted: ' + str(np.sum(lgcMdlPerVxl)))
+
+        # Those voxels for which no model would be tried, for example because
+        # the pRF parameters estimated in the prior were outside the stimulated
+        # area, are escluded from model fitting by setting their logical False
+        lgcUnqPlrAng[lgcUnqPlrAng] = lgcMdlPerVxl
+
+        # We need to update the index table for restricting model fitting
+        lgcRstr = lgcRstr[lgcMdlPerVxl, :]
+
         # *********************************************************************
         # *** Find best model for voxels with this particular polar angle
 
-        # Empty list for results (parameters of best fitting pRF model):
-        lstPrfRes = [None] * cfg.varPar
+        # Only perform the fitting if there are voxels with models to optimize
+        if np.any(lgcUnqPlrAng):
+            # Empty list for results (parameters of best fitting pRF model):
+            lstPrfRes = [None] * cfg.varPar
 
-        # Empty list for processes:
-        lstPrcs = [None] * cfg.varPar
+            # Empty list for processes:
+            lstPrcs = [None] * cfg.varPar
 
-        # Create a queue to put the results in:
-        queOut = mp.Queue()
+            # Create a queue to put the results in:
+            queOut = mp.Queue()
 
-        # CPU version (using numpy or cython for pRF finding):
-        if ((cfg.strVersion == 'numpy') or (cfg.strVersion == 'cython')):
+            # Put logical for model restriction in list
+            lstRst = np.array_split(lgcRstr, cfg.varPar)
+            del(lgcRstr)
 
-            # Create processes:
+            # Create list with chunks of func data for parallel processes:
+            lstFunc = np.array_split(aryFunc[lgcUnqPlrAng, :], cfg.varPar)
+
+            # CPU version (using numpy or cython for pRF finding):
+            if ((cfg.strVersion == 'numpy') or (cfg.strVersion == 'cython')):
+
+                # Create processes:
+                for idxPrc in range(0, cfg.varPar):
+                    lstPrcs[idxPrc] = mp.Process(target=find_prf_cpu,
+                                                 args=(idxPrc,
+                                                       lstFunc[idxPrc],
+                                                       aryPrfTc,
+                                                       aryMdlParams,
+                                                       cfg.strVersion,
+                                                       cfg.lgcXval,
+                                                       cfg.varNumXval,
+                                                       queOut),
+                                                 kwargs={'lgcRstr':
+                                                         lstRst[idxPrc],
+                                                         'lgcPrint': False},
+                                                 )
+                    # Daemon (kills processes when exiting):
+                    lstPrcs[idxPrc].Daemon = True
+
+            # GPU version (using tensorflow for pRF finding):
+            elif cfg.strVersion == 'gpu':
+
+                # Create processes:
+                for idxPrc in range(0, cfg.varPar):
+                    lstPrcs[idxPrc] = mp.Process(target=find_prf_gpu,
+                                                 args=(idxPrc,
+                                                       aryMdlParams,
+                                                       lstFunc[idxPrc],
+                                                       aryPrfTc,
+                                                       queOut),
+                                                 kwargs={'lgcRstr':
+                                                         lstRst[idxPrc],
+                                                         'lgcPrint': False},
+                                                 )
+                    # Daemon (kills processes when exiting):
+                    lstPrcs[idxPrc].Daemon = True
+
+            # Start processes:
             for idxPrc in range(0, cfg.varPar):
-                lstPrcs[idxPrc] = mp.Process(target=find_prf_cpu,
-                                             args=(idxPrc,
-                                                   lstFunc[idxPrc],
-                                                   aryPrfTc,
-                                                   aryMdlParams,
-                                                   cfg.strVersion,
-                                                   cfg.lgcXval,
-                                                   cfg.varNumXval,
-                                                   queOut),
-                                             kwargs={'lgcRstr': lstRst[idxPrc],
-                                                     'lgcPrint': False},
-                                             )
-                # Daemon (kills processes when exiting):
-                lstPrcs[idxPrc].Daemon = True
+                lstPrcs[idxPrc].start()
 
-        # GPU version (using tensorflow for pRF finding):
-        elif cfg.strVersion == 'gpu':
+            # Delete reference to list with function data (the data continues
+            # to exists in child process):
+            del(lstFunc)
 
-            # Create processes:
+            # Collect results from queue:
             for idxPrc in range(0, cfg.varPar):
-                lstPrcs[idxPrc] = mp.Process(target=find_prf_gpu,
-                                             args=(idxPrc,
-                                                   aryMdlParams,
-                                                   lstFunc[idxPrc],
-                                                   aryPrfTc,
-                                                   queOut),
-                                             kwargs={'lgcRstr': lstRst[idxPrc],
-                                                     'lgcPrint': False},
-                                             )
-                # Daemon (kills processes when exiting):
-                lstPrcs[idxPrc].Daemon = True
+                lstPrfRes[idxPrc] = queOut.get(True)
 
-        # Start processes:
-        for idxPrc in range(0, cfg.varPar):
-            lstPrcs[idxPrc].start()
+            # Join processes:
+            for idxPrc in range(0, cfg.varPar):
+                lstPrcs[idxPrc].join()
 
-        # Delete reference to list with function data (the data continues to
-        # exists in child process):
-        del(lstFunc)
+            # *****************************************************************
 
-        # Collect results from queue:
-        for idxPrc in range(0, cfg.varPar):
-            lstPrfRes[idxPrc] = queOut.get(True)
+            # *****************************************************************
+            # *** Prepare pRF finding results for export
 
-        # Join processes:
-        for idxPrc in range(0, cfg.varPar):
-            lstPrcs[idxPrc].join()
+            # Put output into correct order:
+            lstPrfRes = sorted(lstPrfRes)
 
-        # *********************************************************************
+            # collect results from parallelization
+            aryBstTmpXpos = joinRes(lstPrfRes, cfg.varPar, 1, inFormat='1D')
+            aryBstTmpYpos = joinRes(lstPrfRes, cfg.varPar, 2, inFormat='1D')
+            aryBstTmpSd = joinRes(lstPrfRes, cfg.varPar, 3, inFormat='1D')
+            aryBstTmpR2 = joinRes(lstPrfRes, cfg.varPar, 4, inFormat='1D')
+            aryBstTmpBts = joinRes(lstPrfRes, cfg.varPar, 5, inFormat='2D')
+            if np.greater(cfg.varNumXval, 1):
+                aryTmpBstR2Single = joinRes(lstPrfRes, cfg.varPar, 6,
+                                            inFormat='2D')
+            # Delete unneeded large objects:
+            del(lstPrfRes)
 
-        # *********************************************************************
-        # *** Prepare pRF finding results for export
+            # *****************************************************************
 
-        # Put output into correct order:
-        lstPrfRes = sorted(lstPrfRes)
+            # *****************************************************************
+            # Put findings for voxels with specific polar angle into ary with
+            # result for all voxels
+            aryBstXpos[lgcUnqPlrAng] = aryBstTmpXpos
+            aryBstYpos[lgcUnqPlrAng] = aryBstTmpYpos
+            aryBstSd[lgcUnqPlrAng] = aryBstTmpSd
+            aryBstR2[lgcUnqPlrAng] = aryBstTmpR2
+            aryBstBts[lgcUnqPlrAng, :] = aryBstTmpBts
+            if np.greater(cfg.varNumXval, 1):
+                aryBstR2Single[lgcUnqPlrAng, :] = aryTmpBstR2Single
 
-        # collect results from parallelization
-        aryBstTmpXpos = joinRes(lstPrfRes, cfg.varPar, 1, inFormat='1D')
-        aryBstTmpYpos = joinRes(lstPrfRes, cfg.varPar, 2, inFormat='1D')
-        aryBstTmpSd = joinRes(lstPrfRes, cfg.varPar, 3, inFormat='1D')
-        aryBstTmpR2 = joinRes(lstPrfRes, cfg.varPar, 4, inFormat='1D')
-        aryBstTmpBts = joinRes(lstPrfRes, cfg.varPar, 5, inFormat='2D')
-        if np.greater(cfg.varNumXval, 1):
-            aryTmpBstR2Single = joinRes(lstPrfRes, cfg.varPar, 6,
-                                        inFormat='2D')
-        # Delete unneeded large objects:
-        del(lstPrfRes)
-
-        # *********************************************************************
-
-        # *********************************************************************
-        # Put findings for voxels with specific polar angle into ary with
-        # result for all voxels
-        aryBstXpos[lgcUnqPlrAng] = aryBstTmpXpos
-        aryBstYpos[lgcUnqPlrAng] = aryBstTmpYpos
-        aryBstSd[lgcUnqPlrAng] = aryBstTmpSd
-        aryBstR2[lgcUnqPlrAng] = aryBstTmpR2
-        aryBstBts[lgcUnqPlrAng, :] = aryBstTmpBts
-        if np.greater(cfg.varNumXval, 1):
-            aryBstR2Single[lgcUnqPlrAng, :] = aryTmpBstR2Single
-
-    # *************************************************************************
+            # *****************************************************************
 
     # *************************************************************************
     # Calculate polar angle map:
@@ -427,11 +452,13 @@ def pyprf_opt_brute(strCsvCnfg, objNspc, lgcTest=False):  #noqa
     # Calculate eccentricity map (r = sqrt( x^2 + y^2 ) ):
     aryEcc = np.sqrt(np.add(np.square(aryBstXpos),
                             np.square(aryBstYpos)))
+
     # It is possible that after optimization the pRF has moved to location 0, 0
     # In this cases, the polar angle parameter is arbitrary and will be
     # assigned either 0 or pi. To preserve smoothness of the map, assign the
     # initial polar angle value from independent localiser
     lgcMvdOrgn = np.logical_and(aryBstXpos == 0.0, aryBstYpos == 0.0)
+    lgcMvdOrgn = np.logical_and(lgcMvdOrgn, aryBstSd > 0)
     aryIntPlrAng = np.arctan2(aryIntGssPrm[:, 1], aryIntGssPrm[:, 0])
     aryPlrAng[lgcMvdOrgn] = np.copy(aryIntPlrAng[lgcMvdOrgn])
 
