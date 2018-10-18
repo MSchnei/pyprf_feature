@@ -104,7 +104,6 @@ def find_prf_cpu(idxPrc, aryFuncChnk, aryPrfTc, aryMdlParams, strVersion,
     vecBstXpos = np.zeros(varNumVoxChnk, dtype=aryMdlParams.dtype)
     vecBstYpos = np.zeros(varNumVoxChnk, dtype=aryMdlParams.dtype)
     vecBstSd = np.zeros(varNumVoxChnk, dtype=aryMdlParams.dtype)
-    # vecBstR2 = np.zeros(varNumVoxChnk)
 
     # Vector for best R-square value. For each model fit, the R-square value is
     # compared to this, and updated if it is lower than the best-fitting
@@ -176,7 +175,7 @@ def find_prf_cpu(idxPrc, aryFuncChnk, aryPrfTc, aryMdlParams, strVersion,
     # If user does not restrict model space for particular voxels, select
     # all voxels
     if lgcRstr is None:
-        lgcVxl = slice(None)
+        lgcVxl = np.arange(varNumVoxChnk, dtype=np.int32)
 
     # There can be pRF model time courses with a variance of zero (i.e. pRF
     # models that are not actually responsive to the stimuli). For time
@@ -193,9 +192,8 @@ def find_prf_cpu(idxPrc, aryFuncChnk, aryPrfTc, aryMdlParams, strVersion,
         # If desired by user, restrict the model fitting such that certain
         # models are restricted to particular voxels
         if lgcRstr is not None:
-            lgcVxl = lgcRstr[:, idxMdl]
-            if idxPrc == 0:
-                print('------------Number of voxels: ' + str(np.sum(lgcVxl)))
+            # Apply flatnonzero, so we can use cascaded integer indexing later
+            lgcVxl = np.flatnonzero(lgcRstr[:, idxMdl])
 
         # Status indicator (only used in the first of the parallel
         # processes):
@@ -224,7 +222,7 @@ def find_prf_cpu(idxPrc, aryFuncChnk, aryPrfTc, aryMdlParams, strVersion,
         # 2) at least one voxel is being tested
         if np.logical_and(np.all(np.greater(aryPrfTcVar[idxMdl], varZero32),
                                  axis=0),
-                          np.any(lgcVxl)):
+                          np.greater(lgcVxl.size, 0)):
 
             # Get predictor time courses for this specific model
             vecMdl = aryPrfTc[idxMdl, :, :].T
@@ -281,7 +279,7 @@ def find_prf_cpu(idxPrc, aryFuncChnk, aryPrfTc, aryMdlParams, strVersion,
                     # A cython function is used to calculate the residuals and
                     # beta parameter estimates of the current model:
                     if varNumFtr == 1:
-                        # For time course with one predictors
+                        # For time course with one predictor
                         aryTmpBts, vecTmpRes = cy_lst_sq_one(
                             np.squeeze(vecMdl), aryFuncChnk[:, lgcVxl])
 
@@ -306,24 +304,26 @@ def find_prf_cpu(idxPrc, aryFuncChnk, aryPrfTc, aryMdlParams, strVersion,
             # or residuals (xval=False) are lower than previously
             # calculated ones:
             vecLgcTmpRes = np.less(vecTmpRes, vecBstRes[lgcVxl])
+            # Apply np.flatnonzero for cascaded integer-indexing
+            vecLgcTmpRes = np.flatnonzero(vecLgcTmpRes)
 
             # Replace best x and y position values, and SD values:
-            vecBstXpos[lgcVxl][vecLgcTmpRes] = aryMdlParams[idxMdl, 0]
-            vecBstYpos[lgcVxl][vecLgcTmpRes] = aryMdlParams[idxMdl, 1]
-            vecBstSd[lgcVxl][vecLgcTmpRes] = aryMdlParams[idxMdl, 2]
+            vecBstXpos[lgcVxl[vecLgcTmpRes]] = aryMdlParams[idxMdl, 0]
+            vecBstYpos[lgcVxl[vecLgcTmpRes]] = aryMdlParams[idxMdl, 1]
+            vecBstSd[lgcVxl[vecLgcTmpRes]] = aryMdlParams[idxMdl, 2]
 
             # Replace best mean residual values:
-            vecBstRes[lgcVxl][vecLgcTmpRes] = vecTmpRes[vecLgcTmpRes]
+            vecBstRes[lgcVxl[vecLgcTmpRes]] = vecTmpRes[vecLgcTmpRes]
 
             if not lgcXval:
                 # Replace best beta values:
-                aryBstBts[lgcVxl, :][vecLgcTmpRes, :] = \
+                aryBstBts[lgcVxl[vecLgcTmpRes], :] = \
                     aryTmpBts[:, vecLgcTmpRes].T
 
             # In case we cross-validate we also save and replace the best
             # residual values for every fold (not only mean across folds):
             if lgcXval:
-                aryBstResFlds[lgcVxl, :][vecLgcTmpRes, :] = \
+                aryBstResFlds[lgcVxl[vecLgcTmpRes], :] = \
                     aryResXval[vecLgcTmpRes, :]
 
         # Status indicator (only used in the first of the parallel
