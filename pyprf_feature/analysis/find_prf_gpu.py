@@ -28,7 +28,7 @@ except ImportError:
 
 
 def funcFindPrfGpu(idxPrc, vecMdlXpos, vecMdlYpos, vecMdlSd, aryFunc,  # noqa
-                   aryPrfTc, varL2reg, queOut):
+                   aryPrfTc, varL2reg, queOut, lgcPrint=True):
     """
     Find best pRF model for voxel time course.
 
@@ -53,6 +53,8 @@ def funcFindPrfGpu(idxPrc, vecMdlXpos, vecMdlYpos, vecMdlSd, aryFunc,  # noqa
         L2 regularisation factor for ridge regression.
     queOut : multiprocessing.queues.Queue
         Queue to put the results on.
+    lgcPrint : boolean
+        Whether print statements should be executed.
 
     Returns
     -------
@@ -111,8 +113,8 @@ def funcFindPrfGpu(idxPrc, vecMdlXpos, vecMdlYpos, vecMdlSd, aryFunc,  # noqa
 
     # -------------------------------------------------------------------------
     # *** Prepare pRF model time courses for graph
-
-    print('------Prepare pRF model time courses for graph')
+    if lgcPrint:
+        print('------Prepare pRF model time courses for graph')
 
     # Information about pRF model parameters:
     varNumX = np.shape(vecMdlXpos)[0]
@@ -175,10 +177,10 @@ def funcFindPrfGpu(idxPrc, vecMdlXpos, vecMdlYpos, vecMdlSd, aryFunc,  # noqa
     # Size of pRF time courses in MB:
     varSzePrf = np.divide(float(aryPrfTc.nbytes),
                           1000000.0)
-
-    print(('---------Size of pRF time courses: '
-           + str(np.around(varSzePrf))
-           + ' MB'))
+    if lgcPrint:
+        print(('---------Size of pRF time courses: '
+               + str(np.around(varSzePrf))
+               + ' MB'))
 
     # Put pRF model time courses into list:
     lstPrfTc = [None] * aryPrfTc.shape[0]
@@ -191,8 +193,8 @@ def funcFindPrfGpu(idxPrc, vecMdlXpos, vecMdlYpos, vecMdlSd, aryFunc,  # noqa
 
     # -------------------------------------------------------------------------
     # *** Prepare functional data for graph
-
-    print('------Prepare functional data for graph')
+    if lgcPrint:
+        print('------Prepare functional data for graph')
 
     # Number of voxels to be fitted:
     varNumVox = aryFunc.shape[0]
@@ -214,17 +216,18 @@ def funcFindPrfGpu(idxPrc, vecMdlXpos, vecMdlYpos, vecMdlSd, aryFunc,  # noqa
     # Size of functional data in MB:
     varSzeFunc = np.divide(float(aryFunc.nbytes),
                            1000000.0)
-
-    print(('---------Size of functional data: '
-           + str(np.around(varSzeFunc))
-           + ' MB'))
+    if lgcPrint:
+        print(('---------Size of functional data: '
+               + str(np.around(varSzeFunc))
+               + ' MB'))
 
     # Number of chunks to create:
     varNumChnk = int(np.ceil(np.divide(varSzeFunc, varSzeMax)))
 
-    print(('---------Functional data will be split into '
-           + str(varNumChnk)
-           + ' batches'))
+    if lgcPrint:
+        print(('---------Functional data will be split into '
+               + str(varNumChnk)
+               + ' batches'))
 
     # Vector with the indicies at which the functional data will be separated
     # in order to be chunked up for the parallel processes:
@@ -313,15 +316,14 @@ def funcFindPrfGpu(idxPrc, vecMdlXpos, vecMdlYpos, vecMdlSd, aryFunc,  # noqa
 
     # -------------------------------------------------------------------------
     # *** Loop through chunks
-
-    print('------Run graph')
+    if lgcPrint:
+        print('------Run graph')
 
     for idxChnk in range(varNumChnk):
-
-        print(('---------Chunk: ' + str(idxChnk)))
-
-        print('lstPrfTc[0].shape')
-        print(lstPrfTc[0].shape)
+        if lgcPrint:
+            print(('---------Chunk: ' + str(idxChnk)))
+            print('lstPrfTc[0].shape')
+            print(lstPrfTc[0].shape)
 
         # Define session:
         # objSess = tf.Session()
@@ -329,8 +331,8 @@ def funcFindPrfGpu(idxPrc, vecMdlXpos, vecMdlYpos, vecMdlSd, aryFunc,  # noqa
 
             # -----------------------------------------------------------------
             # *** Prepare queue
-
-            print('------Define computational graph, queue & session')
+            if lgcPrint:
+                print('------Define computational graph, queue & session')
 
             # Queue capacity:
             varCapQ = 10
@@ -509,7 +511,8 @@ def funcFindPrfGpu(idxPrc, vecMdlXpos, vecMdlYpos, vecMdlSd, aryFunc,  # noqa
                                  + str(vecStatPrc[varCntSts01])
                                  + ' % --- Number of elements on queue: '
                                  + str(varTmpSzeQ))
-                    print(strStsMsg)
+                    if lgcPrint:
+                        print(strStsMsg)
                     # Only increment counter if the last value has not been
                     # reached yet:
                     if varCntSts01 < varStsStpSze:
@@ -529,8 +532,8 @@ def funcFindPrfGpu(idxPrc, vecMdlXpos, vecMdlYpos, vecMdlSd, aryFunc,  # noqa
 
     # -------------------------------------------------------------------------
     # *** Post-process results
-
-    print('------Post-processing results')
+    if lgcPrint:
+        print('------Post-processing results')
 
     # Array for model parameters. At the moment, we have the indices of the
     # best fitting models, so we need an array that tells us what model

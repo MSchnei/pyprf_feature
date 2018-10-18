@@ -23,7 +23,7 @@ from copy import deepcopy
 from pyprf_feature.analysis.utils_general import load_nii
 
 
-def prep_models(aryPrfTc, varSdSmthTmp=2.0):
+def prep_models(aryPrfTc, varSdSmthTmp=2.0, lgcPrint=True):
     """
     Prepare pRF model time courses.
 
@@ -36,7 +36,8 @@ def prep_models(aryPrfTc, varSdSmthTmp=2.0):
         Extent of temporal smoothing that is applied to functional data and
         pRF time course models, [SD of Gaussian kernel, in seconds]. If `zero`,
         no temporal smoothing is applied.
-
+    lgcPrint : boolean
+        Whether print statements should be executed.
 
     Returns
     -------
@@ -44,10 +45,11 @@ def prep_models(aryPrfTc, varSdSmthTmp=2.0):
         4D numpy array with prepared pRF time course models, same
         dimensions as input (`aryPrfTc[x-position, y-position, SD, volume]`).
     """
-    print('------Prepare pRF time course models')
+    if lgcPrint:
+        print('------Prepare pRF time course models')
 
     # Define temporal smoothing of pRF time course models
-    def funcSmthTmp(aryPrfTc, varSdSmthTmp):
+    def funcSmthTmp(aryPrfTc, varSdSmthTmp, lgcPrint=True):
         """Apply temporal smoothing to fMRI data & pRF time course models.
 
         Parameters
@@ -59,6 +61,8 @@ def prep_models(aryPrfTc, varSdSmthTmp=2.0):
             Extent of temporal smoothing that is applied to functional data and
             pRF time course models, [SD of Gaussian kernel, in seconds]. If
             `zero`, no temporal smoothing is applied.
+        lgcPrint : boolean
+            Whether print statements should be executed.
 
         Returns
         -------
@@ -94,12 +98,14 @@ def prep_models(aryPrfTc, varSdSmthTmp=2.0):
 
     # Perform temporal smoothing of pRF time course models
     if 0.0 < varSdSmthTmp:
-        print('---------Temporal smoothing on pRF time course models')
-        print('------------SD tmp smooth is: ' + str(varSdSmthTmp))
+        if lgcPrint:
+            print('---------Temporal smoothing on pRF time course models')
+            print('------------SD tmp smooth is: ' + str(varSdSmthTmp))
         aryPrfTc = funcSmthTmp(aryPrfTc, varSdSmthTmp)
 
     # Z-score the prf time course models
-    print('---------Zscore the pRF time course models')
+    if lgcPrint:
+        print('---------Zscore the pRF time course models')
     # De-mean the prf time course models:
     aryPrfTc = np.subtract(aryPrfTc, np.mean(aryPrfTc, axis=-1)[..., None])
 
@@ -114,7 +120,7 @@ def prep_models(aryPrfTc, varSdSmthTmp=2.0):
     return aryPrfTc
 
 
-def prep_func(strPathNiiMask, lstPathNiiFunc, varAvgThr=100.,
+def prep_func(strPathNiiMask, lstPathNiiFunc, varAvgThr=-100.,
               varVarThr=0.0001):
     """
     Load & prepare functional data.
@@ -256,7 +262,7 @@ def prep_func(strPathNiiMask, lstPathNiiFunc, varAvgThr=100.,
 
     # Especially if data were recorded in different sessions, there can
     # sometimes be voxels that have close to zero signal in runs from one
-    # session but regular signalin the runs from another session. These voxels
+    # session but regular signal in the runs from another session. These voxels
     # are very few, are located at the edge of the functional and can cause
     # problems during model fitting. They are therefore excluded.
 
@@ -279,9 +285,15 @@ def prep_func(strPathNiiMask, lstPathNiiFunc, varAvgThr=100.,
     # Variance needs to be greater than threshold in every single run
     vecLgcVar = np.all(aryLgcVar, axis=1)
 
+    # Are there any nan values in the functional time series?
+    vecLgcNan = np.invert(np.any(np.isnan(aryFunc), axis=1))
+
     # combine the logical vectors for exclusion resulting from low variance and
     # low mean signal time course
     vecLgcIncl = np.logical_and(vecLgcAvg, vecLgcVar)
+
+    # combine logical vectors for mean/variance with vector for nan exclsion
+    vecLgcIncl = np.logical_and(vecLgcIncl, vecLgcNan)
 
     # Array with functional data for which conditions (mask inclusion and
     # cutoff value) are fullfilled:

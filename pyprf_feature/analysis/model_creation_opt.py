@@ -19,13 +19,12 @@
 
 import numpy as np
 from pyprf_feature.analysis.utils_general import cls_set_config
-from pyprf_feature.analysis.model_creation_utils import (crt_mdl_prms,
-                                                         crt_mdl_rsp,
+from pyprf_feature.analysis.model_creation_utils import (crt_mdl_rsp,
                                                          crt_prf_ftr_tc,
                                                          )
 
 
-def model_creation(dicCnfg):
+def model_creation_opt(dicCnfg, aryMdlParams):
     """
     Create or load pRF model time courses.
 
@@ -33,15 +32,14 @@ def model_creation(dicCnfg):
     ----------
     dicCnfg : dict
         Dictionary containing config parameters.
+    aryMdlParams : numpy arrays
+        x, y and sigma parameters.
 
     Returns
     -------
     aryPrfTc : np.array
         4D numpy array with pRF time course models, with following dimensions:
-        'aryPrfTc[x-position, y-position, SD, volume]'.
-    lgcMdlInc : np.array, boolean
-        Logical to only include models with pRF center on stimulated area.
-
+        `aryPrfTc[x-position, y-position, SD, volume]`.
     """
     # *************************************************************************
     # *** Load parameters from config file
@@ -54,8 +52,6 @@ def model_creation(dicCnfg):
 
         # *********************************************************************
         # *** Load spatial condition information
-
-        print('------Load spatial condition information')
 
         arySptExpInf = np.load(cfg.strSptExpInf)
 
@@ -77,12 +73,10 @@ def model_creation(dicCnfg):
         # *********************************************************************
         # *** Load temporal condition information
 
-        print('------Load temporal condition information')
-
+        # load temporal information about presented stimuli
         aryTmpExpInf = np.load(cfg.strTmpExpInf)
         # add fourth column to make it appropriate for pyprf_feature
         if aryTmpExpInf.shape[-1] == 3:
-            print('---------Added fourth column')
             vecNewCol = np.greater(aryTmpExpInf[:, 0], 0).astype(np.float16)
             aryTmpExpInf = np.concatenate(
                 (aryTmpExpInf, np.expand_dims(vecNewCol, axis=1)), axis=1)
@@ -90,20 +84,7 @@ def model_creation(dicCnfg):
         # *********************************************************************
 
         # *********************************************************************
-        # *** Create model parameter combination, for now in pixel.
-        aryMdlParams = crt_mdl_prms((int(cfg.varVslSpcSzeX),
-                                     int(cfg.varVslSpcSzeY)), cfg.varNum1,
-                                    cfg.varExtXmin, cfg.varExtXmax,
-                                    cfg.varNum2, cfg.varExtYmin,
-                                    cfg.varExtYmax, cfg.varNumPrfSizes,
-                                    cfg.varPrfStdMin, cfg.varPrfStdMax,
-                                    kwUnt='pix', kwCrd=cfg.strKwCrd)
-        # *********************************************************************
-
-        # *********************************************************************
         # *** Create 2D Gauss model responses to spatial conditions.
-
-        print('------Create 2D Gauss model responses to spatial conditions')
 
         aryMdlRsp = crt_mdl_rsp(arySptExpInf, (int(cfg.varVslSpcSzeX),
                                                int(cfg.varVslSpcSzeY)),
@@ -115,8 +96,6 @@ def model_creation(dicCnfg):
         # *********************************************************************
         # *** Create prf time course models
 
-        print('------Create prf time course models')
-
         aryPrfTc = crt_prf_ftr_tc(aryMdlRsp, aryTmpExpInf, cfg.varNumVol,
                                   cfg.varTr, cfg.varTmpOvsmpl,
                                   cfg.switchHrfSet, (int(cfg.varVslSpcSzeX),
@@ -126,41 +105,5 @@ def model_creation(dicCnfg):
         del(aryMdlRsp)
 
         # *********************************************************************
-
-        # *********************************************************************
-        # *** Save pRF time course models
-
-        print('------Save pRF time course models to disk')
-
-        # Save the 4D array as '*.npy' file:
-        np.save(cfg.strPathMdl, aryPrfTc)
-        # Save the corresponding model parameters
-        np.save(cfg.strPathMdl + "_params", aryMdlParams)
-        del(aryMdlParams)
-
-        # *********************************************************************
-
-    else:
-
-        # *********************************************************************
-        # %% Load existing pRF time course models
-
-        print('------Load pRF time course models from disk')
-
-        # Load the file:
-        aryPrfTc = np.load((cfg.strPathMdl + '.npy'))
-
-        # Check whether pRF time course model matrix has the expected
-        # dimensions:
-        vecPrfTcShp = aryPrfTc.shape
-
-        # Logical test for correct dimensions:
-        strErrMsg = ('---Error: Dimensions of specified pRF time course ' +
-                     'models do not agree with specified model parameters')
-        assert vecPrfTcShp[0] == cfg.varNum1 * \
-            cfg.varNum2 * cfg.varNumPrfSizes and \
-            vecPrfTcShp[-1] == cfg.varNumVol, strErrMsg
-
-    # *************************************************************************
 
     return aryPrfTc

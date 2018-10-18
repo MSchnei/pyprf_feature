@@ -254,15 +254,15 @@ def crt_mdl_prms(tplPngSize, varNum1, varExtXmin,  varExtXmax, varNum2,
         # Vector with the angular position:
         vecTht = np.linspace(0.0, 2*np.pi, varNum2, endpoint=False)
 
-        # get all possible combinations on the grid, using matrix indexing ij
+        # Get all possible combinations on the grid, using matrix indexing ij
         # of output
         aryRad, aryTht = np.meshgrid(vecRad, vecTht, indexing='ij')
 
-        # faltten arrays to be able to combine them with meshgrid
+        # Flatten arrays to be able to combine them with meshgrid
         vecRad = aryRad.flatten()
         vecTht = aryTht.flatten()
 
-        # convert from polar to cartesian
+        # Convert from polar to cartesian
         vecX, vecY = map_pol_to_crt(vecTht, vecRad)
 
         # Vector with standard deviations pRF models (in degree of vis angle):
@@ -598,7 +598,8 @@ def crt_prf_ftr_tc(aryMdlRsp, aryTmpExpInf, varNumVol, varTr, varTmpOvsmpl,
     """
 
     # identify number of unique feautures
-    vecFeat = np.nonzero(np.unique(aryTmpExpInf[:, 3]))[0]
+    vecFeat = np.unique(aryTmpExpInf[:, 3])
+    vecFeat = vecFeat[np.nonzero(vecFeat)[0]]
 
     # preallocate the output array
     aryPrfTc = np.zeros((aryMdlRsp.shape[0], 0, varNumVol),

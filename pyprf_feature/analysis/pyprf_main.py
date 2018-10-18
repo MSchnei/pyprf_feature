@@ -19,7 +19,6 @@
 
 import time
 import numpy as np
-import nibabel as nb
 import multiprocessing as mp
 
 from pyprf_feature.analysis.load_config import load_config
@@ -30,7 +29,7 @@ from pyprf_feature.analysis.model_creation_utils import crt_mdl_prms
 from pyprf_feature.analysis.prepare import prep_models, prep_func
 
 ###### DEBUGGING ###############
-#strCsvCnfg = "/home/marian/Documents/Git/pyprf_feature/pyprf_feature/analysis/config_custom.csv"
+#strCsvCnfg = "/home/marian/Documents/Testing/pyprf_feature_devel/S02_config_motDepPrf_flck_smooth_inw.csv"
 #lgcTest = False
 ################################
 
@@ -75,6 +74,9 @@ def pyprf(strCsvCnfg, lgcTest=False):  #noqa
     # *************************************************************************
     # *** Create or load pRF time course models
 
+    # Create model time courses. Also return logical for inclusion of model
+    # parameters which will be needed later when we create model parameters
+    # in degree.
     aryPrfTc = model_creation(dicCnfg)
 
     # Deduce the number of features from the pRF time course models array
@@ -92,6 +94,11 @@ def pyprf(strCsvCnfg, lgcTest=False):  #noqa
     # The functional data will be masked and demeaned:
     aryLgcMsk, aryLgcVar, hdrMsk, aryAff, aryFunc, tplNiiShp = prep_func(
         cfg.strPathNiiMask, cfg.lstPathNiiFunc)
+
+    # set the precision of the header to np.float32 so that the prf results
+    # will be saved in this precision later
+    hdrMsk.set_data_dtype(np.float32)
+    # *************************************************************************
 
     # *************************************************************************
     # *** Checks
@@ -119,7 +126,7 @@ def pyprf(strCsvCnfg, lgcTest=False):  #noqa
             'Set strVersion equal \'numpy\'.'
         assert cfg.varNumFtr in [1, 2], strErrMsg
 
-    # check whether we need to crossvalidate
+    # Check whether we need to crossvalidate
     if np.greater(cfg.varNumXval, 1):
         cfg.lgcXval = True
     elif np.equal(cfg.varNumXval, 1):
@@ -167,6 +174,10 @@ def pyprf(strCsvCnfg, lgcTest=False):  #noqa
     # We don't need the original array with the functional data anymore:
     del(aryFunc)
 
+    # Prepare dictionary to pass as kwargs to find_prf_cpu
+    dctKw = {'lgcRstr': None,
+             'lgcPrint': True}
+
     # CPU version (using numpy or cython for pRF finding):
     if ((cfg.strVersion == 'numpy') or (cfg.strVersion == 'cython')):
 
@@ -184,7 +195,8 @@ def pyprf(strCsvCnfg, lgcTest=False):  #noqa
                                                cfg.strVersion,
                                                cfg.lgcXval,
                                                cfg.varNumXval,
-                                               queOut)
+                                               queOut),
+                                         kwargs=dctKw,
                                          )
             # Daemon (kills processes when exiting):
             lstPrcs[idxPrc].Daemon = True
@@ -201,7 +213,8 @@ def pyprf(strCsvCnfg, lgcTest=False):  #noqa
                                                aryMdlParams,
                                                lstFunc[idxPrc],
                                                aryPrfTc,
-                                               queOut)
+                                               queOut),
+                                         kwargs=dctKw,
                                          )
             # Daemon (kills processes when exiting):
             lstPrcs[idxPrc].Daemon = True

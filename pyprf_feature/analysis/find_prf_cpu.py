@@ -28,7 +28,7 @@ from pyprf_feature.analysis.find_prf_utils_cy_two import (cy_lst_sq_two,
 
 
 def find_prf_cpu(idxPrc, aryFuncChnk, aryPrfTc, aryMdlParams, strVersion,
-                 lgcXval, varNumXval, queOut):
+                 lgcXval, varNumXval, queOut, lgcRstr=None, lgcPrint=True):
     """
     Find best fitting pRF model for voxel time course, using the CPU.
 
@@ -53,6 +53,10 @@ def find_prf_cpu(idxPrc, aryFuncChnk, aryPrfTc, aryMdlParams, strVersion,
         Number of folds for k-fold cross-validation.
     queOut : multiprocessing.queues.Queue
         Queue to put the results on.
+    lgcRstr : boolean numpy array or None, default None
+        Logical to restrict certain models to particular voxels.
+    lgcPrint : boolean
+        Whether print statements should be executed.
 
     Returns
     -------
@@ -100,7 +104,6 @@ def find_prf_cpu(idxPrc, aryFuncChnk, aryPrfTc, aryMdlParams, strVersion,
     vecBstXpos = np.zeros(varNumVoxChnk, dtype=aryMdlParams.dtype)
     vecBstYpos = np.zeros(varNumVoxChnk, dtype=aryMdlParams.dtype)
     vecBstSd = np.zeros(varNumVoxChnk, dtype=aryMdlParams.dtype)
-    # vecBstR2 = np.zeros(varNumVoxChnk)
 
     # Vector for best R-square value. For each model fit, the R-square value is
     # compared to this, and updated if it is lower than the best-fitting
@@ -169,6 +172,11 @@ def find_prf_cpu(idxPrc, aryFuncChnk, aryPrfTc, aryMdlParams, strVersion,
         varCntSts01 = 0
         varCntSts02 = 0
 
+    # If user does not restrict model space for particular voxels, select
+    # all voxels
+    if lgcRstr is None:
+        lgcVxl = np.arange(varNumVoxChnk, dtype=np.int32)
+
     # There can be pRF model time courses with a variance of zero (i.e. pRF
     # models that are not actually responsive to the stimuli). For time
     # efficiency, and in order to avoid division by zero, we ignore these
@@ -180,6 +188,12 @@ def find_prf_cpu(idxPrc, aryFuncChnk, aryPrfTc, aryMdlParams, strVersion,
 
     # Loop through pRF models:
     for idxMdl in range(0, varNumMdls):
+
+        # If desired by user, restrict the model fitting such that certain
+        # models are restricted to particular voxels
+        if lgcRstr is not None:
+            # Apply flatnonzero, so we can use cascaded integer indexing later
+            lgcVxl = np.flatnonzero(lgcRstr[:, idxMdl])
 
         # Status indicator (only used in the first of the parallel
         # processes):
@@ -195,19 +209,22 @@ def find_prf_cpu(idxPrc, aryFuncChnk, aryPrfTc, aryMdlParams, strVersion,
                              str(vecStatPrf[varCntSts01]) +
                              ' pRF models out of ' +
                              str(varNumMdls))
-
-                print(strStsMsg)
+                if lgcPrint:
+                    print(strStsMsg)
 
                 # Only increment counter if the last value has not been
                 # reached yet:
                 if varCntSts01 < varStsStpSze:
                     varCntSts01 = varCntSts01 + int(1)
 
-        # Only fit pRF model if all of the feauture predictos have a variance
-        # that is greater than zero:
-        if np.all(np.greater(aryPrfTcVar[idxMdl], varZero32), axis=0):
+        # Only fit pRF model if:
+        # 1) all feature predictors have a variance greater than zero AND
+        # 2) at least one voxel is being tested
+        if np.logical_and(np.all(np.greater(aryPrfTcVar[idxMdl], varZero32),
+                                 axis=0),
+                          np.greater(lgcVxl.size, 0)):
 
-            # get predictor time courses for this specific model
+            # Get predictor time courses for this specific model
             vecMdl = aryPrfTc[idxMdl, :, :].T
 
             # Check whether we need to crossvalidate
@@ -225,25 +242,26 @@ def find_prf_cpu(idxPrc, aryFuncChnk, aryPrfTc, aryMdlParams, strVersion,
                     if varNumFtr == 1:
                         # For time course with one predictors
                         aryResXval = cy_lst_sq_xval_one(np.squeeze(vecMdl),
-                                                        aryFuncChnk,
+                                                        aryFuncChnk[:, lgcVxl],
                                                         aryIdxTrn,
                                                         aryIdxTst)
 
                     elif varNumFtr == 2:
                         # For time course with two predictors
                         aryResXval = cy_lst_sq_xval_two(vecMdl,
-                                                        aryFuncChnk,
+                                                        aryFuncChnk[:, lgcVxl],
                                                         aryIdxTrn,
                                                         aryIdxTst)
 
                     else:
-                        print('Cython currently not implemented for more ' +
-                              'two predictors.')
+                        if lgcPrint:
+                            print('Cython currently not implemented for ' +
+                                  'more than two predictors.')
 
                 # Numpy version:
                 elif strVersion == 'numpy':
 
-                    aryResXval = np_lst_sq_xval(vecMdl, aryFuncChnk,
+                    aryResXval = np_lst_sq_xval(vecMdl, aryFuncChnk[:, lgcVxl],
                                                 aryIdxTrn, aryIdxTst)
 
                 # calculate the average cross validation error across
@@ -261,46 +279,52 @@ def find_prf_cpu(idxPrc, aryFuncChnk, aryPrfTc, aryMdlParams, strVersion,
                     # A cython function is used to calculate the residuals and
                     # beta parameter estimates of the current model:
                     if varNumFtr == 1:
-                        # For time course with one predictors
+                        # For time course with one predictor
                         aryTmpBts, vecTmpRes = cy_lst_sq_one(
-                            np.squeeze(vecMdl), aryFuncChnk)
+                            np.squeeze(vecMdl), aryFuncChnk[:, lgcVxl])
 
                     elif varNumFtr == 2:
                         # For time course with two predictors
-                        aryTmpBts, vecTmpRes = cy_lst_sq_two(vecMdl,
-                                                             aryFuncChnk)
+                        aryTmpBts, vecTmpRes = \
+                            cy_lst_sq_two(vecMdl, aryFuncChnk[:, lgcVxl])
                     else:
-                        print('Cython currently not implemented for more ' +
-                              'two predictors.')
+                        if lgcPrint:
+                            print('Cython currently not implemented for ' +
+                                  'more than two two predictors.')
 
                 # Numpy version:
                 elif strVersion == 'numpy':
 
                     # Numpy linalg.lstsq is used to calculate the
                     # beta values and residuals of the current model:
-                    aryTmpBts, vecTmpRes = np_lst_sq(vecMdl, aryFuncChnk)
+                    aryTmpBts, vecTmpRes = np_lst_sq(vecMdl,
+                                                     aryFuncChnk[:, lgcVxl])
 
             # Check whether current crossvalidation error (xval=True)
             # or residuals (xval=False) are lower than previously
             # calculated ones:
-            vecLgcTmpRes = np.less(vecTmpRes, vecBstRes)
+            vecLgcTmpRes = np.less(vecTmpRes, vecBstRes[lgcVxl])
+            # Apply np.flatnonzero for cascaded integer-indexing
+            vecLgcTmpRes = np.flatnonzero(vecLgcTmpRes)
 
             # Replace best x and y position values, and SD values:
-            vecBstXpos[vecLgcTmpRes] = aryMdlParams[idxMdl, 0]
-            vecBstYpos[vecLgcTmpRes] = aryMdlParams[idxMdl, 1]
-            vecBstSd[vecLgcTmpRes] = aryMdlParams[idxMdl, 2]
+            vecBstXpos[lgcVxl[vecLgcTmpRes]] = aryMdlParams[idxMdl, 0]
+            vecBstYpos[lgcVxl[vecLgcTmpRes]] = aryMdlParams[idxMdl, 1]
+            vecBstSd[lgcVxl[vecLgcTmpRes]] = aryMdlParams[idxMdl, 2]
 
             # Replace best mean residual values:
-            vecBstRes[vecLgcTmpRes] = vecTmpRes[vecLgcTmpRes]
+            vecBstRes[lgcVxl[vecLgcTmpRes]] = vecTmpRes[vecLgcTmpRes]
 
             if not lgcXval:
                 # Replace best beta values:
-                aryBstBts[vecLgcTmpRes, :] = aryTmpBts[:, vecLgcTmpRes].T
+                aryBstBts[lgcVxl[vecLgcTmpRes], :] = \
+                    aryTmpBts[:, vecLgcTmpRes].T
 
             # In case we cross-validate we also save and replace the best
             # residual values for every fold (not only mean across folds):
             if lgcXval:
-                aryBstResFlds[vecLgcTmpRes, :] = aryResXval[vecLgcTmpRes, :]
+                aryBstResFlds[lgcVxl[vecLgcTmpRes], :] = \
+                    aryResXval[vecLgcTmpRes, :]
 
         # Status indicator (only used in the first of the parallel
         # processes):
@@ -338,25 +362,26 @@ def find_prf_cpu(idxPrc, aryFuncChnk, aryPrfTc, aryMdlParams, strVersion,
         # Loop over all best-fitting model parameter combinations found
         for vecPrm in aryUnqRows:
             # Get logical for voxels for which this prm combi was the best
-            lgcVxl = np.isclose(aryBstPrm, vecPrm, atol=1e-04).all(axis=1)
+            lgcPrm = np.isclose(aryBstPrm, vecPrm, atol=1e-04).all(axis=1)
             # Get logical index for the model number
             # This can only be 1 index, so we directly get 1st entry of array
             lgcIndMdl = np.where(np.isclose(aryMdlParams, vecPrm,
                                             atol=1e-04).all(axis=1))[0][0]
 
-            if np.all(np.invert(lgcVxl)):
-                print('------------No voxel found, process ' + str(idxPrc))
+            if np.all(np.invert(lgcPrm)):
+                if lgcPrint:
+                    print('------------No voxel found, process ' + str(idxPrc))
             # Mark those voxels that were visited
-            vecVxlTst[lgcVxl] += 1
+            vecVxlTst[lgcPrm] += 1
 
             # Get voxel time course
-            aryVxlTc = aryFuncChnk[:, lgcVxl]
+            aryVxlTc = aryFuncChnk[:, lgcPrm]
 
             # Get model time courses
             aryMdlTc = aryPrfTc[lgcIndMdl, :, :].T
 
             # Calculate beta parameter estimates for entire model
-            aryBstBts[lgcVxl, :] = np.linalg.lstsq(aryMdlTc,
+            aryBstBts[lgcPrm, :] = np.linalg.lstsq(aryMdlTc,
                                                    aryVxlTc,
                                                    rcond=-1)[0].T
 
@@ -373,7 +398,7 @@ def find_prf_cpu(idxPrc, aryFuncChnk, aryPrfTc, aryMdlParams, strVersion,
                 vecSsTot = np.sum(np.power(aryFuncDev,
                                            2.0),
                                   axis=0)
-                arySsTotXval[lgcVxl, idxXval] = vecSsTot
+                arySsTotXval[lgcPrm, idxXval] = vecSsTot
 
         # check that every voxel was visited exactly once
         errMsg = 'At least one voxel visited more than once for SStot calc'
@@ -386,8 +411,10 @@ def find_prf_cpu(idxPrc, aryFuncChnk, aryPrfTc, aryMdlParams, strVersion,
         # voxels and folds
         lgcExclZeros = np.all(np.greater(arySsTotXval,  np.array([0.0])),
                               axis=1)
-        print('------------Nr of voxels: ' + str(len(lgcExclZeros)))
-        print('------------Nr of voxels avove 0: ' + str(np.sum(lgcExclZeros)))
+        if lgcPrint:
+            print('------------Nr of voxels: ' + str(len(lgcExclZeros)))
+            print('------------Nr of voxels avove 0: ' +
+                  str(np.sum(lgcExclZeros)))
 
         # Calculate R2 for every crossvalidation fold seperately
         aryBstR2fld = np.subtract(
