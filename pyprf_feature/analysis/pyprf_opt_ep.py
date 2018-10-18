@@ -17,7 +17,7 @@ def get_arg_parse():
     # Create parser object:
     objParser = argparse.ArgumentParser()
 
-    # Add argument to namespace - config file path:
+    # Add argument to namespace -config file path:
     objParser.add_argument('-config', required=True,
                            metavar='/path/to/config.csv',
                            help='Absolute file path of config file with \
@@ -25,36 +25,35 @@ def get_arg_parse():
                                  testing mode.'
                            )
 
-    # Add argument to namespace - prior results file path:
+    # Add argument to namespace -prior results file path:
     objParser.add_argument('-strPthPrior', required=True,
                            metavar='/path/to/my_prior_res',
                            help='Absolute file path of prior pRF results. \
                                  Ignored if in testing mode.'
                            )
 
-    # Add argument to namespace - varNumOpt1 flag:
+    # Add argument to namespace -varNumOpt1 flag:
     objParser.add_argument('-varNumOpt1', required=True, type=int,
                            metavar='N1',
                            help='Number of radial positions.'
                            )
 
-    # Add argument to namespace - varNumOpt2 flag:
+    # Add argument to namespace -varNumOpt2 flag:
     objParser.add_argument('-varNumOpt2', required=True, type=int,
                            metavar='N2',
                            help='Number of angular positions.'
                            )
 
-    # Add argument to namespace - varNumOpt3 flag:
+    # Add argument to namespace -varNumOpt3 flag:
     objParser.add_argument('-varNumOpt3', required=True, type=float,
                            metavar='N3',
                            help='Max displacement in radial direction.'
                            )
 
-    # Add argument to namespace - varNumOpt3 flag:
-    objParser.add_argument('-lgcRstrCentre', required=False, type=bool,
-                           metavar='lgcRstrCentre', default=True,
-                           help='Restrict models to stimaluted area.'
-                           )
+    # Add argument to namespace -lgcRstrCentre flag:
+    objParser.add_argument('-lgcRstrCentre', dest='lgcRstrCentre',
+                           action='store_true', default=False,
+                           help='Restrict fitted models to stimulated area.')
 
     # Namespace object containign arguments and values:
     objNspc = objParser.parse_args()
