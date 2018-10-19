@@ -113,7 +113,7 @@ def save_tc_to_nii(strCsvCnfg, lgcTest=False):
     errMsg = 'At least one voxel visited more than once for SStot calc'
     assert len(vecVxlTst) == np.sum(vecVxlTst), errMsg
 
-    # %% Export preprocessed voxel time courses
+    # %% Export preprocessed voxel time courses as nii
 
     # List with name suffices of output images:
     lstNiiNames = ['_EmpTc']
@@ -123,8 +123,10 @@ def save_tc_to_nii(strCsvCnfg, lgcTest=False):
                    lstNiiNames]
 
     # export beta parameter as a single 4D nii file
+    print('---Save empirical time courses')
     export_nii(aryFunc, lstNiiNames, aryLgcMsk, aryLgcVar, tplNiiShp,
                aryAff, hdrMsk, outFormat='4D')
+    print('------Done.')
 
     # %% Export fitted time courses as nii
 
@@ -136,5 +138,7 @@ def save_tc_to_nii(strCsvCnfg, lgcTest=False):
                    lstNiiNames]
 
     # export beta parameter as a single 4D nii file
+    print('---Save fitted time courses')
     export_nii(aryFitTc, lstNiiNames, aryLgcMsk, aryLgcVar, tplNiiShp,
                aryAff, hdrMsk, outFormat='4D')
+    print('------Done.')

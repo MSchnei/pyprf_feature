@@ -46,7 +46,7 @@ def main():
     objParser.add_argument('-save_tc', dest='save_tc',
                            action='store_true', default=False,
                            help='Save fitted and empirical time courses to \
-                                 nifti file.')
+                                 nifti file. Ignored if in testing mode.')
 
     # Namespace object containign arguments and values:
     objNspc = objParser.parse_args()
@@ -69,6 +69,9 @@ def main():
             # Save fitted and empirical time courses to nifti file.
             # This assumes that fitting has already been run and will throw an
             # error if the resulting nii files of the fitting cannot be found.
+            strWelcome = '***Save fitted and empirical time courses***'
+            print(strWelcome)
+            # Call to function
             save_tc_to_nii(strCsvCnfg, lgcTest)
 
         else:
