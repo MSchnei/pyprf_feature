@@ -13,6 +13,7 @@ Use config.py to set analysis parameters.
 import os
 import argparse
 from pyprf_feature.analysis.pyprf_main import pyprf
+from pyprf_feature.analysis.save_fit_tc_nii import save_tc_to_nii
 from pyprf_feature import __version__
 
 
@@ -41,6 +42,12 @@ def main():
                                  testing mode.'
                            )
 
+    # Add argument to namespace -save_tc flag:
+    objParser.add_argument('-save_tc', dest='save_tc',
+                           action='store_true', default=False,
+                           help='Save fitted and empirical time courses to \
+                                 nifti file. Ignored if in testing mode.')
+
     # Namespace object containign arguments and values:
     objNspc = objParser.parse_args()
 
@@ -51,14 +58,25 @@ def main():
     if strCsvCnfg is None:
         print('Please provide the file path to a config file, e.g.:')
         print('   pyprf_feature -config /path/to/my_config_file.csv')
-
+    # If config file is provided, either perform fitting or recreate fitted
+    # and empirical time courses depending on whether save_tc is True or False
     else:
 
         # Signal non-test mode to lower functions (needed for pytest):
         lgcTest = False
 
-        # Call to main function, to invoke pRF analysis:
-        pyprf(strCsvCnfg, lgcTest)
+        if objNspc.save_tc:
+            # Save fitted and empirical time courses to nifti file.
+            # This assumes that fitting has already been run and will throw an
+            # error if the resulting nii files of the fitting cannot be found.
+            strWelcome = '***Save fitted and empirical time courses***'
+            print(strWelcome)
+            # Call to function
+            save_tc_to_nii(strCsvCnfg, lgcTest)
+
+        else:
+            # Call to main function, to invoke pRF fitting:
+            pyprf(strCsvCnfg, lgcTest)
 
 
 if __name__ == "__main__":
