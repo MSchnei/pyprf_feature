@@ -29,11 +29,11 @@ from pyprf_feature.analysis.model_creation_utils import crt_mdl_prms
 from pyprf_feature.analysis.prepare import prep_models, prep_func
 
 ###### DEBUGGING ###############
-#strCsvCnfg = "/home/marian/Documents/Testing/pyprf_feature_devel/S02_config_motDepPrf_flck_smooth_inw.csv"
+#strCsvCnfg = "/media/sf_D_DRIVE/MotDepPrf/Analysis/Results/Average/AllSbj_config_motDepPrf_flck_smooth_otw.csv"
 #lgcTest = False
 ################################
 
-def pyprf(strCsvCnfg, lgcTest=False):  #noqa
+def pyprf(strCsvCnfg, lgcTest=False, varRat=None):
     """
     Main function for pRF mapping.
 
@@ -44,6 +44,9 @@ def pyprf(strCsvCnfg, lgcTest=False):  #noqa
     lgcTest : Boolean
         Whether this is a test (pytest). If yes, absolute path of pyprf libary
         will be prepended to config file paths.
+    varRat : float, default None
+        Ratio of size suppressive surround to size of center pRF
+
     """
     # *************************************************************************
     # *** Check time
@@ -77,7 +80,7 @@ def pyprf(strCsvCnfg, lgcTest=False):  #noqa
     # Create model time courses. Also return logical for inclusion of model
     # parameters which will be needed later when we create model parameters
     # in degree.
-    aryPrfTc = model_creation(dicCnfg)
+    aryPrfTc = model_creation(dicCnfg, varRat=varRat)
 
     # Deduce the number of features from the pRF time course models array
     cfg.varNumFtr = aryPrfTc.shape[1]
@@ -283,6 +286,10 @@ def pyprf(strCsvCnfg, lgcTest=False):  #noqa
                    '_polar_angle',
                    '_eccentricity']
 
+    # Append ratio to nii file name, if fitting was done with sup surround
+    if varRat is not None:
+        lstNiiNames = [strNii + '_' + str(varRat) for strNii in lstNiiNames]
+
     # Create full path names from nii file names and output path
     lstNiiNames = [cfg.strPathOut + strNii + '.nii.gz' for strNii in
                    lstNiiNames]
@@ -298,6 +305,10 @@ def pyprf(strCsvCnfg, lgcTest=False):  #noqa
 
     # List with name suffices of output images:
     lstNiiNames = ['_Betas']
+
+    # Append ratio to nii file name, if fitting was done with sup surround
+    if varRat is not None:
+        lstNiiNames = [strNii + '_' + str(varRat) for strNii in lstNiiNames]
 
     # Create full path names from nii file names and output path
     lstNiiNames = [cfg.strPathOut + strNii + '.nii.gz' for strNii in
@@ -319,6 +330,11 @@ def pyprf(strCsvCnfg, lgcTest=False):  #noqa
 
         # List with name suffices of output images:
         lstNiiNames = ['_R2_single']
+
+        # Append ratio to nii file name, if fitting was done with sup surround
+        if varRat is not None:
+            lstNiiNames = [strNii + '_' + str(varRat) for strNii in
+                           lstNiiNames]
 
         # Create full path names from nii file names and output path
         lstNiiNames = [cfg.strPathOut + strNii + '.nii.gz' for strNii in

@@ -9,7 +9,7 @@ import ast
 strDir = os.path.dirname(os.path.abspath(__file__))
 
 
-def load_config(strCsvCnfg, lgcTest=False):
+def load_config(strCsvCnfg, lgcTest=False, lgcPrint=True):
     """
     Load py_pRF_mapping config file.
 
@@ -20,6 +20,8 @@ def load_config(strCsvCnfg, lgcTest=False):
     lgcTest : Boolean
         Whether this is a test (pytest). If yes, absolute path of this function
         will be prepended to config file paths.
+    lgcPrint : Boolean
+        Print config parameters?
 
     Returns
     -------
@@ -27,9 +29,8 @@ def load_config(strCsvCnfg, lgcTest=False):
         Dictionary containing parameter names (as keys) and parameter values
         (as values). For example, `dicCnfg['varTr']` contains a float, such as
         `2.94`.
+
     """
-    # Print config parameters?
-    lgcPrint = True
 
     # Dictionary with config information:
     dicCnfg = {}

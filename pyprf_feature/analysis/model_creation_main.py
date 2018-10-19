@@ -25,7 +25,7 @@ from pyprf_feature.analysis.model_creation_utils import (crt_mdl_prms,
                                                          )
 
 
-def model_creation(dicCnfg):
+def model_creation(dicCnfg, varRat=None):
     """
     Create or load pRF model time courses.
 
@@ -33,6 +33,8 @@ def model_creation(dicCnfg):
     ----------
     dicCnfg : dict
         Dictionary containing config parameters.
+    varRat : float, default None
+        Ratio of size suppressive surround to size of center pRF
 
     Returns
     -------
@@ -98,6 +100,12 @@ def model_creation(dicCnfg):
                                     cfg.varExtYmax, cfg.varNumPrfSizes,
                                     cfg.varPrfStdMin, cfg.varPrfStdMax,
                                     kwUnt='pix', kwCrd=cfg.strKwCrd)
+
+        # If desired by user, also create model parameters for supp surround
+        if varRat is not None:
+            aryMdlParamsSur = np.copy(aryMdlParams)
+            aryMdlParamsSur[:, 2] = aryMdlParamsSur[:, 2] * varRat
+
         # *********************************************************************
 
         # *********************************************************************
@@ -108,6 +116,14 @@ def model_creation(dicCnfg):
         aryMdlRsp = crt_mdl_rsp(arySptExpInf, (int(cfg.varVslSpcSzeX),
                                                int(cfg.varVslSpcSzeY)),
                                 aryMdlParams, cfg.varPar)
+
+        # If desired by user, also create model responses for supp surround
+        if varRat is not None:
+            aryMdlRspSur = crt_mdl_rsp(arySptExpInf, (int(cfg.varVslSpcSzeX),
+                                                      int(cfg.varVslSpcSzeY)),
+                                       aryMdlParamsSur, cfg.varPar)
+
+        # Delete array to save memory
         del(arySptExpInf)
 
         # *********************************************************************
@@ -123,6 +139,19 @@ def model_creation(dicCnfg):
                                                      int(cfg.varVslSpcSzeY)),
                                   cfg.varPar)
 
+        # If desired by user, create prf time course models for supp surround
+        if varRat is not None:
+            print('---------Add suppressive surround')
+            aryPrfTcSur = crt_prf_ftr_tc(aryMdlRspSur, aryTmpExpInf,
+                                         cfg.varNumVol, cfg.varTr,
+                                         cfg.varTmpOvsmpl, cfg.switchHrfSet,
+                                         (int(cfg.varVslSpcSzeX),
+                                          int(cfg.varVslSpcSzeY)),
+                                         cfg.varPar)
+            # Concatenate aryPrfTc and aryPrfTcSur
+            aryPrfTc = np.concatenate((aryPrfTc, aryPrfTcSur), axis=1)
+
+        # Delete array to save memory
         del(aryMdlRsp)
 
         # *********************************************************************
@@ -158,8 +187,14 @@ def model_creation(dicCnfg):
         strErrMsg = ('---Error: Dimensions of specified pRF time course ' +
                      'models do not agree with specified model parameters')
         assert vecPrfTcShp[0] == cfg.varNum1 * \
-            cfg.varNum2 * cfg.varNumPrfSizes and \
-            vecPrfTcShp[-1] == cfg.varNumVol, strErrMsg
+            cfg.varNum2 * cfg.varNumPrfSizes, strErrMsg
+        assert vecPrfTcShp[-1] == cfg.varNumVol, strErrMsg
+        # Check number of feature. If fitting is performed with sup surround,
+        # number of features will be twice as many as simple fitting
+        if varRat is None:
+            assert vecPrfTcShp[1] == cfg.switchHrfSet, strErrMsg
+        else:
+            assert vecPrfTcShp[1] == cfg.switchHrfSet*2, strErrMsg
 
     # *************************************************************************
 

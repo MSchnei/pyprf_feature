@@ -47,6 +47,7 @@ def rmp_deg_pixel_xys(vecX, vecY, vecPrfSd, tplPngSize,
         Extent of visual space from centre in negative y-direction (height)
     varExtYmax : float
         Extent of visual space from centre in positive y-direction (height)
+
     Returns
     -------
     vecX : 1D numpy array
@@ -106,6 +107,7 @@ def rmp_pixel_deg_xys(vecX, vecY, vecPrfSd, tplPngSize,
         Extent of visual space from centre in negative y-direction (height)
     varExtYmax : float
         Extent of visual space from centre in positive y-direction (height)
+
     Returns
     -------
     vecX : 1D numpy array
@@ -175,13 +177,12 @@ def crt_mdl_prms(tplPngSize, varNum1, varExtXmin,  varExtXmax, varNum2,
     kwCrd: str
         Keyword to set the coordinate system for model parameter combinations;
         parameters can be in cartesian ["crt"] or polar ["pol"] coordinates
+
     Returns
     -------
     aryMdlParams : 2d numpy array, shape [n_x_pos*n_y_pos*n_sd, 3]
         Model parameters (x, y, sigma) for all models.
-    Reference
-    ---------
-    [1]
+
     """
 
     # Number of pRF models to be created (i.e. number of possible
@@ -317,13 +318,11 @@ def crt_mdl_rsp(arySptExpInf, tplPngSize, aryMdlParams, varPar):
         Model parameters (x, y, sigma) for all models.
     varPar : int, positive
         Number of cores to parallelize over.
+
     Returns
     -------
     aryMdlCndRsp : 2d numpy array, shape [n_x_pos*n_y_pos*n_sd, n_cond]
         Responses of 2D Gauss models to spatial conditions.
-    Reference
-    ---------
-    [1]
 
     """
 
@@ -473,14 +472,12 @@ def crt_prf_tc(aryNrlTc, varNumVol, varTr, varTmpOvsmpl, switchHrfSet,
         Pixel dimensions of the visual space (width, height).
     varPar : int, positive
         Description of input 1.
+
     Returns
     -------
     aryNrlTcConv : 5d numpy array,
                    shape [n_x_pos, n_y_pos, n_sd, n_hrf_bases, varNumVol]
         Neural time courses convolved with HRF basis functions
-    Reference
-    ---------
-    [1]
 
     """
 
@@ -586,32 +583,30 @@ def crt_prf_ftr_tc(aryMdlRsp, aryTmpExpInf, varNumVol, varTr, varTmpOvsmpl,
         Pixel dimensions of the visual space (width, height).
     varPar : int, positive
         Description of input 1.
+
     Returns
     -------
     aryNrlTcConv : 3d numpy array,
                    shape [nr of models, nr of unique feautures, varNumVol]
         Prf time course models
-    Reference
-    ---------
-    [1]
 
     """
 
-    # identify number of unique feautures
+    # Identify number of unique features
     vecFeat = np.unique(aryTmpExpInf[:, 3])
     vecFeat = vecFeat[np.nonzero(vecFeat)[0]]
 
-    # preallocate the output array
+    # Preallocate the output array
     aryPrfTc = np.zeros((aryMdlRsp.shape[0], 0, varNumVol),
                         dtype=np.float32)
 
-    # loop over unique features
+    # Loop over unique features
     for indFtr, ftr in enumerate(vecFeat):
 
         if varPar > 1:
             print('---------Create prf time course model for feature ' +
                   str(ftr))
-        # derive sptial conditions, onsets and durations for this specific
+        # Derive sptial conditions, onsets and durations for this specific
         # feature
         aryTmpCnd = aryTmpExpInf[aryTmpExpInf[:, 3] == ftr, 0]
         aryTmpOns = aryTmpExpInf[aryTmpExpInf[:, 3] == ftr, 1]
@@ -620,10 +615,10 @@ def crt_prf_ftr_tc(aryMdlRsp, aryTmpExpInf, varNumVol, varTr, varTmpOvsmpl,
         # Create temporally upsampled neural time courses.
         aryNrlTcTmp = crt_nrl_tc(aryMdlRsp, aryTmpCnd, aryTmpOns, aryTmpDrt,
                                  varTr, varNumVol, varTmpOvsmpl)
-
+        # Convolve with hrf to create model pRF time courses.
         aryPrfTcTmp = crt_prf_tc(aryNrlTcTmp, varNumVol, varTr, varTmpOvsmpl,
                                  switchHrfSet, tplPngSize, varPar)
-
+        # Add temporal time course to time course that will be returned
         aryPrfTc = np.concatenate((aryPrfTc, aryPrfTcTmp), axis=1)
 
     return aryPrfTc
@@ -640,6 +635,7 @@ def fnd_unq_rws(A, return_index=False, return_inverse=False):
         Bool to decide whether I is returned.
     return_inverse : bool
         Bool to decide whether J is returned.
+
     Returns
     -------
     B : 1d numpy array,
@@ -648,7 +644,9 @@ def fnd_unq_rws(A, return_index=False, return_inverse=False):
         B = A[I,:]
     J: 2d numpy array, only returned if return_inverse is True
         A = B[J,:]
+
     """
+
     A = np.require(A, requirements='C')
     assert A.ndim == 2, "array must be 2-dim'l"
 
