@@ -15,7 +15,7 @@ from pyprf_feature.analysis.model_creation_utils import (crt_mdl_prms,
                                                          fnd_unq_rws)
 
 
-def save_tc_to_nii(strCsvCnfg, lgcTest=False):
+def save_tc_to_nii(strCsvCnfg, lgcTest=False, lstRat=None):
 
     # %% Load configuration settings that were used for fitting
 
@@ -24,6 +24,11 @@ def save_tc_to_nii(strCsvCnfg, lgcTest=False):
 
     # Load config parameters from dictionary into namespace:
     cfg = cls_set_config(dicCnfg)
+
+    # If suppressive surround flag is on, make sure to retrieve results from
+    # that fitting
+    if lstRat is not None:
+        cfg.strPathOut = cfg.strPathOut + '_supsur'
 
     # %% Load previous pRF fitting results
 
@@ -118,6 +123,10 @@ def save_tc_to_nii(strCsvCnfg, lgcTest=False):
     # List with name suffices of output images:
     lstNiiNames = ['_EmpTc']
 
+    # Adjust naming if suppressive surround flag was on
+    if lstRat is not None:
+        lstNiiNames = ['_supsur_EmpTc']
+
     # Create full path names from nii file names and output path
     lstNiiNames = [cfg.strPathOut + strNii + '.nii.gz' for strNii in
                    lstNiiNames]
@@ -132,6 +141,10 @@ def save_tc_to_nii(strCsvCnfg, lgcTest=False):
 
     # List with name suffices of output images:
     lstNiiNames = ['_FitTc']
+
+    # Adjust naming if suppressive surround flag was on
+    if lstRat is not None:
+        lstNiiNames = ['_supsur_FitTc']
 
     # Create full path names from nii file names and output path
     lstNiiNames = [cfg.strPathOut + strNii + '.nii.gz' for strNii in

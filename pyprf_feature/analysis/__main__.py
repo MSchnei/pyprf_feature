@@ -84,7 +84,7 @@ def main():
 
             print('***Mode: Save fitted and empirical time courses***')
             # Call to function
-            save_tc_to_nii(strCsvCnfg, lgcTest)
+            save_tc_to_nii(strCsvCnfg, lgcTest=lgcTest, lstRat=objNspc.supsur)
 
         # If save_tc false, perform pRF fitting, either with or without
         # suppressive surround
@@ -92,6 +92,7 @@ def main():
 
             # Perform pRF fitting without suppressive surround
             if objNspc.supsur is None:
+
                 print('***Mode: Fit pRF models, no suppressive surround***')
                 # Call to main function, to invoke pRF fitting:
                 pyprf(strCsvCnfg, lgcTest, varRat=None)
