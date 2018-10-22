@@ -16,17 +16,17 @@ def get_arg_parse():
     # Create parser object:
     objParser = argparse.ArgumentParser()
 
-    # Add argument to namespace -prior results file path:
-    objParser.add_argument('-strPthPrior', required=True,
+    # Add argument to namespace -strCsvPrf results file path:
+    objParser.add_argument('-strCsvPrf', required=True,
                            metavar='/path/to/my_prior_res',
                            help='Absolute file path of prior pRF results. \
                                  Ignored if in testing mode.'
                            )
 
-    # Add argument to namespace -prior results file path:
+    # Add argument to namespace -strStmApr results file path:
     objParser.add_argument('-strStmApr', required=True,
                            metavar='/path/to/my_prior_res',
-                           help='Absolute file path to npy file with. \
+                           help='Absolute file path to npy file with \
                                  stimulus apertures. Ignored if in testing \
                                  mode.'
                            )
@@ -48,9 +48,14 @@ def get_arg_parse():
                                  size neg surround to size pos center.',
                            type=float, default=None)
 
+    # Namespace object containign arguments and values:
+    objNspc = objParser.parse_args()
+
+    return objNspc
+
 
 def main():
-    """pyprf_opt_brute entry point."""
+    """pyprf_sim entry point."""
     # Get list of input arguments (without first one, which is the path to the
     # function that is called):  --NOTE: This is another way of accessing
     # input arguments, but since we use 'argparse' it is redundant.
@@ -62,9 +67,9 @@ def main():
     objNspc = get_arg_parse()
 
     # Print info if no config argument is provided.
-    if objNspc.strPthPrior is None or objNspc.strStmApr is None:
+    if any(item is None for item in [objNspc.strCsvPrf, objNspc.strStmApr]):
         print('Please provide necessary file paths, e.g.:')
-        print('   pyprf_sim -strPthPrior /path/to/my_config_file.csv')
+        print('   pyprf_sim -strCsvPrf /path/to/my_config_file.csv')
         print('             -strStmApr /path/to/my_stim_apertures.npy')
 
     else:
@@ -73,7 +78,7 @@ def main():
         lgcTest = False
 
         # Call to main function, to invoke pRF analysis:
-        pyprf_sim(objNspc.strPthPrior, objNspc.strStmApr, lgcTest=lgcTest,
+        pyprf_sim(objNspc.strCsvPrf, objNspc.strStmApr, lgcTest=lgcTest,
                   lgcNoise=objNspc.lgcNoise, lgcRtnNrl=objNspc.lgcRtnNrl,
                   lstRat=objNspc.supsur)
 
