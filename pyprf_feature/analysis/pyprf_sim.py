@@ -27,9 +27,10 @@ from pyprf_feature.analysis.model_creation_utils import (rmp_deg_pixel_xys,
                                                          crt_prf_tc)
 from pyprf_feature.analysis.prepare import prep_func
 
-
+### DEBUGGING ###
 #strPrior = '/media/sf_D_DRIVE/MotDepPrf/Presentation/figures/Figure_perception/vificov_pngs/fig_perception_sim_prf.csv'
 #strStmApr = '/media/sf_D_DRIVE/MotDepPrf/Presentation/figures/Figure_perception/vificov_pngs/aprt_stim.npy'
+
 
 def pyprf_sim(strPrior, strStmApr, lgcNoise=False, lgcRtnNrl=True,
               lstRat=None, lgcTest=False):

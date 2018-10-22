@@ -31,6 +31,7 @@ from pyprf_feature.analysis.prepare import prep_models, prep_func
 ###### DEBUGGING ###############
 #strCsvCnfg = "/media/sf_D_DRIVE/MotDepPrf/Analysis/Results/Average/AllSbj_config_motDepPrf_flck_smooth_otw.csv"
 #lgcTest = False
+#varRat=None
 ################################
 
 def pyprf(strCsvCnfg, lgcTest=False, varRat=None):
