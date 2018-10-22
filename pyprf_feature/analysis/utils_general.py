@@ -1,5 +1,5 @@
 # -*- coding: utf-8 -*-
-"""pRF finding function definitions."""
+"""General functions supporting pRF fitting."""
 
 # Part of pyprf_feature library
 # Copyright (C) 2018  Marian Schneider, Ingo Marquardt
