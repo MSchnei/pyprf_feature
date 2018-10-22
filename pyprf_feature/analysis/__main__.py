@@ -12,6 +12,9 @@ Use config.py to set analysis parameters.
 
 import os
 import argparse
+import numpy as np
+from pyprf_feature.analysis.load_config import load_config
+from pyprf_feature.analysis.utils_general import cls_set_config, cmp_res_R2
 from pyprf_feature.analysis.pyprf_main import pyprf
 from pyprf_feature.analysis.save_fit_tc_nii import save_tc_to_nii
 from pyprf_feature import __version__
@@ -23,13 +26,14 @@ strDir = os.path.dirname(os.path.abspath(__file__))
 
 def main():
     """pyprf_feature entry point."""
-    # Get list of input arguments (without first one, which is the path to the
-    # function that is called):  --NOTE: This is another way of accessing
-    # input arguments, but since we use 'argparse' it is redundant.
-    # lstArgs = sys.argv[1:]
+
+    # %% Print Welcome message
+
     strWelcome = 'pyprf_feature ' + __version__
     strDec = '=' * len(strWelcome)
     print(strDec + '\n' + strWelcome + '\n' + strDec)
+
+    # %% Get list of input arguments
 
     # Create parser object:
     objParser = argparse.ArgumentParser()
@@ -41,6 +45,11 @@ def main():
                                  parameters for pRF analysis. Ignored if in \
                                  testing mode.'
                            )
+
+    objParser.add_argument('-supsur', nargs='+',
+                           help='List of floats that represent the ratio of \
+                                 size neg surround to size pos center.',
+                           type=float, default=None)
 
     # Add argument to namespace -save_tc flag:
     objParser.add_argument('-save_tc', dest='save_tc',
@@ -54,10 +63,13 @@ def main():
     # Get path of config file from argument parser:
     strCsvCnfg = objNspc.config
 
-    # Print info if no config argument is provided.
+    # %% Decide which action to perform
+
+    # If no config argument is provided, print info to user.
     if strCsvCnfg is None:
         print('Please provide the file path to a config file, e.g.:')
         print('   pyprf_feature -config /path/to/my_config_file.csv')
+
     # If config file is provided, either perform fitting or recreate fitted
     # and empirical time courses depending on whether save_tc is True or False
     else:
@@ -65,18 +77,80 @@ def main():
         # Signal non-test mode to lower functions (needed for pytest):
         lgcTest = False
 
+        # If save_tc true, save fitted and empirical time courses to nifti file
+        # This assumes that fitting has already been run and will throw an
+        # error if the resulting nii files of the fitting cannot be found.
         if objNspc.save_tc:
-            # Save fitted and empirical time courses to nifti file.
-            # This assumes that fitting has already been run and will throw an
-            # error if the resulting nii files of the fitting cannot be found.
-            strWelcome = '***Save fitted and empirical time courses***'
-            print(strWelcome)
-            # Call to function
-            save_tc_to_nii(strCsvCnfg, lgcTest)
 
+            print('***Mode: Save fitted and empirical time courses***')
+            # Call to function
+            save_tc_to_nii(strCsvCnfg, lgcTest=lgcTest, lstRat=objNspc.supsur)
+
+        # If save_tc false, perform pRF fitting, either with or without
+        # suppressive surround
         else:
-            # Call to main function, to invoke pRF fitting:
-            pyprf(strCsvCnfg, lgcTest)
+
+            # Perform pRF fitting without suppressive surround
+            if objNspc.supsur is None:
+
+                print('***Mode: Fit pRF models, no suppressive surround***')
+                # Call to main function, to invoke pRF fitting:
+                pyprf(strCsvCnfg, lgcTest, varRat=None)
+
+            # Perform pRF fitting with suppressive surround
+            else:
+                print('***Mode: Fit pRF models, suppressive surround***')
+
+                # Load config parameters from csv file into dictionary:
+                dicCnfg = load_config(strCsvCnfg, lgcTest=lgcTest,
+                                      lgcPrint=False)
+                # Load config parameters from dictionary into namespace.
+                # We do this on every loop so we have a fresh start in case
+                # variables are redefined during the prf analysis
+                cfg = cls_set_config(dicCnfg)
+                # Make sure that lgcCrteMdl is set to True since we will need
+                # to loop iteratively over pyprf_feature with different ratios
+                # for size surround to size center. On every loop models,
+                # reflecting the new ratio, need to be created from scratch
+                errorMsg = 'lgcCrteMdl needs to be set to True for -supsur.'
+                assert cfg.lgcCrteMdl, errorMsg
+
+                # Get list with size ratios
+                lstRat = objNspc.supsur
+
+                # Make sure that all ratios are larger than 1.0
+                errorMsg = 'All provided ratios need to be larger than 1.0'
+                assert np.all(np.greater(np.array(lstRat), 1.0)), errorMsg
+
+                # Append None as the first entry, so fitting without surround
+                # is performed once as well
+                lstRat.insert(0, None)
+
+                # Loop over ratios and find best pRF
+                for varRat in lstRat:
+
+                    # Print to command line, so the user knows which exponent
+                    # is used
+                    print('---Ratio surround to center: ' + str(varRat))
+                    # Call to main function, to invoke pRF analysis:
+                    pyprf(strCsvCnfg, lgcTest=lgcTest, varRat=varRat)
+
+                # List with name suffices of output images:
+                lstNiiNames = ['_x_pos',
+                               '_y_pos',
+                               '_SD',
+                               '_R2',
+                               '_polar_angle',
+                               '_eccentricity',
+                               '_Betas']
+
+                # Compare results for the different ratios, export nii files
+                # based on the results of the comparison and delete in-between
+                # results
+                # Replace first entry (None) with 0, so it can be saved to nii
+                lstRat[0] = 0.0
+                cmp_res_R2(lstRat, lstNiiNames, cfg.strPathOut, posR2=3,
+                           lgcDel=True)
 
 
 if __name__ == "__main__":

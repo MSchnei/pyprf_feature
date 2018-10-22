@@ -22,6 +22,7 @@ from functools import partial
 import numpy as np
 import scipy.stats as sps
 from scipy.interpolate import interp1d
+from scipy.signal import fftconvolve
 
 
 def spm_hrf_compat(t,
@@ -284,31 +285,31 @@ def cnvl_tc(idxPrc, aryPrfTcChunk, lstHrf, varTr, varNumVol, varTmpOvsmpl,
 
     """
 
-    # adjust the input, if necessary, such that input is 2D, with last dim time
+    # Adjust the input, if necessary, such that input is 2D, with last dim time
     tplInpShp = aryPrfTcChunk.shape
     aryPrfTcChunk = aryPrfTcChunk.reshape((-1, aryPrfTcChunk.shape[-1]))
 
-    # prepare hrf basis functions
+    # Prepare hrf basis functions
     lstBse = []
     for fnHrf in lstHrf:
         # needs to be a multiple of varTmpOvsmpl
         vecTmpBse = fnHrf(np.linspace(0, varHrfLen,
                                       (varHrfLen // varTr) * varTmpOvsmpl))
-        # normalise HRF so that the sum of values is 1 (see FSL)
+        # Normalise HRF so that the sum of values is 1 (see FSL)
         # otherwise, after convolution values for predictors are very high
         vecTmpBse = np.divide(vecTmpBse, np.sum(vecTmpBse))
 
         lstBse.append(vecTmpBse)
 
-    # get frame times, i.e. start point of every volume in seconds
+    # Get frame times, i.e. start point of every volume in seconds
     vecFrms = np.arange(0, varTr * varNumVol, varTr)
-    # get supersampled frames times, i.e. start point of every volume in
+    # Get supersampled frames times, i.e. start point of every volume in
     # upsampled res, since convolution takes place in temp. upsampled space
     vecFrmTms = np.arange(0, varTr * varNumVol, varTr / varTmpOvsmpl)
 
     # Prepare an empty array for ouput
     aryConv = np.zeros((aryPrfTcChunk.shape[0], len(lstHrf), varNumVol),
-                       dtype='float16')
+                       dtype=np.float16)
     # Each time course is convolved with the HRF separately, because the
     # numpy convolution function can only be used on one-dimensional data.
     # Thus, we have to loop through time courses:
@@ -319,15 +320,19 @@ def cnvl_tc(idxPrc, aryPrfTcChunk, lstHrf, varTr, varNumVol, varTmpOvsmpl,
 
         # *** convolve
         for indBase, base in enumerate(lstBse):
-            # perform the convolution
-            col = np.convolve(base, vecTcUps, mode='full')[:vecTcUps.size]
-            # get function for downsampling
+            # Make sure base and vecTcUps are float64 to avoid overflow
+            base = base.astype(np.float64)
+            vecTcUps = vecTcUps.astype(np.float64)
+            # Perform the convolution (previously: np.convolve)
+            col = fftconvolve(base, vecTcUps, mode='full')[:vecTcUps.size]
+            # Get function for downsampling
             f = interp1d(vecFrmTms, col)
-            # downsample to original resoltuion to match res of data
+            # Downsample to original resoltuion to match res of data
             # take the value from the centre of each volume's period (see FSL)
-            aryConv[idxTc, indBase, :] = f(vecFrms + varTr/2.)
+            aryConv[idxTc, indBase, :] = f(vecFrms + varTr/2.
+                                           ).astype(np.float16)
 
-    # determine output shape
+    # Determine output shape
     tplOutShp = tplInpShp[:-1] + (len(lstHrf), ) + (varNumVol, )
 
     if queOut is None:

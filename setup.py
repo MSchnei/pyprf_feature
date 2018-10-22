@@ -26,5 +26,6 @@ setup(name='pyprf_feature',
           'console_scripts': [
               'pyprf_feature = pyprf_feature.analysis.__main__:main',
               'pyprf_opt_brute = pyprf_feature.analysis.pyprf_opt_ep:main',
+              'pyprf_sim = pyprf_feature.analysis.pyprf_sim_ep:main',
               ]},
       )
