@@ -1,10 +1,22 @@
-#!/usr/bin/env python2
 # -*- coding: utf-8 -*-
-"""
-Created on Thu Sep 13 17:34:37 2018
+"""Saving empirical and fitted time courses to nii file format"""
 
-@author: marian
-"""
+# Part of pyprf_feature library
+# Copyright (C) 2018  Marian Schneider, Ingo Marquardt
+#
+# This program is free software: you can redistribute it and/or modify it under
+# the terms of the GNU General Public License as published by the Free Software
+# Foundation, either version 3 of the License, or (at your option) any later
+# version.
+#
+# This program is distributed in the hope that it will be useful, but WITHOUT
+# ANY WARRANTY; without even the implied warranty of MERCHANTABILITY or FITNESS
+# FOR A PARTICULAR PURPOSE.  See the GNU General Public License for more
+# details.
+#
+# You should have received a copy of the GNU General Public License along with
+# this program.  If not, see <http://www.gnu.org/licenses/>.
+
 import os
 import numpy as np
 from pyprf_feature.analysis.load_config import load_config
@@ -16,6 +28,25 @@ from pyprf_feature.analysis.model_creation_utils import (crt_mdl_prms,
 
 
 def save_tc_to_nii(strCsvCnfg, lgcTest=False, lstRat=None):
+    """
+    Save empirical and fitted time courses to nii file format.
+
+    Parameters
+    ----------
+    strCsvCnfg : str
+        Absolute file path of config file used for pRF fitting.
+    lgcTest : float
+        Whether this is a test (pytest). If yes, absolute path of pyprf libary
+        will be prepended to config file paths.
+    lstRat : None or list
+        Ratio of size of center to size of suppressive surround.
+
+    Notes
+    -----
+    This function does not return any arguments but, instead, saves nii files
+    to disk.
+
+    """
 
     # %% Load configuration settings that were used for fitting
 
