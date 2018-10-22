@@ -489,7 +489,7 @@ def crt_prf_tc(aryNrlTc, varNumVol, varTr, varTmpOvsmpl, switchHrfSet,
     elif switchHrfSet == 1:
         lstHrf = [spmt]
 
-    # adjust the input, if necessary, such that input is 2D, with last dim time
+    # If necessary, adjust the input such that input is 2D, with last dim time
     tplInpShp = aryNrlTc.shape
     aryNrlTc = np.reshape(aryNrlTc, (-1, aryNrlTc.shape[-1]))
 
