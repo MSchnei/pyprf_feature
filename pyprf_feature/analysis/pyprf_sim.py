@@ -28,10 +28,10 @@ from pyprf_feature.analysis.model_creation_utils import (rmp_deg_pixel_xys,
 from pyprf_feature.analysis.prepare import prep_func
 
 
-strPrior = '/media/sf_D_DRIVE/MotDepPrf/Presentation/figures/Figure_perception/vificov_pngs/fig_perception_sim_prf.csv'
-strStmApr = '/media/sf_D_DRIVE/MotDepPrf/Presentation/figures/Figure_perception/vificov_pngs/aprt_stim.npy'
+#strPrior = '/media/sf_D_DRIVE/MotDepPrf/Presentation/figures/Figure_perception/vificov_pngs/fig_perception_sim_prf.csv'
+#strStmApr = '/media/sf_D_DRIVE/MotDepPrf/Presentation/figures/Figure_perception/vificov_pngs/aprt_stim.npy'
 
-def pyprf_sim(strPrior, strStmApr, lgcNoise=None, lgcRtnNrl=True,
+def pyprf_sim(strPrior, strStmApr, lgcNoise=False, lgcRtnNrl=True,
               lstRat=None, lgcTest=False):
     """
     Simulate pRF response given pRF parameters and stimulus apertures.
@@ -42,8 +42,8 @@ def pyprf_sim(strPrior, strStmApr, lgcNoise=None, lgcRtnNrl=True,
         Absolute file path of config file used for pRF fitting.
     strStmApr : str
         Absolute file path to stimulus aperture used in in-silico experiment.
-    lgcNoise : None or string ['ar1', 'ar2']
-        Type of noise added to the simulated pRF time course. By default, no
+    lgcNoise : boolean
+        Should noise be added to the simulated pRF time course. By default, no
         noise is added.
     lgcRtnNrl : boolean
         Should neural time course, unconvolved with hrf, be returned as well?
@@ -206,5 +206,3 @@ def pyprf_sim(strPrior, strStmApr, lgcNoise=None, lgcRtnNrl=True,
         export_nii(aryMdlRsp, lstNiiNames, aryLgcMsk, aryLgcVar, tplNiiShp,
                    aryAff, hdrMsk, outFormat='4D')
         print('------Done.')
-
-pyprf_sim(strPrior, strStmApr)
