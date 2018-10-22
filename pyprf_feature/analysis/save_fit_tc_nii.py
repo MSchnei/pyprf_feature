@@ -154,10 +154,6 @@ def save_tc_to_nii(strCsvCnfg, lgcTest=False, lstRat=None):
     # List with name suffices of output images:
     lstNiiNames = ['_EmpTc']
 
-    # Adjust naming if suppressive surround flag was on
-    if lstRat is not None:
-        lstNiiNames = ['_supsur_EmpTc']
-
     # Create full path names from nii file names and output path
     lstNiiNames = [cfg.strPathOut + strNii + '.nii.gz' for strNii in
                    lstNiiNames]
@@ -172,10 +168,6 @@ def save_tc_to_nii(strCsvCnfg, lgcTest=False, lstRat=None):
 
     # List with name suffices of output images:
     lstNiiNames = ['_FitTc']
-
-    # Adjust naming if suppressive surround flag was on
-    if lstRat is not None:
-        lstNiiNames = ['_supsur_FitTc']
 
     # Create full path names from nii file names and output path
     lstNiiNames = [cfg.strPathOut + strNii + '.nii.gz' for strNii in

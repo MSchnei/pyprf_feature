@@ -28,7 +28,7 @@ from pyprf_feature.analysis.model_creation_utils import (rmp_deg_pixel_xys,
 from pyprf_feature.analysis.prepare import prep_func
 
 
-strPrior = '/media/sf_D_DRIVE/MotDepPrf/Analysis/S02/03_motLoc/pRF_results/S02_config_MotLoc_tmpSmth.csv'
+strPrior = '/media/sf_D_DRIVE/MotDepPrf/Presentation/figures/Figure_perception/vificov_pngs/fig_perception_sim_prf.csv'
 strStmApr = '/media/sf_D_DRIVE/MotDepPrf/Presentation/figures/Figure_perception/vificov_pngs/aprt_stim.npy'
 
 def pyprf_sim(strPrior, strStmApr, lgcNoise=None, lgcRtnNrl=True,
@@ -182,10 +182,6 @@ def pyprf_sim(strPrior, strStmApr, lgcNoise=None, lgcRtnNrl=True,
     # List with name suffices of output images:
     lstNiiNames = ['_SimPrfTc']
 
-    # Adjust naming if suppressive surround flag was on
-    if lstRat is not None:
-        lstNiiNames = ['_supsur_SimPrfTc']
-
     # Create full path names from nii file names and output path
     lstNiiNames = [cfg.strPathOut + strNii + '.nii.gz' for strNii in
                    lstNiiNames]
@@ -197,12 +193,9 @@ def pyprf_sim(strPrior, strStmApr, lgcNoise=None, lgcRtnNrl=True,
     print('------Done.')
 
     if lgcRtnNrl:
+
         # List with name suffices of output images:
         lstNiiNames = ['_SimNrlTc']
-
-        # Adjust naming if suppressive surround flag was on
-        if lstRat is not None:
-            lstNiiNames = ['_supsur_SimNrlTc']
 
         # Create full path names from nii file names and output path
         lstNiiNames = [cfg.strPathOut + strNii + '.nii.gz' for strNii in
