@@ -1,7 +1,5 @@
 #!/usr/bin/env python
-"""
-Entry point for pyprf_opt_brute
-"""
+"""Entry point for pyprf_opt_brute."""
 
 import os
 import argparse
@@ -85,7 +83,7 @@ def main():
         lgcTest = False
 
         # Call to main function, to invoke pRF analysis:
-        pyprf_opt_brute(objNspc.config, objNspc, lgcTest)
+        pyprf_opt_brute(objNspc.config, objNspc, lgcTest=lgcTest)
 
 
 if __name__ == "__main__":
