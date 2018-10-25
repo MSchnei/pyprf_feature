@@ -30,7 +30,7 @@ from pyprf_feature.analysis.model_creation_utils import (crt_mdl_prms,
 #strCsvCnfg = "/media/sf_D_DRIVE/MotDepPrf/Analysis/S02/03_motLoc/pRF_results/S02_config_MotLoc_feature.csv"
 #lgcTest = False
 #lstRat=None
-#lgcMdlRsp=False
+#lgcMdlRsp=True
 ################################
 
 
@@ -142,6 +142,7 @@ def save_tc_to_nii(strCsvCnfg, lgcTest=False, lstRat=None, lgcMdlRsp=False):
                                         return_inverse=True)
 
     # Loop over all best-fitting model parameter combinations found
+    print('---Assign models to voxels')
     for indRow, vecPrm in enumerate(aryUnqRows):
         # Get logical for voxels for which this prm combi was the best
         lgcVxl = [aryUnqInd == indRow][0]
