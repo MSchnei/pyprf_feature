@@ -26,8 +26,15 @@ from pyprf_feature.analysis.prepare import prep_func, prep_models
 from pyprf_feature.analysis.model_creation_utils import (crt_mdl_prms,
                                                          fnd_unq_rws)
 
+###### DEBUGGING ###############
+#strCsvCnfg = "/media/sf_D_DRIVE/MotDepPrf/Analysis/S02/03_motLoc/pRF_results/S02_config_MotLoc_feature.csv"
+#lgcTest = False
+#lstRat=None
+#lgcMdlRsp=False
+################################
 
-def save_tc_to_nii(strCsvCnfg, lgcTest=False, lstRat=None):
+
+def save_tc_to_nii(strCsvCnfg, lgcTest=False, lstRat=None, lgcMdlRsp=False):
     """
     Save empirical and fitted time courses to nii file format.
 
@@ -35,11 +42,13 @@ def save_tc_to_nii(strCsvCnfg, lgcTest=False, lstRat=None):
     ----------
     strCsvCnfg : str
         Absolute file path of config file used for pRF fitting.
-    lgcTest : float
+    lgcTest : boolean
         Whether this is a test (pytest). If yes, absolute path of pyprf libary
         will be prepended to config file paths.
     lstRat : None or list
         Ratio of size of center to size of suppressive surround.
+    lgcMdlRsp : boolean
+        Should the aperture responses for the winner model also be saved?
 
     Notes
     -----
@@ -110,11 +119,20 @@ def save_tc_to_nii(strCsvCnfg, lgcTest=False, lstRat=None):
     # (temporally) with same factor as the data and that they will be z-scored:
     aryPrfTc = prep_models(aryPrfTc, varSdSmthTmp=cfg.varSdSmthTmp)
 
+    if lgcMdlRsp:
+        aryMdlRsp = np.load(cfg.strPathMdl + '_mdlRsp.npy')
+
     # %% Derive fitted time course models for all voxels
 
     # Initialize array that will collect the fitted time courses
     aryFitTc = np.zeros((aryIntGssPrm.shape[0],
                          aryPrfTc.shape[-1]), dtype=np.float32)
+    # If desired, initiliaze array that will collect model responses underlying
+    # the fittedt time course
+    if lgcMdlRsp:
+        aryFitMdlRsp = np.zeros((aryIntGssPrm.shape[0],
+                                 aryMdlRsp.shape[-1]), dtype=np.float32)
+
     # create vector that allows to check whether every voxel is visited
     # exactly once
     vecVxlTst = np.zeros(aryIntGssPrm.shape[0])
@@ -142,11 +160,14 @@ def save_tc_to_nii(strCsvCnfg, lgcTest=False, lstRat=None):
         aryMdlTc = aryPrfTc[lgcMdl, :, :]
         # Get beta parameter estimates
         aryWeights = aryBetas[lgcVxl, :]
-        # Combine model time courses and weights
+        # Combine model time courses and weights to yield fitted time course
         aryFitTc[lgcVxl, :] = np.dot(aryWeights, aryMdlTc)
+        if lgcMdlRsp:
+            # If desired also save the model responses that won
+            aryFitMdlRsp[lgcVxl, :] = aryMdlRsp[lgcMdl, :]
 
     # check that every voxel was visited exactly once
-    errMsg = 'At least one voxel visited more than once for SStot calc'
+    errMsg = 'At least one voxel visited more than once for tc recreation'
     assert len(vecVxlTst) == np.sum(vecVxlTst), errMsg
 
     # %% Export preprocessed voxel time courses as nii
@@ -158,13 +179,13 @@ def save_tc_to_nii(strCsvCnfg, lgcTest=False, lstRat=None):
     lstNiiNames = [cfg.strPathOut + strNii + '.nii.gz' for strNii in
                    lstNiiNames]
 
-    # export beta parameter as a single 4D nii file
+    # export aryFunc as a single 4D nii file
     print('---Save empirical time courses')
     export_nii(aryFunc, lstNiiNames, aryLgcMsk, aryLgcVar, tplNiiShp,
                aryAff, hdrMsk, outFormat='4D')
     print('------Done.')
 
-    # %% Export fitted time courses as nii
+    # %% Export fitted time courses and, if desired, model responses as nii
 
     # List with name suffices of output images:
     lstNiiNames = ['_FitTc']
@@ -173,8 +194,22 @@ def save_tc_to_nii(strCsvCnfg, lgcTest=False, lstRat=None):
     lstNiiNames = [cfg.strPathOut + strNii + '.nii.gz' for strNii in
                    lstNiiNames]
 
-    # export beta parameter as a single 4D nii file
+    # export aryFitTc as a single 4D nii file
     print('---Save fitted time courses')
     export_nii(aryFitTc, lstNiiNames, aryLgcMsk, aryLgcVar, tplNiiShp,
                aryAff, hdrMsk, outFormat='4D')
     print('------Done.')
+
+    if lgcMdlRsp:
+        # List with name suffices of output images:
+        lstNiiNames = ['_FitMdlRsp']
+
+        # Create full path names from nii file names and output path
+        lstNiiNames = [cfg.strPathOut + strNii + '.nii.gz' for strNii in
+                       lstNiiNames]
+
+        # export aryFitMdlRsp as a single 4D nii file
+        print('---Save fitted model responses')
+        export_nii(aryFitMdlRsp, lstNiiNames, aryLgcMsk, aryLgcVar, tplNiiShp,
+                   aryAff, hdrMsk, outFormat='4D')
+        print('------Done.')

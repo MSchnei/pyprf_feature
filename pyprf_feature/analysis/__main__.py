@@ -57,6 +57,13 @@ def main():
                            help='Save fitted and empirical time courses to \
                                  nifti file. Ignored if in testing mode.')
 
+    # Add argument to namespace -mdl_rsp flag:
+    objParser.add_argument('-mdl_rsp', dest='lgcMdlRsp',
+                           action='store_true', default=False,
+                           help='When saving fitted and empirical time \
+                                 courses, should fitted aperture responses be \
+                                 saved as well? Ignored if in testing mode.')
+
     # Namespace object containign arguments and values:
     objNspc = objParser.parse_args()
 
@@ -83,8 +90,12 @@ def main():
         if objNspc.save_tc:
 
             print('***Mode: Save fitted and empirical time courses***')
+            if objNspc.lgcMdlRsp:
+                print('    ***Also save fitted aperture responses***')
+
             # Call to function
-            save_tc_to_nii(strCsvCnfg, lgcTest=lgcTest, lstRat=objNspc.supsur)
+            save_tc_to_nii(strCsvCnfg, lgcTest=lgcTest, lstRat=objNspc.supsur,
+                           lgcMdlRsp=objNspc.lgcMdlRsp)
 
         # If save_tc false, perform pRF fitting, either with or without
         # suppressive surround

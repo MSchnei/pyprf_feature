@@ -151,9 +151,6 @@ def model_creation(dicCnfg, varRat=None):
             # Concatenate aryPrfTc and aryPrfTcSur
             aryPrfTc = np.concatenate((aryPrfTc, aryPrfTcSur), axis=1)
 
-        # Delete array to save memory
-        del(aryMdlRsp)
-
         # *********************************************************************
 
         # *********************************************************************
@@ -165,7 +162,10 @@ def model_creation(dicCnfg, varRat=None):
         np.save(cfg.strPathMdl, aryPrfTc)
         # Save the corresponding model parameters
         np.save(cfg.strPathMdl + "_params", aryMdlParams)
+        # Save the corresponding model responses
+        np.save(cfg.strPathMdl + "_mdlRsp", aryMdlRsp)
         del(aryMdlParams)
+        del(aryMdlRsp)
 
         # *********************************************************************
 
