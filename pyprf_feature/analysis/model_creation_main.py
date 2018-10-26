@@ -25,7 +25,7 @@ from pyprf_feature.analysis.model_creation_utils import (crt_mdl_prms,
                                                          )
 
 
-def model_creation(dicCnfg, varRat=None):
+def model_creation(dicCnfg, varRat=None, strPathHrf=None):
     """
     Create or load pRF model time courses.
 
@@ -35,6 +35,9 @@ def model_creation(dicCnfg, varRat=None):
         Dictionary containing config parameters.
     varRat : float, default None
         Ratio of size suppressive surround to size of center pRF
+    strPathHrf : str or None:
+        Path to npy file with custom hrf parameters. If None, default
+        parameters will be used.
 
     Returns
     -------
@@ -133,11 +136,26 @@ def model_creation(dicCnfg, varRat=None):
 
         print('------Create prf time course models')
 
+        # Check whether path to npy file with hrf parameters was provided
+        if strPathHrf is not None:
+            print('---------Load custom hrf parameters')
+            aryCstPrm = np.load(strPathHrf)
+            dctPrm = {}
+            dctPrm['peak_delay'] = aryCstPrm[0]
+            dctPrm['under_delay'] = aryCstPrm[1]
+            dctPrm['peak_disp'] = aryCstPrm[2]
+            dctPrm['under_disp'] = aryCstPrm[3]
+            dctPrm['p_u_ratio'] = aryCstPrm[4]
+        # If not, set dctPrm to None, which will result in default hrf params
+        else:
+            print('---------Use default hrf parameters')
+            dctPrm = None
+
         aryPrfTc = crt_prf_ftr_tc(aryMdlRsp, aryTmpExpInf, cfg.varNumVol,
                                   cfg.varTr, cfg.varTmpOvsmpl,
                                   cfg.switchHrfSet, (int(cfg.varVslSpcSzeX),
                                                      int(cfg.varVslSpcSzeY)),
-                                  cfg.varPar)
+                                  cfg.varPar, dctPrm=dctPrm)
 
         # If desired by user, create prf time course models for supp surround
         if varRat is not None:
@@ -147,12 +165,9 @@ def model_creation(dicCnfg, varRat=None):
                                          cfg.varTmpOvsmpl, cfg.switchHrfSet,
                                          (int(cfg.varVslSpcSzeX),
                                           int(cfg.varVslSpcSzeY)),
-                                         cfg.varPar)
+                                         cfg.varPar, dctPrm=dctPrm)
             # Concatenate aryPrfTc and aryPrfTcSur
             aryPrfTc = np.concatenate((aryPrfTc, aryPrfTcSur), axis=1)
-
-        # Delete array to save memory
-        del(aryMdlRsp)
 
         # *********************************************************************
 
@@ -165,7 +180,10 @@ def model_creation(dicCnfg, varRat=None):
         np.save(cfg.strPathMdl, aryPrfTc)
         # Save the corresponding model parameters
         np.save(cfg.strPathMdl + "_params", aryMdlParams)
+        # Save the corresponding model responses
+        np.save(cfg.strPathMdl + "_mdlRsp", aryMdlRsp)
         del(aryMdlParams)
+        del(aryMdlRsp)
 
         # *********************************************************************
 
