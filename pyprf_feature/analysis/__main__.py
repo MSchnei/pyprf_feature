@@ -46,6 +46,12 @@ def main():
                                  testing mode.'
                            )
 
+    # Add argument to namespace -mdl_rsp flag:
+    objParser.add_argument('-strPathHrf', default=None, required=False,
+                           metavar='/path/to/custom_hrf_parameter.npy',
+                           help='Path to npy file with custom hrf parameters. \
+                           Ignored if in testing mode.')
+
     objParser.add_argument('-supsur', nargs='+',
                            help='List of floats that represent the ratio of \
                                  size neg surround to size pos center.',
@@ -95,7 +101,8 @@ def main():
 
             # Call to function
             save_tc_to_nii(strCsvCnfg, lgcTest=lgcTest, lstRat=objNspc.supsur,
-                           lgcMdlRsp=objNspc.lgcMdlRsp)
+                           lgcMdlRsp=objNspc.lgcMdlRsp,
+                           strPathHrf=objNspc.strPathHrf)
 
         # If save_tc false, perform pRF fitting, either with or without
         # suppressive surround
@@ -106,7 +113,8 @@ def main():
 
                 print('***Mode: Fit pRF models, no suppressive surround***')
                 # Call to main function, to invoke pRF fitting:
-                pyprf(strCsvCnfg, lgcTest, varRat=None)
+                pyprf(strCsvCnfg, lgcTest, varRat=None,
+                      strPathHrf=objNspc.strPathHrf)
 
             # Perform pRF fitting with suppressive surround
             else:
@@ -144,7 +152,8 @@ def main():
                     # is used
                     print('---Ratio surround to center: ' + str(varRat))
                     # Call to main function, to invoke pRF analysis:
-                    pyprf(strCsvCnfg, lgcTest=lgcTest, varRat=varRat)
+                    pyprf(strCsvCnfg, lgcTest=lgcTest, varRat=varRat,
+                          strPathHrf=objNspc.strPathHrf)
 
                 # List with name suffices of output images:
                 lstNiiNames = ['_x_pos',
@@ -158,8 +167,14 @@ def main():
                 # Compare results for the different ratios, export nii files
                 # based on the results of the comparison and delete in-between
                 # results
+
                 # Replace first entry (None) with 0, so it can be saved to nii
                 lstRat[0] = 0.0
+                # Append 'hrf' to cfg.strPathOut, if fitting was done with
+                # custom hrf
+                if objNspc.strPathHrf is not None:
+                    cfg.strPathOut = cfg.strPathOut + '_hrf'
+
                 cmp_res_R2(lstRat, lstNiiNames, cfg.strPathOut, posR2=3,
                            lgcDel=True)
 

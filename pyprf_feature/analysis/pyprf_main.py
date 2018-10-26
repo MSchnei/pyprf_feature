@@ -34,7 +34,7 @@ from pyprf_feature.analysis.prepare import prep_models, prep_func
 #varRat=None
 ################################
 
-def pyprf(strCsvCnfg, lgcTest=False, varRat=None):
+def pyprf(strCsvCnfg, lgcTest=False, varRat=None, strPathHrf=None):
     """
     Main function for pRF mapping.
 
@@ -47,6 +47,9 @@ def pyprf(strCsvCnfg, lgcTest=False, varRat=None):
         will be prepended to config file paths.
     varRat : float, default None
         Ratio of size suppressive surround to size of center pRF
+    strPathHrf : str or None:
+        Path to npy file with custom hrf parameters. If None, default
+        parameters will be used.
 
     """
     # *************************************************************************
@@ -81,7 +84,7 @@ def pyprf(strCsvCnfg, lgcTest=False, varRat=None):
     # Create model time courses. Also return logical for inclusion of model
     # parameters which will be needed later when we create model parameters
     # in degree.
-    aryPrfTc = model_creation(dicCnfg, varRat=varRat)
+    aryPrfTc = model_creation(dicCnfg, varRat=varRat, strPathHrf=strPathHrf)
 
     # Deduce the number of features from the pRF time course models array
     cfg.varNumFtr = aryPrfTc.shape[1]
@@ -97,7 +100,7 @@ def pyprf(strCsvCnfg, lgcTest=False, varRat=None):
 
     # The functional data will be masked and demeaned:
     aryLgcMsk, aryLgcVar, hdrMsk, aryAff, aryFunc, tplNiiShp = prep_func(
-        cfg.strPathNiiMask, cfg.lstPathNiiFunc)
+        cfg.strPathNiiMask, cfg.lstPathNiiFunc, varAvgThr=-100)
 
     # set the precision of the header to np.float32 so that the prf results
     # will be saved in this precision later
@@ -274,6 +277,10 @@ def pyprf(strCsvCnfg, lgcTest=False, varRat=None):
     # Export each map of best parameters as a 3D nii file
 
     print('---------Exporting results')
+
+    # Append 'hrf' to cfg.strPathOut, if fitting was done with custom hrf
+    if strPathHrf is not None:
+        cfg.strPathOut = cfg.strPathOut + '_hrf'
 
     # Xoncatenate all the best voxel maps
     aryBstMaps = np.stack([aryBstXpos, aryBstYpos, aryBstSd, aryBstR2,

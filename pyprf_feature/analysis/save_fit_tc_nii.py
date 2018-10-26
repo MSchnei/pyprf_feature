@@ -34,7 +34,8 @@ from pyprf_feature.analysis.model_creation_utils import (crt_mdl_prms,
 ################################
 
 
-def save_tc_to_nii(strCsvCnfg, lgcTest=False, lstRat=None, lgcMdlRsp=False):
+def save_tc_to_nii(strCsvCnfg, lgcTest=False, lstRat=None, lgcMdlRsp=False,
+                   strPathHrf=None):
     """
     Save empirical and fitted time courses to nii file format.
 
@@ -49,6 +50,9 @@ def save_tc_to_nii(strCsvCnfg, lgcTest=False, lstRat=None, lgcMdlRsp=False):
         Ratio of size of center to size of suppressive surround.
     lgcMdlRsp : boolean
         Should the aperture responses for the winner model also be saved?
+    strPathHrf : str or None:
+        Path to npy file with custom hrf parameters. If None, defaults
+        parameters were used.
 
     Notes
     -----
@@ -65,8 +69,13 @@ def save_tc_to_nii(strCsvCnfg, lgcTest=False, lstRat=None, lgcMdlRsp=False):
     # Load config parameters from dictionary into namespace:
     cfg = cls_set_config(dicCnfg)
 
-    # If suppressive surround flag is on, make sure to retrieve results from
-    # that fitting
+    # if fitting was done with custom hrf, make sure to retrieve results with
+    # '_hrf' appendix
+    if strPathHrf is not None:
+        cfg.strPathOut = cfg.strPathOut + '_hrf'
+
+    # If suppressive surround flag is on, make sure to retrieve results with
+    # '_supsur' appendix
     if lstRat is not None:
         cfg.strPathOut = cfg.strPathOut + '_supsur'
 
@@ -98,7 +107,7 @@ def save_tc_to_nii(strCsvCnfg, lgcTest=False, lstRat=None, lgcMdlRsp=False):
     # and/or variance - exclude their initial parameters, too
     # Get inclusion mask and nii header
     aryLgcMsk, aryLgcVar, hdrMsk, aryAff, aryFunc, tplNiiShp = prep_func(
-        cfg.strPathNiiMask, cfg.lstPathNiiFunc)
+        cfg.strPathNiiMask, cfg.lstPathNiiFunc, varAvgThr=-100)
     # Apply inclusion mask
     aryIntGssPrm = aryIntGssPrm[aryLgcVar, :]
     aryBetas = aryBetas[aryLgcVar, :]

@@ -181,7 +181,7 @@ def export_nii(ary2dNii, lstNiiNames, aryLgcMsk, aryLgcVar, tplNiiShp, aryAff,
     Parameters
     ----------
     ary2dNii : numpy array
-        Path to nii file to load.
+        Numpy array with results to be exported to nii.
     lstNiiNames : list
         List that contains strings with the complete file names.
     aryLgcMsk : numpy array

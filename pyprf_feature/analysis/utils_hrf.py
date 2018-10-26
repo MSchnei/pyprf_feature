@@ -93,7 +93,8 @@ def spm_hrf_compat(t,
     return hrf / np.max(hrf)
 
 
-def spmt(t):
+def spmt(t, peak_delay=6, under_delay=16, peak_disp=1, under_disp=1,
+         p_u_ratio=6):
     """Normalized SPM HRF function from sum of two gamma PDFs
 
     Parameters
@@ -123,10 +124,13 @@ def spmt(t):
     [1] http://nipy.org/
     [2] https://github.com/fabianp/hrf_estimation
     """
-    return spm_hrf_compat(t, normalize=True)
+    return spm_hrf_compat(t, peak_delay=peak_delay, under_delay=under_delay,
+                          peak_disp=peak_disp, under_disp=under_disp,
+                          p_u_ratio=p_u_ratio, normalize=True)
 
 
-def dspmt(t):
+def dspmt(t, peak_delay=6, under_delay=16, peak_disp=1, under_disp=1,
+          p_u_ratio=6):
     """ SPM canonical HRF derivative, HRF derivative values for time values `t`
 
     Parameters
@@ -151,13 +155,18 @@ def dspmt(t):
     [2] https://github.com/fabianp/hrf_estimation
     """
     t = np.asarray(t)
-    return spmt(t) - spmt(t - 1)
+    aryRsp1 = spmt(t, peak_delay=peak_delay, under_delay=under_delay,
+                   peak_disp=peak_disp, under_disp=under_disp,
+                   p_u_ratio=p_u_ratio)
+    aryRsp2 = spmt(t-1, peak_delay=peak_delay, under_delay=under_delay,
+                   peak_disp=peak_disp, under_disp=under_disp,
+                   p_u_ratio=p_u_ratio)
+
+    return aryRsp1 - aryRsp2
 
 
-_spm_dd_func = partial(spm_hrf_compat, normalize=True, peak_disp=1.01)
-
-
-def ddspmt(t):
+def ddspmt(t, peak_delay=6, under_delay=16, peak_disp=1, under_disp=1,
+           p_u_ratio=6):
     """ SPM canonical HRF dispersion derivative, values for time values `t`
 
     Parameters
@@ -182,6 +191,12 @@ def ddspmt(t):
     [1] http://nipy.org/
     [2] https://github.com/fabianp/hrf_estimation
     """
+
+    _spm_dd_func = partial(spmt, peak_delay=peak_delay,
+                           under_delay=under_delay,
+                           under_disp=under_disp, p_u_ratio=p_u_ratio,
+                           peak_disp=1.01)
+
     return (spmt(t) - _spm_dd_func(t)) / 0.01
 
 
@@ -249,7 +264,7 @@ def create_boxcar(aryCnd, aryOns, aryDrt, varTr, varNumVol,
 
 
 def cnvl_tc(idxPrc, aryPrfTcChunk, lstHrf, varTr, varNumVol, varTmpOvsmpl,
-            queOut, varHrfLen=32.):
+            queOut, varHrfLen=32., dctPrm=None):
     """Convolution of time courses with HRF model.
 
     Parameters
@@ -272,6 +287,9 @@ def cnvl_tc(idxPrc, aryPrfTcChunk, lstHrf, varTr, varNumVol, varTmpOvsmpl,
         Queue to put the results on.
     varHrfLen : float, positive, default=32
         Length of the HRF time course in seconds.
+    dctPrm : dictionary, default None
+        Dictionary with customized hrf parameters. If this is None, default
+        hrf parameters will be used.
 
     Returns
     -------
@@ -289,12 +307,17 @@ def cnvl_tc(idxPrc, aryPrfTcChunk, lstHrf, varTr, varNumVol, varTmpOvsmpl,
     tplInpShp = aryPrfTcChunk.shape
     aryPrfTcChunk = aryPrfTcChunk.reshape((-1, aryPrfTcChunk.shape[-1]))
 
-    # Prepare hrf basis functions
+    # Prepare list to collect hrf basis functions
     lstBse = []
+    # Prepare array that contains time intervals
+    aryTme = np.linspace(0, varHrfLen, (varHrfLen // varTr) * varTmpOvsmpl)
     for fnHrf in lstHrf:
-        # needs to be a multiple of varTmpOvsmpl
-        vecTmpBse = fnHrf(np.linspace(0, varHrfLen,
-                                      (varHrfLen // varTr) * varTmpOvsmpl))
+        # If hrf parameter dictionary is None, run with default parameters
+        if dctPrm is None:
+            vecTmpBse = fnHrf(aryTme)
+        # Otherwise, run with custom parameters
+        else:
+            vecTmpBse = fnHrf(aryTme, **dctPrm)
         # Normalise HRF so that the sum of values is 1 (see FSL)
         # otherwise, after convolution values for predictors are very high
         vecTmpBse = np.divide(vecTmpBse, np.sum(vecTmpBse))

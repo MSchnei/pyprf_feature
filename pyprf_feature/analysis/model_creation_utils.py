@@ -453,7 +453,7 @@ def crt_nrl_tc(aryMdlRsp, aryCnd, aryOns, aryDrt, varTr, varNumVol,
 
 
 def crt_prf_tc(aryNrlTc, varNumVol, varTr, varTmpOvsmpl, switchHrfSet,
-               tplPngSize, varPar):
+               tplPngSize, varPar, dctPrm=None):
     """Convolve every neural time course with HRF function.
 
     Parameters
@@ -471,7 +471,11 @@ def crt_prf_tc(aryNrlTc, varNumVol, varTr, varTmpOvsmpl, switchHrfSet,
     tplPngSize : tuple
         Pixel dimensions of the visual space (width, height).
     varPar : int, positive
-        Description of input 1.
+        Number of cores for multi-processing.
+    dctPrm : dictionary, default None
+        Dictionary with customized hrf parameters. If this is None, default
+        hrf parameters will be used.
+
 
     Returns
     -------
@@ -498,7 +502,7 @@ def crt_prf_tc(aryNrlTc, varNumVol, varTr, varTmpOvsmpl, switchHrfSet,
         # we save the overhead of multiprocessing by calling aryMdlCndRsp
         # directly
         aryNrlTcConv = cnvl_tc(0, aryNrlTc, lstHrf, varTr,
-                               varNumVol, varTmpOvsmpl, None)
+                               varNumVol, varTmpOvsmpl, None, dctPrm=dctPrm)
 
     else:
         # Put input data into chunks:
@@ -524,7 +528,8 @@ def crt_prf_tc(aryNrlTc, varNumVol, varTr, varTmpOvsmpl, switchHrfSet,
                                                varTr,
                                                varNumVol,
                                                varTmpOvsmpl,
-                                               queOut)
+                                               queOut),
+                                         kwargs={'dctPrm': dctPrm},
                                          )
 
             # Daemon (kills processes when exiting):
@@ -562,7 +567,7 @@ def crt_prf_tc(aryNrlTc, varNumVol, varTr, varTmpOvsmpl, switchHrfSet,
 
 
 def crt_prf_ftr_tc(aryMdlRsp, aryTmpExpInf, varNumVol, varTr, varTmpOvsmpl,
-                   switchHrfSet, tplPngSize, varPar):
+                   switchHrfSet, tplPngSize, varPar, dctPrm=None):
     """Create all spatial x feature prf time courses.
 
     Parameters
@@ -583,6 +588,9 @@ def crt_prf_ftr_tc(aryMdlRsp, aryTmpExpInf, varNumVol, varTr, varTmpOvsmpl,
         Pixel dimensions of the visual space (width, height).
     varPar : int, positive
         Description of input 1.
+    dctPrm : dictionary, default None
+        Dictionary with customized hrf parameters. If this is None, default
+        hrf parameters will be used.
 
     Returns
     -------
@@ -617,7 +625,8 @@ def crt_prf_ftr_tc(aryMdlRsp, aryTmpExpInf, varNumVol, varTr, varTmpOvsmpl,
                                  varTr, varNumVol, varTmpOvsmpl)
         # Convolve with hrf to create model pRF time courses.
         aryPrfTcTmp = crt_prf_tc(aryNrlTcTmp, varNumVol, varTr, varTmpOvsmpl,
-                                 switchHrfSet, tplPngSize, varPar)
+                                 switchHrfSet, tplPngSize, varPar,
+                                 dctPrm=dctPrm)
         # Add temporal time course to time course that will be returned
         aryPrfTc = np.concatenate((aryPrfTc, aryPrfTcTmp), axis=1)
 
