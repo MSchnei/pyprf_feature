@@ -65,10 +65,10 @@ The PrePro folder contains some auxiliary scripts to perform some of these funct
 Adjust the information in the config_default.csv file in the Analysis folder, such that the provided information is correct.
 It is recommended to make a specific copy of the csv file for every subject.
 
-### 5. Run pyprf_motion
+### 5. Run pyprf_feature
 Open a terminal and run
 ```
-pyprf_feauture -config path/to/custom_config.csv
+pyprf_feature -config path/to/custom_config.csv
 ```
 
 ## References
@@ -82,4 +82,3 @@ This application is based on the following work:
 
 ## License
 The project is licensed under [GNU General Public License Version 3](http://www.gnu.org/licenses/gpl.html).
-

@@ -7,8 +7,11 @@ For development installation:
 
 from setuptools import setup
 
+with open('README.rst') as f:
+    long_description = f.read()
+
 setup(name='pyprf_feature',
-      version='1.0.0',
+      version='1.1.0',
       description=('A free & open source package for finding best-fitting \
                     population receptive field (PRF) models and feature \
                     weights for fMRI data.'),
@@ -20,6 +23,7 @@ setup(name='pyprf_feature',
                         'cython==0.27.1', 'tensorflow==1.3.0',
                         'scikit-learn==0.19.1'],
       keywords=['pRF', 'fMRI', 'retinotopy', 'feature weights'],
+      long_description=long_description,
       packages=['pyprf_feature.analysis'],
       py_modules=['pyprf_feature.analysis'],
       entry_points={
