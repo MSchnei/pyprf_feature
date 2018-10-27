@@ -172,16 +172,34 @@ def model_creation(dicCnfg, varRat=None, strPathHrf=None):
         # *********************************************************************
 
         # *********************************************************************
-        # *** Save pRF time course models
+        # *** Save pRF time course models, corresponding params and responses
 
         print('------Save pRF time course models to disk')
 
-        # Save the 4D array as '*.npy' file:
-        np.save(cfg.strPathMdl, aryPrfTc)
+        # Prepare file name extensions
+        strNmeExtMdl = ''
+        strNmeExtPrm = '_params'
+        strNmeExtRsp = '_mdlRsp'
+
+        # Check whether extensions need to be modified with ratio name
+        if varRat is not None:
+            strNmeExtMdl = strNmeExtMdl + '_' + str(varRat)
+            strNmeExtPrm = strNmeExtPrm + '_' + str(varRat)
+            strNmeExtRsp = strNmeExtRsp + '_' + str(varRat)
+            # Also include model the parameters and responses of the surround
+            # For the pRF time course models, the surround is included above
+            aryMdlParams = np.stack((aryMdlParams, aryMdlParamsSur),
+                                    axis=1)
+            aryMdlRsp = np.stack((aryMdlRsp, aryMdlRspSur),
+                                 axis=1)
+
+        # Save pRF time course models
+        np.save(cfg.strPathMdl + strNmeExtMdl, aryPrfTc)
         # Save the corresponding model parameters
-        np.save(cfg.strPathMdl + "_params", aryMdlParams)
+        np.save(cfg.strPathMdl + strNmeExtPrm, aryMdlParams)
         # Save the corresponding model responses
-        np.save(cfg.strPathMdl + "_mdlRsp", aryMdlRsp)
+        np.save(cfg.strPathMdl + strNmeExtRsp, aryMdlRsp)
+
         del(aryMdlParams)
         del(aryMdlRsp)
 

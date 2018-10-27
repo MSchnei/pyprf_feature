@@ -309,7 +309,7 @@ def joinRes(lstPrfRes, varPar, idxPos, inFormat='1D'):
     return aryOut
 
 
-def cmp_res_R2(lstRat, lstNiiNames, strPathOut, posR2=4, lgcDel=False):
+def cmp_res_R2(lstRat, lstNiiNames, strPathOut, strPathMdl, lgcDel=False):
     """"Compare results for different exponents and create winner nii.
 
     Parameters
@@ -321,8 +321,8 @@ def cmp_res_R2(lstRat, lstNiiNames, strPathOut, posR2=4, lgcDel=False):
         List of names of the different pRF maps (e.g. xpos, ypos, SD)
     strPathOut : string
         Path to the parent directory where the results should be saved.
-    posR2 : integer, position index
-        Position index of the R2 map. Index in the list with nii names.
+    strPathMdl : string
+        Path to the parent directory where pRF models should be saved.
     lgcDel : boolean
         Should inbetween results (in form of nii files) be deleted?
 
@@ -333,6 +333,18 @@ def cmp_res_R2(lstRat, lstNiiNames, strPathOut, posR2=4, lgcDel=False):
     """
 
     print('---Compare results for different ratios')
+
+    # Extract the index position for R2 and Betas map in lstNiiNames
+    indPosR2 = [ind for ind, item in enumerate(lstNiiNames) if 'R2' in item]
+    indPosBetas = [ind for ind, item in enumerate(lstNiiNames) if 'Betas' in
+                   item]
+    # Check that only one index was found
+    msgError = 'More than one nii file was provided that could serve as R2 map'
+    assert len(indPosR2) == 1, msgError
+    assert len(indPosBetas) == 1, msgError
+    # turn list int index
+    indPosR2 = indPosR2[0]
+    indPosBetas = indPosBetas[0]
 
     # Get the names of the nii files with inbetween results
     lstCmpRes = []
@@ -352,20 +364,31 @@ def cmp_res_R2(lstRat, lstNiiNames, strPathOut, posR2=4, lgcDel=False):
     print('------Find ratio that yielded highest R2 per voxel')
 
     # Initialize winner R2 maps
-    aryWnrR2 = np.zeros(nb.load(lstCmpRes[0][0]).shape)
+    aryWnrR2 = load_nii(lstCmpRes[0][indPosR2])[0]
     aryRatMap = np.zeros(nb.load(lstCmpRes[0][0]).shape)
 
     # Loop over R2 maps to establish which exponents wins
-    for indRat, lstMaps in zip(lstRat, lstCmpRes):
+    # Skip the first ratio, since this is the reference ratio (no surround)
+    # and is reflected already in the initialized ararys - aryWnrR2 & aryRatMap
+    for indRat, lstMaps in zip(lstRat[1:], lstCmpRes[1:]):
         # Load R2 map for this particular exponent
-        aryTmpR2 = load_nii(lstMaps[posR2])[0]
+        aryTmpR2 = load_nii(lstMaps[indPosR2])[0]
+        # Load beta values for this particular exponent
+        aryTmpBetas = load_nii(lstMaps[indPosBetas])[0]
         # Get logical that tells us where current R2 map is greater than
         # previous ones
-        aryLgcTmpRes = np.greater(aryTmpR2, aryWnrR2)
+        aryLgcWnr = np.greater(aryTmpR2, aryWnrR2)
+        # Get logical that tells us where the beta parameter estimate for the
+        # surround is less than 0 (negative) and less than the center beta
+        aryLgcCtrSur = np.logical_and(np.less(aryTmpBetas[..., 1], 0.0),
+                                      np.less(np.abs(aryTmpBetas[..., 1]),
+                                              np.abs(aryTmpBetas[..., 0])))
+        # Combine logical for winner R2 and center-surround conditions
+        aryLgcWnr = np.logical_and(aryLgcWnr, aryLgcCtrSur)
         # Replace values of R2, where current R2 map was greater
-        aryWnrR2[aryLgcTmpRes] = np.copy(aryTmpR2[aryLgcTmpRes])
+        aryWnrR2[aryLgcWnr] = np.copy(aryTmpR2[aryLgcWnr])
         # Remember the index of the exponent that gave rise to this new R2
-        aryRatMap[aryLgcTmpRes] = indRat
+        aryRatMap[aryLgcWnr] = indRat
 
     # Initialize list with winner maps
     lstRatMap = []
@@ -392,7 +415,7 @@ def cmp_res_R2(lstRat, lstNiiNames, strPathOut, posR2=4, lgcDel=False):
 
     # Save winner maps as nii files
     # Get header and affine array
-    hdrMsk, aryAff = load_nii(lstMaps[posR2])[1:]
+    hdrMsk, aryAff = load_nii(lstMaps[indPosR2])[1:]
     # Loop over all the maps
     for indMap, aryMap in enumerate(lstRatMap):
         # Create nii object for results:
@@ -413,11 +436,50 @@ def cmp_res_R2(lstRat, lstNiiNames, strPathOut, posR2=4, lgcDel=False):
     strTmp = strPathOut + '_supsur' + '_Ratios' + '.nii.gz'
     nb.save(niiOut, strTmp)
 
+    # Get the names of the npy files with inbetween model responses
+    lstCmpMdlRsp = []
+    for indRat in range(len(lstRat)):
+        # Get strExpSve
+        strExpSve = '_' + str(lstRat[indRat])
+        # If ratio is marked with 0, set empty string to find reults.
+        # This is the code for fitting without a surround.
+        if lstRat[indRat] == 0:
+            strExpSve = ''
+        # Create full path names from npy file names and output path
+        lstPthNames = [strPathMdl + strNpy + strExpSve + '.npy' for
+                       strNpy in ['_params', '_mdlRsp']]
+        # Append list to list that contains nii names for all exponents
+        lstCmpMdlRsp.append(lstPthNames)
+
+    # Load arrays that keep model params and responses for positive centre
+    aryMdlParams = np.load(lstCmpMdlRsp[0][0])
+    aryMdlRsp = np.load(lstCmpMdlRsp[0][1])
+    # Initialize arrays that will keep model params and responses across ratios
+    # for suppressive surround
+    aryMdlParamsSur = np.zeros((np.load(lstCmpMdlRsp[1][0]).shape +
+                                (len(lstRat)-1,)))
+    aryMdlRspSur = np.zeros((np.load(lstCmpMdlRsp[1][1]).shape +
+                             (len(lstRat)-1,)))
+    # Load parameters/responses for different ratios
+    for indNpy, lstNpy in enumerate(lstCmpMdlRsp[1:]):
+        aryMdlParamsSur[..., indNpy] = np.load(lstNpy[0])
+        aryMdlRspSur[..., indNpy] = np.load(lstNpy[1])
+
+    # Save parameters/response
+    np.save(strPathMdl + '_params', aryMdlParams)
+    np.save(strPathMdl + '_mdlRsp', aryMdlRsp)
+    np.save(strPathMdl + '_supsur' + '_params', aryMdlParamsSur)
+    np.save(strPathMdl + '_supsur' + '_mdlRsp', aryMdlRspSur)
+
     # Delete all the inbetween results, if desired by user
     if lgcDel:
         lstCmpRes = [item for sublist in lstCmpRes for item in sublist]
         print('------Delete in-between results')
         for strMap in lstCmpRes[:]:
+            os.remove(strMap)
+        lstCmpMdlRsp = [item for sublist in lstCmpMdlRsp[1:] for item in
+                        sublist]
+        for strMap in lstCmpMdlRsp[:]:
             os.remove(strMap)
 
 
