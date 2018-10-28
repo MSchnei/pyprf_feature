@@ -390,13 +390,14 @@ def cmp_res_R2(lstRat, lstNiiNames, strPathOut, strPathMdl, lgcDel=False):
         # Remember the index of the exponent that gave rise to this new R2
         aryRatMap[aryLgcWnr] = indRat
 
-    # Initialize list with winner maps
+    # Initialize list with winner maps. The winner maps are initialized with
+    # the same shape as the maps that the last tested ratio maps had.
     lstRatMap = []
     for strPthMaps in lstCmpRes[-1]:
         lstRatMap.append(np.zeros(nb.load(strPthMaps).shape))
 
-    # Compose other maps by assigning map from exponent that was greatest for
-    # every voxel
+    # Compose other maps by assigning map value from the map that resulted from
+    # the exponent that won for particular voxel
     for indRat, lstMaps in zip(lstRat, lstCmpRes):
         # Find out where this exponent won in terms of R2
         lgcWinnerMap = [aryRatMap == indRat][0]
@@ -404,6 +405,14 @@ def cmp_res_R2(lstRat, lstNiiNames, strPathOut, strPathMdl, lgcDel=False):
         for indMap, _ in enumerate(lstMaps):
             # Load map for this particular ratio
             aryTmpMap = load_nii(lstMaps[indMap])[0]
+            # Handle exception: beta map will be 1D, if from ratio 0.0
+            # In this case we want to make it 2D. In particular, the second
+            # set of beta weights should be all zeros, so that later when
+            # forming the model time course, the 2nd predictors contributes 0
+            if indRat == 0.0 and indMap == indPosBetas:
+                aryTmpMap = np.concatenate((aryTmpMap,
+                                            np.zeros(aryTmpMap.shape)),
+                                           axis=-1)
             # Load current winner map from array
             aryCrrWnrMap = np.copy(lstRatMap[indMap])
             # Assign values in temporary map to current winner map for voxels
@@ -436,6 +445,9 @@ def cmp_res_R2(lstRat, lstNiiNames, strPathOut, strPathMdl, lgcDel=False):
     strTmp = strPathOut + '_supsur' + '_Ratios' + '.nii.gz'
     nb.save(niiOut, strTmp)
 
+    print('------Save model time courses/parameters/responses for centre ' +
+          'and surround, across all ratios')
+
     # Get the names of the npy files with inbetween model responses
     lstCmpMdlRsp = []
     for indRat in range(len(lstRat)):
@@ -447,33 +459,51 @@ def cmp_res_R2(lstRat, lstNiiNames, strPathOut, strPathMdl, lgcDel=False):
             strExpSve = ''
         # Create full path names from npy file names and output path
         lstPthNames = [strPathMdl + strNpy + strExpSve + '.npy' for
-                       strNpy in ['_params', '_mdlRsp']]
+                       strNpy in ['', '_params', '_mdlRsp']]
         # Append list to list that contains nii names for all exponents
         lstCmpMdlRsp.append(lstPthNames)
 
-    # Load arrays that keep model params and responses for positive centre
-    aryMdlParams = np.load(lstCmpMdlRsp[0][0])
-    aryMdlRsp = np.load(lstCmpMdlRsp[0][1])
-    # Initialize arrays that will keep model params and responses across ratios
-    # for suppressive surround
-    aryMdlParamsSur = np.zeros((np.load(lstCmpMdlRsp[1][0]).shape +
-                                (len(lstRat)-1,)))
-    aryMdlRspSur = np.zeros((np.load(lstCmpMdlRsp[1][1]).shape +
-                             (len(lstRat)-1,)))
-    # Load parameters/responses for different ratios
+    # Load tc/parameters/responses for different ratios, for now skip "0.0"
+    # ratio because its tc/parameters/responses differs in shape
+    lstPrfTcSur = []
+    lstMdlParamsSur = []
+    lstMdlRspSur = []
     for indNpy, lstNpy in enumerate(lstCmpMdlRsp[1:]):
-        aryMdlParamsSur[..., indNpy] = np.load(lstNpy[0])
-        aryMdlRspSur[..., indNpy] = np.load(lstNpy[1])
+        lstPrfTcSur.append(np.load(lstNpy[0]))
+        lstMdlParamsSur.append(np.load(lstNpy[1]))
+        lstMdlRspSur.append(np.load(lstNpy[2]))
+    # Turn into arrays
+    aryPrfTcSur = np.stack(lstPrfTcSur, axis=2)
+    aryMdlParamsSur = np.stack(lstMdlParamsSur, axis=2)
+    aryMdlRspSur = np.stack(lstMdlRspSur, axis=2)
 
-    # Save parameters/response
-    np.save(strPathMdl + '_params', aryMdlParams)
-    np.save(strPathMdl + '_mdlRsp', aryMdlRsp)
+    # Now handle the "0.0" ratio
+    # Load the tc/parameters/responses of the "0.0" ratio
+    aryPrfTc = np.load(lstCmpMdlRsp[0][0])
+    aryMdlParams = np.load(lstCmpMdlRsp[0][1])
+    aryMdlRsp = np.load(lstCmpMdlRsp[0][2])
+    # Make 2nd row of time courses all zeros so they get no weight in lstsq
+    aryPrfTc = np.concatenate((aryPrfTc, np.zeros(aryPrfTc.shape)), axis=1)
+    # Make 2nd row of parameters the same as first row
+    aryMdlParams = np.stack((aryMdlParams, aryMdlParams), axis=1)
+    # Make 2nd row of responses all zeros so they get no weight in lstsq
+    aryMdlRsp = np.stack((aryMdlRsp, np.zeros(aryMdlRsp.shape)), axis=1)
+    # Add the "0.0" ratio to tc/parameters/responses of other ratios
+    aryPrfTcSur = np.concatenate((np.expand_dims(aryPrfTc, axis=2),
+                                  aryPrfTcSur), axis=2)
+    aryMdlParamsSur = np.concatenate((np.expand_dims(aryMdlParams, axis=2),
+                                     aryMdlParamsSur), axis=2)
+    aryMdlRspSur = np.concatenate((np.expand_dims(aryMdlRsp, axis=2),
+                                  aryMdlRspSur), axis=2)
+
+    # Save parameters/response for centre and surround, for all ratios
+    np.save(strPathMdl + '_supsur' + '', aryPrfTcSur)
     np.save(strPathMdl + '_supsur' + '_params', aryMdlParamsSur)
     np.save(strPathMdl + '_supsur' + '_mdlRsp', aryMdlRspSur)
 
-    # Delete all the inbetween results, if desired by user
+    # Delete all the inbetween results, if desired by user, skip "0.0" ratio
     if lgcDel:
-        lstCmpRes = [item for sublist in lstCmpRes for item in sublist]
+        lstCmpRes = [item for sublist in lstCmpRes[1:] for item in sublist]
         print('------Delete in-between results')
         for strMap in lstCmpRes[:]:
             os.remove(strMap)

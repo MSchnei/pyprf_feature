@@ -27,10 +27,11 @@ from pyprf_feature.analysis.model_creation_utils import (crt_mdl_prms,
                                                          fnd_unq_rws)
 
 ###### DEBUGGING ###############
-#strCsvCnfg = "/media/sf_D_DRIVE/MotDepPrf/Analysis/S02/03_motLoc/pRF_results/S02_config_MotLoc_feature.csv"
+#strCsvCnfg = "/home/marian/Documents/Testing/pyprf_feature_devel/control/S02_config_motDepPrf_flck_smooth_inw.csv"
 #lgcTest = False
-#lstRat=None
-#lgcMdlRsp=True
+#lstRat = None  # [1.5, 1.8, 2.1]
+#lgcMdlRsp = True
+#strPathHrf = None
 ################################
 
 
@@ -78,6 +79,10 @@ def save_tc_to_nii(strCsvCnfg, lgcTest=False, lstRat=None, lgcMdlRsp=False,
     # '_supsur' appendix
     if lstRat is not None:
         cfg.strPathOut = cfg.strPathOut + '_supsur'
+        cfg.strPathMdl = cfg.strPathMdl + '_supsur'
+        # Append 0.0 as the first entry, which is the key for fitting without
+        # surround (only centre)
+        lstRat.insert(0, 0.0)
 
     # %% Load previous pRF fitting results
 
@@ -102,6 +107,14 @@ def save_tc_to_nii(strCsvCnfg, lgcTest=False, lstRat=None, lgcMdlRsp=False,
     # Load beta parameters estimates, aka weights for time courses
     lstPathBeta = [cfg.strPathOut + '_Betas.nii.gz']
     aryBetas = load_res_prm(lstPathBeta, lstFlsMsk=[cfg.strPathNiiMask])[0][0]
+    assert os.path.isfile(lstPathBeta[0]), errorMsg
+
+    # Load ratio image, if fitting was obtained with suppressive surround
+    if lstRat is not None:
+        lstPathRatio = [cfg.strPathOut + '_Ratios.nii.gz']
+        aryRatio = load_res_prm(lstPathRatio,
+                                lstFlsMsk=[cfg.strPathNiiMask])[0][0]
+        assert os.path.isfile(lstPathRatio[0]), errorMsg
 
     # Some voxels were excluded because they did not have sufficient mean
     # and/or variance - exclude their initial parameters, too
@@ -111,6 +124,8 @@ def save_tc_to_nii(strCsvCnfg, lgcTest=False, lstRat=None, lgcMdlRsp=False,
     # Apply inclusion mask
     aryIntGssPrm = aryIntGssPrm[aryLgcVar, :]
     aryBetas = aryBetas[aryLgcVar, :]
+    if lstRat is not None:
+        aryRatio = aryRatio[aryLgcVar, :]
 
     # Get array with model parameters that were fitted on a grid
     # [x positions, y positions, sigmas]
@@ -121,6 +136,7 @@ def save_tc_to_nii(strCsvCnfg, lgcTest=False, lstRat=None, lgcMdlRsp=False,
                                 cfg.varNumPrfSizes, cfg.varPrfStdMin,
                                 cfg.varPrfStdMax, kwUnt='deg',
                                 kwCrd=cfg.strKwCrd)
+
     # Get corresponding pRF model time courses
     aryPrfTc = np.load(cfg.strPathMdl + '.npy')
 
@@ -134,13 +150,17 @@ def save_tc_to_nii(strCsvCnfg, lgcTest=False, lstRat=None, lgcMdlRsp=False,
     # %% Derive fitted time course models for all voxels
 
     # Initialize array that will collect the fitted time courses
-    aryFitTc = np.zeros((aryIntGssPrm.shape[0],
-                         aryPrfTc.shape[-1]), dtype=np.float32)
+    aryFitTc = np.zeros((aryFunc.shape), dtype=np.float32)
     # If desired, initiliaze array that will collect model responses underlying
-    # the fittedt time course
+    # the fitted time course
     if lgcMdlRsp:
-        aryFitMdlRsp = np.zeros((aryIntGssPrm.shape[0],
-                                 aryMdlRsp.shape[-1]), dtype=np.float32)
+        if lstRat is not None:
+            aryFitMdlRsp = np.zeros((aryIntGssPrm.shape[0], aryMdlRsp.shape[1],
+                                     aryMdlRsp.shape[3]),
+                                    dtype=np.float32)
+        else:
+            aryFitMdlRsp = np.zeros((aryIntGssPrm.shape[0],
+                                     aryMdlRsp.shape[1]), dtype=np.float32)
 
     # create vector that allows to check whether every voxel is visited
     # exactly once
@@ -157,24 +177,43 @@ def save_tc_to_nii(strCsvCnfg, lgcTest=False, lstRat=None, lgcMdlRsp=False,
         lgcVxl = [aryUnqInd == indRow][0]
         if np.all(np.invert(lgcVxl)):
             print('---No voxel found')
+        # Mark those voxels that were visited
+        vecVxlTst[lgcVxl] += 1
+
         # Get logical index for the model number
         # This can only be 1 index, so we directly get 1st entry of array
         lgcMdl = np.where(np.isclose(aryMdlParams, vecPrm,
                                      atol=1e-04).all(axis=1))[0][0]
+        # Tell user if no model was found
         if lgcMdl is None:
             print('---No model found')
-        # Mark those voxels that were visited
-        vecVxlTst[lgcVxl] += 1
 
         # Get model time courses
-        aryMdlTc = aryPrfTc[lgcMdl, :, :]
+        aryMdlTc = aryPrfTc[lgcMdl, ...]
         # Get beta parameter estimates
         aryWeights = aryBetas[lgcVxl, :]
+
+        # If fitting was done with surround suppression, find ratios for voxels
+        # and the indices of these ratios in lstRat
+        if lstRat is not None:
+            aryVxlRatio = aryRatio[lgcVxl, :]
+            indRat = [ind for ind, rat1 in enumerate(lstRat) for rat2 in
+                      aryVxlRatio[:, 0] if rat1 == rat2]
+            indVxl = range(len(indRat))
+
         # Combine model time courses and weights to yield fitted time course
-        aryFitTc[lgcVxl, :] = np.dot(aryWeights, aryMdlTc)
+        if lstRat is not None:
+            aryFitTcTmp = np.tensordot(aryWeights, aryMdlTc, axes=([1], [0]))
+            aryFitTc[lgcVxl, :] = aryFitTcTmp[indVxl, indRat, :]
+        else:
+            aryFitTc[lgcVxl, :] = np.dot(aryWeights, aryMdlTc)
+
         if lgcMdlRsp:
             # If desired also save the model responses that won
-            aryFitMdlRsp[lgcVxl, :] = aryMdlRsp[lgcMdl, :]
+            if lstRat is not None:
+                aryFitMdlRsp[lgcVxl, :] = aryMdlRsp[lgcMdl, :, indRat, :]
+            else:
+                aryFitMdlRsp[lgcVxl, :] = aryMdlRsp[lgcMdl, :]
 
     # check that every voxel was visited exactly once
     errMsg = 'At least one voxel visited more than once for tc recreation'
