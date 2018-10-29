@@ -380,9 +380,10 @@ def cmp_res_R2(lstRat, lstNiiNames, strPathOut, strPathMdl, lgcDel=False):
         aryLgcWnr = np.greater(aryTmpR2, aryWnrR2)
         # Get logical that tells us where the beta parameter estimate for the
         # surround is less than 0 (negative) and less than the center beta
-        aryLgcCtrSur = np.logical_and(np.less(aryTmpBetas[..., 1], 0.0),
-                                      np.less(np.abs(aryTmpBetas[..., 1]),
-                                              np.abs(aryTmpBetas[..., 0])))
+        aryLgcCtrSur = np.less(aryTmpBetas[..., 1], 0.0)
+#        aryLgcCtrSur = np.logical_and(np.less(aryTmpBetas[..., 1], 0.0),
+#                                      np.less(np.abs(aryTmpBetas[..., 1]),
+#                                              np.abs(aryTmpBetas[..., 0])))
         # Combine logical for winner R2 and center-surround conditions
         aryLgcWnr = np.logical_and(aryLgcWnr, aryLgcCtrSur)
         # Replace values of R2, where current R2 map was greater
