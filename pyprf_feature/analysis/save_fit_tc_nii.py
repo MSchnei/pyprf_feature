@@ -29,7 +29,7 @@ from pyprf_feature.analysis.model_creation_utils import (crt_mdl_prms,
 ###### DEBUGGING ###############
 #strCsvCnfg = "/home/marian/Documents/Testing/pyprf_feature_devel/control/S02_config_motDepPrf_flck_smooth_inw.csv"
 #lgcTest = False
-#lstRat = None  # [1.5, 1.8, 2.1]
+#lstRat = [1.5, 1.8, 2.1]
 #lgcMdlRsp = True
 #strPathHrf = None
 ################################
@@ -198,7 +198,7 @@ def save_tc_to_nii(strCsvCnfg, lgcTest=False, lstRat=None, lgcMdlRsp=False,
         if lstRat is not None:
             aryVxlRatio = aryRatio[lgcVxl, :]
             indRat = [ind for ind, rat1 in enumerate(lstRat) for rat2 in
-                      aryVxlRatio[:, 0] if rat1 == rat2]
+                      aryVxlRatio[:, 0] if np.isclose(rat1, rat2)]
             indVxl = range(len(indRat))
 
         # Combine model time courses and weights to yield fitted time course
@@ -208,6 +208,7 @@ def save_tc_to_nii(strCsvCnfg, lgcTest=False, lstRat=None, lgcMdlRsp=False,
         else:
             aryFitTc[lgcVxl, :] = np.dot(aryWeights, aryMdlTc)
 
+        # If desired by user, also save the model responses per voxels
         if lgcMdlRsp:
             # If desired also save the model responses that won
             if lstRat is not None:
@@ -250,15 +251,11 @@ def save_tc_to_nii(strCsvCnfg, lgcTest=False, lstRat=None, lgcMdlRsp=False,
     print('------Done.')
 
     if lgcMdlRsp:
-        # List with name suffices of output images:
-        lstNiiNames = ['_FitMdlRsp']
 
-        # Create full path names from nii file names and output path
-        lstNiiNames = [cfg.strPathOut + strNii + '.nii.gz' for strNii in
-                       lstNiiNames]
+        # Create full path name
+        strNpyName = cfg.strPathOut + '_FitMdlRsp' + '.npy'
 
-        # export aryFitMdlRsp as a single 4D nii file
+        # Save aryFitMdlRsp as npy file
         print('---Save fitted model responses')
-        export_nii(aryFitMdlRsp, lstNiiNames, aryLgcMsk, aryLgcVar, tplNiiShp,
-                   aryAff, hdrMsk, outFormat='4D')
+        np.save(strNpyName, aryFitMdlRsp)
         print('------Done.')
