@@ -24,6 +24,18 @@ from pyprf_feature import __version__
 strDir = os.path.dirname(os.path.abspath(__file__))
 
 
+###### DEBUGGING ###############
+#class Object(object):
+#    pass
+#objNspc = Object()
+#objNspc.config = "/home/marian/Documents/Testing/pyprf_feature_devel/control/S02_config_motDepPrf_flck_smooth_inw.csv"
+#objNspc.strPathHrf = None
+#objNspc.supsur = [1.5, 1.8, 2.1]
+#objNspc.save_tc = False
+#objNspc.mdl_rsp = False
+################################
+
+
 def main():
     """pyprf_feature entry point."""
 
@@ -134,6 +146,11 @@ def main():
                 errorMsg = 'lgcCrteMdl needs to be set to True for -supsur.'
                 assert cfg.lgcCrteMdl, errorMsg
 
+                # Make sure that switchHrf is set to 1. It would not make sense
+                # to find the negative surround for the hrf deriavtive function
+                errorMsg = 'switchHrfSet needs to be set to 1 for -supsur.'
+                assert cfg.switchHrfSet == 1, errorMsg
+
                 # Get list with size ratios
                 lstRat = objNspc.supsur
 
@@ -175,7 +192,7 @@ def main():
                 if objNspc.strPathHrf is not None:
                     cfg.strPathOut = cfg.strPathOut + '_hrf'
 
-                cmp_res_R2(lstRat, lstNiiNames, cfg.strPathOut, posR2=3,
+                cmp_res_R2(lstRat, lstNiiNames, cfg.strPathOut, cfg.strPathMdl,
                            lgcDel=True)
 
 

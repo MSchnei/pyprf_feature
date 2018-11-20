@@ -309,7 +309,7 @@ def joinRes(lstPrfRes, varPar, idxPos, inFormat='1D'):
     return aryOut
 
 
-def cmp_res_R2(lstRat, lstNiiNames, strPathOut, posR2=4, lgcDel=False):
+def cmp_res_R2(lstRat, lstNiiNames, strPathOut, strPathMdl, lgcDel=False):
     """"Compare results for different exponents and create winner nii.
 
     Parameters
@@ -321,8 +321,8 @@ def cmp_res_R2(lstRat, lstNiiNames, strPathOut, posR2=4, lgcDel=False):
         List of names of the different pRF maps (e.g. xpos, ypos, SD)
     strPathOut : string
         Path to the parent directory where the results should be saved.
-    posR2 : integer, position index
-        Position index of the R2 map. Index in the list with nii names.
+    strPathMdl : string
+        Path to the parent directory where pRF models should be saved.
     lgcDel : boolean
         Should inbetween results (in form of nii files) be deleted?
 
@@ -333,6 +333,18 @@ def cmp_res_R2(lstRat, lstNiiNames, strPathOut, posR2=4, lgcDel=False):
     """
 
     print('---Compare results for different ratios')
+
+    # Extract the index position for R2 and Betas map in lstNiiNames
+    indPosR2 = [ind for ind, item in enumerate(lstNiiNames) if 'R2' in item]
+    indPosBetas = [ind for ind, item in enumerate(lstNiiNames) if 'Betas' in
+                   item]
+    # Check that only one index was found
+    msgError = 'More than one nii file was provided that could serve as R2 map'
+    assert len(indPosR2) == 1, msgError
+    assert len(indPosBetas) == 1, msgError
+    # turn list int index
+    indPosR2 = indPosR2[0]
+    indPosBetas = indPosBetas[0]
 
     # Get the names of the nii files with inbetween results
     lstCmpRes = []
@@ -352,28 +364,41 @@ def cmp_res_R2(lstRat, lstNiiNames, strPathOut, posR2=4, lgcDel=False):
     print('------Find ratio that yielded highest R2 per voxel')
 
     # Initialize winner R2 maps
-    aryWnrR2 = np.zeros(nb.load(lstCmpRes[0][0]).shape)
+    aryWnrR2 = load_nii(lstCmpRes[0][indPosR2])[0]
     aryRatMap = np.zeros(nb.load(lstCmpRes[0][0]).shape)
 
     # Loop over R2 maps to establish which exponents wins
-    for indRat, lstMaps in zip(lstRat, lstCmpRes):
+    # Skip the first ratio, since this is the reference ratio (no surround)
+    # and is reflected already in the initialized ararys - aryWnrR2 & aryRatMap
+    for indRat, lstMaps in zip(lstRat[1:], lstCmpRes[1:]):
         # Load R2 map for this particular exponent
-        aryTmpR2 = load_nii(lstMaps[posR2])[0]
+        aryTmpR2 = load_nii(lstMaps[indPosR2])[0]
+        # Load beta values for this particular exponent
+        aryTmpBetas = load_nii(lstMaps[indPosBetas])[0]
         # Get logical that tells us where current R2 map is greater than
         # previous ones
-        aryLgcTmpRes = np.greater(aryTmpR2, aryWnrR2)
+        aryLgcWnr = np.greater(aryTmpR2, aryWnrR2)
+        # Get logical that tells us where the beta parameter estimate for the
+        # surround is less than 0 (negative) and less than the center beta
+        aryLgcCtrSur = np.less(aryTmpBetas[..., 1], 0.0)
+#        aryLgcCtrSur = np.logical_and(np.less(aryTmpBetas[..., 1], 0.0),
+#                                      np.less(np.abs(aryTmpBetas[..., 1]),
+#                                              np.abs(aryTmpBetas[..., 0])))
+        # Combine logical for winner R2 and center-surround conditions
+        aryLgcWnr = np.logical_and(aryLgcWnr, aryLgcCtrSur)
         # Replace values of R2, where current R2 map was greater
-        aryWnrR2[aryLgcTmpRes] = np.copy(aryTmpR2[aryLgcTmpRes])
+        aryWnrR2[aryLgcWnr] = np.copy(aryTmpR2[aryLgcWnr])
         # Remember the index of the exponent that gave rise to this new R2
-        aryRatMap[aryLgcTmpRes] = indRat
+        aryRatMap[aryLgcWnr] = indRat
 
-    # Initialize list with winner maps
+    # Initialize list with winner maps. The winner maps are initialized with
+    # the same shape as the maps that the last tested ratio maps had.
     lstRatMap = []
     for strPthMaps in lstCmpRes[-1]:
         lstRatMap.append(np.zeros(nb.load(strPthMaps).shape))
 
-    # Compose other maps by assigning map from exponent that was greatest for
-    # every voxel
+    # Compose other maps by assigning map value from the map that resulted from
+    # the exponent that won for particular voxel
     for indRat, lstMaps in zip(lstRat, lstCmpRes):
         # Find out where this exponent won in terms of R2
         lgcWinnerMap = [aryRatMap == indRat][0]
@@ -381,6 +406,14 @@ def cmp_res_R2(lstRat, lstNiiNames, strPathOut, posR2=4, lgcDel=False):
         for indMap, _ in enumerate(lstMaps):
             # Load map for this particular ratio
             aryTmpMap = load_nii(lstMaps[indMap])[0]
+            # Handle exception: beta map will be 1D, if from ratio 0.0
+            # In this case we want to make it 2D. In particular, the second
+            # set of beta weights should be all zeros, so that later when
+            # forming the model time course, the 2nd predictors contributes 0
+            if indRat == 0.0 and indMap == indPosBetas:
+                aryTmpMap = np.concatenate((aryTmpMap,
+                                            np.zeros(aryTmpMap.shape)),
+                                           axis=-1)
             # Load current winner map from array
             aryCrrWnrMap = np.copy(lstRatMap[indMap])
             # Assign values in temporary map to current winner map for voxels
@@ -392,7 +425,7 @@ def cmp_res_R2(lstRat, lstNiiNames, strPathOut, posR2=4, lgcDel=False):
 
     # Save winner maps as nii files
     # Get header and affine array
-    hdrMsk, aryAff = load_nii(lstMaps[posR2])[1:]
+    hdrMsk, aryAff = load_nii(lstMaps[indPosR2])[1:]
     # Loop over all the maps
     for indMap, aryMap in enumerate(lstRatMap):
         # Create nii object for results:
@@ -413,11 +446,71 @@ def cmp_res_R2(lstRat, lstNiiNames, strPathOut, posR2=4, lgcDel=False):
     strTmp = strPathOut + '_supsur' + '_Ratios' + '.nii.gz'
     nb.save(niiOut, strTmp)
 
-    # Delete all the inbetween results, if desired by user
+    print('------Save model time courses/parameters/responses for centre ' +
+          'and surround, across all ratios')
+
+    # Get the names of the npy files with inbetween model responses
+    lstCmpMdlRsp = []
+    for indRat in range(len(lstRat)):
+        # Get strExpSve
+        strExpSve = '_' + str(lstRat[indRat])
+        # If ratio is marked with 0, set empty string to find reults.
+        # This is the code for fitting without a surround.
+        if lstRat[indRat] == 0:
+            strExpSve = ''
+        # Create full path names from npy file names and output path
+        lstPthNames = [strPathMdl + strNpy + strExpSve + '.npy' for
+                       strNpy in ['', '_params', '_mdlRsp']]
+        # Append list to list that contains nii names for all exponents
+        lstCmpMdlRsp.append(lstPthNames)
+
+    # Load tc/parameters/responses for different ratios, for now skip "0.0"
+    # ratio because its tc/parameters/responses differs in shape
+    lstPrfTcSur = []
+    lstMdlParamsSur = []
+    lstMdlRspSur = []
+    for indNpy, lstNpy in enumerate(lstCmpMdlRsp[1:]):
+        lstPrfTcSur.append(np.load(lstNpy[0]))
+        lstMdlParamsSur.append(np.load(lstNpy[1]))
+        lstMdlRspSur.append(np.load(lstNpy[2]))
+    # Turn into arrays
+    aryPrfTcSur = np.stack(lstPrfTcSur, axis=2)
+    aryMdlParamsSur = np.stack(lstMdlParamsSur, axis=2)
+    aryMdlRspSur = np.stack(lstMdlRspSur, axis=2)
+
+    # Now handle the "0.0" ratio
+    # Load the tc/parameters/responses of the "0.0" ratio
+    aryPrfTc = np.load(lstCmpMdlRsp[0][0])
+    aryMdlParams = np.load(lstCmpMdlRsp[0][1])
+    aryMdlRsp = np.load(lstCmpMdlRsp[0][2])
+    # Make 2nd row of time courses all zeros so they get no weight in lstsq
+    aryPrfTc = np.concatenate((aryPrfTc, np.zeros(aryPrfTc.shape)), axis=1)
+    # Make 2nd row of parameters the same as first row
+    aryMdlParams = np.stack((aryMdlParams, aryMdlParams), axis=1)
+    # Make 2nd row of responses all zeros so they get no weight in lstsq
+    aryMdlRsp = np.stack((aryMdlRsp, np.zeros(aryMdlRsp.shape)), axis=1)
+    # Add the "0.0" ratio to tc/parameters/responses of other ratios
+    aryPrfTcSur = np.concatenate((np.expand_dims(aryPrfTc, axis=2),
+                                  aryPrfTcSur), axis=2)
+    aryMdlParamsSur = np.concatenate((np.expand_dims(aryMdlParams, axis=2),
+                                     aryMdlParamsSur), axis=2)
+    aryMdlRspSur = np.concatenate((np.expand_dims(aryMdlRsp, axis=2),
+                                  aryMdlRspSur), axis=2)
+
+    # Save parameters/response for centre and surround, for all ratios
+    np.save(strPathMdl + '_supsur' + '', aryPrfTcSur)
+    np.save(strPathMdl + '_supsur' + '_params', aryMdlParamsSur)
+    np.save(strPathMdl + '_supsur' + '_mdlRsp', aryMdlRspSur)
+
+    # Delete all the inbetween results, if desired by user, skip "0.0" ratio
     if lgcDel:
-        lstCmpRes = [item for sublist in lstCmpRes for item in sublist]
+        lstCmpRes = [item for sublist in lstCmpRes[1:] for item in sublist]
         print('------Delete in-between results')
         for strMap in lstCmpRes[:]:
+            os.remove(strMap)
+        lstCmpMdlRsp = [item for sublist in lstCmpMdlRsp[1:] for item in
+                        sublist]
+        for strMap in lstCmpMdlRsp[:]:
             os.remove(strMap)
 
 
@@ -534,6 +627,67 @@ def rmp_rng(aryVls, varNewMin, varNewMax, varOldThrMin=None,
                           (varOldMax - varOldMin)) + varNewMin
 
     return aryNewVls
+
+
+def rmp_deg_pixel_xys(vecX, vecY, vecPrfSd, tplPngSize,
+                      varExtXmin, varExtXmax, varExtYmin, varExtYmax):
+    """Remap x, y, sigma parameters from degrees to pixel.
+
+    Parameters
+    ----------
+    vecX : 1D numpy array
+        Array with possible x parametrs in degree
+    vecY : 1D numpy array
+        Array with possible y parametrs in degree
+    vecPrfSd : 1D numpy array
+        Array with possible sd parametrs in degree
+    tplPngSize : tuple, 2
+        Pixel dimensions of the visual space in pixel (width, height).
+    varExtXmin : float
+        Extent of visual space from centre in negative x-direction (width)
+    varExtXmax : float
+        Extent of visual space from centre in positive x-direction (width)
+    varExtYmin : float
+        Extent of visual space from centre in negative y-direction (height)
+    varExtYmax : float
+        Extent of visual space from centre in positive y-direction (height)
+    Returns
+    -------
+    vecX : 1D numpy array
+        Array with possible x parametrs in pixel
+    vecY : 1D numpy array
+        Array with possible y parametrs in pixel
+    vecPrfSd : 1D numpy array
+        Array with possible sd parametrs in pixel
+
+    """
+    # Remap modelled x-positions of the pRFs:
+    vecXpxl = rmp_rng(vecX, 0.0, (tplPngSize[0] - 1), varOldThrMin=varExtXmin,
+                      varOldAbsMax=varExtXmax)
+
+    # Remap modelled y-positions of the pRFs:
+    vecYpxl = rmp_rng(vecY, 0.0, (tplPngSize[1] - 1), varOldThrMin=varExtYmin,
+                      varOldAbsMax=varExtYmax)
+
+    # We calculate the scaling factor from degrees of visual angle to
+    # pixels separately for the x- and the y-directions (the two should
+    # be the same).
+    varDgr2PixX = np.divide(tplPngSize[0], (varExtXmax - varExtXmin))
+    varDgr2PixY = np.divide(tplPngSize[1], (varExtYmax - varExtYmin))
+
+    # Check whether varDgr2PixX and varDgr2PixY are similar:
+    strErrMsg = 'ERROR. The ratio of X and Y dimensions in ' + \
+        'stimulus space (in degrees of visual angle) and the ' + \
+        'ratio of X and Y dimensions in the upsampled visual space' + \
+        'do not agree'
+    assert 0.5 > np.absolute((varDgr2PixX - varDgr2PixY)), strErrMsg
+
+    # Convert prf sizes from degrees of visual angles to pixel
+    vecPrfSdpxl = np.multiply(vecPrfSd, varDgr2PixX)
+
+    # Return new values in column stack.
+    # Since values are now in pixel, they should be integer
+    return np.column_stack((vecXpxl, vecYpxl, vecPrfSdpxl)).astype(np.int32)
 
 
 def crt_2D_gauss(varSizeX, varSizeY, varPosX, varPosY, varSd):
