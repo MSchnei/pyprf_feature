@@ -19,6 +19,7 @@
 
 import os
 import numpy as np
+import nibabel as nb
 from pyprf_feature.analysis.load_config import load_config
 from pyprf_feature.analysis.utils_general import (cls_set_config, export_nii,
                                                   load_res_prm)
@@ -27,16 +28,16 @@ from pyprf_feature.analysis.model_creation_utils import (crt_mdl_prms,
                                                          fnd_unq_rws)
 
 ###### DEBUGGING ###############
-#strCsvCnfg = "/home/marian/Documents/Testing/pyprf_feature_devel/control/S02_config_motDepPrf_flck_smooth_inw.csv"
+#strCsvCnfg = "/media/sf_D_DRIVE/MotionQuartet/Analysis/P3/Prf/Fitting/pRF_results/Testing/P3_config_NoM_sptSmooth_tmpSmooth.csv"
 #lgcTest = False
-#lstRat = [1.5, 1.8, 2.1]
+#lstRat = None  # [1.5, 1.8, 2.1]
 #lgcMdlRsp = True
 #strPathHrf = None
 ################################
 
 
 def save_tc_to_nii(strCsvCnfg, lgcTest=False, lstRat=None, lgcMdlRsp=False,
-                   strPathHrf=None):
+                   strPathHrf=None, lgcSaveRam=False):
     """
     Save empirical and fitted time courses to nii file format.
 
@@ -54,6 +55,8 @@ def save_tc_to_nii(strCsvCnfg, lgcTest=False, lstRat=None, lgcMdlRsp=False,
     strPathHrf : str or None:
         Path to npy file with custom hrf parameters. If None, defaults
         parameters were used.
+    lgcSaveRam : boolean
+        Whether to also save a nii file that uses little RAM.
 
     Notes
     -----
@@ -183,7 +186,7 @@ def save_tc_to_nii(strCsvCnfg, lgcTest=False, lstRat=None, lgcMdlRsp=False,
         # Get logical index for the model number
         # This can only be 1 index, so we directly get 1st entry of array
         lgcMdl = np.where(np.isclose(aryMdlParams, vecPrm,
-                                     atol=1e-04).all(axis=1))[0][0]
+                                     atol=0.01).all(axis=1))[0][0]
         # Tell user if no model was found
         if lgcMdl is None:
             print('---No model found')
@@ -235,6 +238,14 @@ def save_tc_to_nii(strCsvCnfg, lgcTest=False, lstRat=None, lgcMdlRsp=False,
                aryAff, hdrMsk, outFormat='4D')
     print('------Done.')
 
+    # If desired by user, also save RAM-saving version of nii
+    if lgcSaveRam:
+        strPthRamOut = cfg.strPathOut + '_EmpTc_saveRAM' + '.nii.gz'
+        imgNii = nb.Nifti1Image(np.expand_dims(np.expand_dims(aryFunc, axis=1),
+                                               axis=1),
+                                affine=np.eye(4))
+        nb.save(imgNii, strPthRamOut)
+
     # %% Export fitted time courses and, if desired, model responses as nii
 
     # List with name suffices of output images:
@@ -259,3 +270,12 @@ def save_tc_to_nii(strCsvCnfg, lgcTest=False, lstRat=None, lgcMdlRsp=False,
         print('---Save fitted model responses')
         np.save(strNpyName, aryFitMdlRsp)
         print('------Done.')
+
+    # If desired by user, also save RAM-saving version of nii
+    if lgcSaveRam:
+        strPthRamOut = cfg.strPathOut + '_FitTc_saveRAM' + '.nii.gz'
+        imgNii = nb.Nifti1Image(np.expand_dims(np.expand_dims(aryFitTc,
+                                                              axis=1),
+                                               axis=1),
+                                affine=np.eye(4))
+        nb.save(imgNii, strPthRamOut)
