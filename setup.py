@@ -11,7 +11,7 @@ with open('README.rst') as f:
     long_description = f.read()
 
 setup(name='pyprf_feature',
-      version='1.1.0',
+      version='1.1.1',
       description=('A free & open source package for finding best-fitting \
                     population receptive field (PRF) models and feature \
                     weights for fMRI data.'),
