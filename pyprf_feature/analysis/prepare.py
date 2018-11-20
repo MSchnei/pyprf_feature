@@ -121,14 +121,14 @@ def prep_models(aryPrfTc, varSdSmthTmp=2.0, lgcPrint=True):
 
 
 def prep_func(strPathNiiMask, lstPathNiiFunc, varAvgThr=100.,
-              varVarThr=0.0001):
+              varVarThr=0.0001, strDemean=True):
     """
     Load & prepare functional data.
 
     Parameters
     ----------
     strPathNiiMask: str
-        Path or mask used to restrict pRF model finding. Only voxels with
+        Path to mask used to restrict pRF model finding. Only voxels with
         a value greater than zero in the mask are considered.
     lstPathNiiFunc : list
         List of paths of functional data (nii files).
@@ -138,6 +138,8 @@ def prep_func(strPathNiiMask, lstPathNiiFunc, varAvgThr=100.,
     varVarThr : float, positive, default = 0.0001
         Float. Voxels that have at least one run with a variance lower than
         this (after demeaning) will be excluded from model fitting.
+    strDemean : boolean, default True
+        Should data be demeaned? By default they are demeaned.
 
     Returns
     -------
@@ -232,11 +234,12 @@ def prep_func(strPathNiiMask, lstPathNiiFunc, varAvgThr=100.,
         lstFuncAvg.append(np.mean(aryTmpFunc, axis=1, dtype=np.float32))
 
         # De-mean functional data:
-        print('------------Demean')
-        aryTmpFunc = np.subtract(aryTmpFunc,
-                                 np.mean(aryTmpFunc,
-                                         axis=1,
-                                         dtype=np.float32)[:, None])
+        if strDemean:
+            print('------------Demean')
+            aryTmpFunc = np.subtract(aryTmpFunc,
+                                     np.mean(aryTmpFunc,
+                                             axis=1,
+                                             dtype=np.float32)[:, None])
 
         # also save the variance of the run
         lstFuncVar.append(np.var(aryTmpFunc, axis=1, dtype=np.float32))
