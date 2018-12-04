@@ -19,7 +19,6 @@
 
 import numpy as np
 from scipy.ndimage.filters import gaussian_filter1d
-from copy import deepcopy
 from pyprf_feature.analysis.utils_general import load_nii
 
 
@@ -73,7 +72,7 @@ def prep_models(aryPrfTc, varSdSmthTmp=2.0, lgcPrint=True):
 
         # adjust the input, if necessary, such that input is 2D, with last
         # dim time
-        tplInpShp = deepcopy(aryPrfTc.shape)
+        tplInpShp = aryPrfTc.shape
         aryPrfTc = aryPrfTc.reshape((-1, aryPrfTc.shape[-1]))
 
         # For the filtering to perform well at the ends of the time series, we
