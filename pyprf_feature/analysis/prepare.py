@@ -121,7 +121,7 @@ def prep_models(aryPrfTc, varSdSmthTmp=2.0, lgcPrint=True):
 
 
 def prep_func(strPathNiiMask, lstPathNiiFunc, varAvgThr=100.,
-              varVarThr=0.0001, strDemean=True):
+              varVarThr=0.0001, strPrePro='demean'):
     """
     Load & prepare functional data.
 
@@ -138,8 +138,9 @@ def prep_func(strPathNiiMask, lstPathNiiFunc, varAvgThr=100.,
     varVarThr : float, positive, default = 0.0001
         Float. Voxels that have at least one run with a variance lower than
         this (after demeaning) will be excluded from model fitting.
-    strDemean : boolean, default True
-        Should data be demeaned? By default they are demeaned.
+    strPrePro : string, default 'demean'
+        Preprocessing that will be applied to the data.
+        By default they are demeaned.
 
     Returns
     -------
@@ -233,16 +234,31 @@ def prep_func(strPathNiiMask, lstPathNiiFunc, varAvgThr=100.,
         # save the mean of the run
         lstFuncAvg.append(np.mean(aryTmpFunc, axis=1, dtype=np.float32))
 
+        # also save the variance of the run
+        lstFuncVar.append(np.var(aryTmpFunc, axis=1, dtype=np.float32))
+
         # De-mean functional data:
-        if strDemean:
+        if strPrePro == 'demean':
             print('------------Demean')
             aryTmpFunc = np.subtract(aryTmpFunc,
                                      np.mean(aryTmpFunc,
                                              axis=1,
                                              dtype=np.float32)[:, None])
+        elif strPrePro == 'zscore':
+            print('------------Zscore')
+            aryTmpFunc = np.subtract(aryTmpFunc,
+                                     np.mean(aryTmpFunc,
+                                             axis=1,
+                                             dtype=np.float32)[:, None])
 
-        # also save the variance of the run
-        lstFuncVar.append(np.var(aryTmpFunc, axis=1, dtype=np.float32))
+            # Standardize the data time courses:
+            # In order to avoid devision by zero, only divide
+            # those voxels with a standard deviation greater
+            # than zero:
+            aryTmpStd = np.std(aryTmpFunc, axis=-1)
+            aryTmpLgc = np.greater(aryTmpStd, np.array([0.0]))
+            aryTmpFunc[aryTmpLgc, :] = np.divide(aryTmpFunc[aryTmpLgc, :],
+                                                 aryTmpStd[aryTmpLgc, None])
 
         # Put prepared functional data of current run into list:
         lstFunc.append(aryTmpFunc)
@@ -303,11 +319,11 @@ def prep_func(strPathNiiMask, lstPathNiiFunc, varAvgThr=100.,
     aryFunc = aryFunc[vecLgcIncl, :]
 
     # print info about the exclusion of voxels
-    print('---Minimum mean threshold for voxels applied at: ' +
+    print('---------Minimum mean threshold for voxels applied at: ' +
           str(varAvgThr))
-    print('---Minimum variance threshold for voxels applied at:  ' +
+    print('---------Minimum variance threshold for voxels applied at:  ' +
           str(varVarThr))
-    print('------Number of voxels excluded due to low mean or variance: ' +
+    print('---------Number of voxels excluded due to low mean or variance: ' +
           str(np.sum(np.invert(vecLgcIncl))))
 
     return aryLgcMsk, vecLgcIncl, hdrMsk, aryAff, aryFunc, tplNiiShp
