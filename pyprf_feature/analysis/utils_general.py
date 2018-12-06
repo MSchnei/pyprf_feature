@@ -369,7 +369,7 @@ def cmp_res_R2(lstRat, lstNiiNames, strPathOut, strPathMdl, lgcDel=False):
 
     # Loop over R2 maps to establish which exponents wins
     # Skip the first ratio, since this is the reference ratio (no surround)
-    # and is reflected already in the initialized ararys - aryWnrR2 & aryRatMap
+    # and is reflected already in the initialized arrays - aryWnrR2 & aryRatMap
     for indRat, lstMaps in zip(lstRat[1:], lstCmpRes[1:]):
         # Load R2 map for this particular exponent
         aryTmpR2 = load_nii(lstMaps[indPosR2])[0]
@@ -458,7 +458,7 @@ def cmp_res_R2(lstRat, lstNiiNames, strPathOut, strPathMdl, lgcDel=False):
     for indRat in range(len(lstRat)):
         # Get strExpSve
         strExpSve = '_' + str(lstRat[indRat])
-        # If ratio is marked with 0, set empty string to find reults.
+        # If ratio is marked with 0, set empty string to find results.
         # This is the code for fitting without a surround.
         if lstRat[indRat] == 0:
             strExpSve = ''
