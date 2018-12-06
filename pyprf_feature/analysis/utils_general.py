@@ -369,7 +369,7 @@ def cmp_res_R2(lstRat, lstNiiNames, strPathOut, strPathMdl, lgcDel=False):
 
     # Loop over R2 maps to establish which exponents wins
     # Skip the first ratio, since this is the reference ratio (no surround)
-    # and is reflected already in the initialized ararys - aryWnrR2 & aryRatMap
+    # and is reflected already in the initialized arrays - aryWnrR2 & aryRatMap
     for indRat, lstMaps in zip(lstRat[1:], lstCmpRes[1:]):
         # Load R2 map for this particular exponent
         aryTmpR2 = load_nii(lstMaps[indPosR2])[0]
@@ -378,12 +378,16 @@ def cmp_res_R2(lstRat, lstNiiNames, strPathOut, strPathMdl, lgcDel=False):
         # Get logical that tells us where current R2 map is greater than
         # previous ones
         aryLgcWnr = np.greater(aryTmpR2, aryWnrR2)
+        # Get logical that tells us where one of the beta parameter estimates
+        # (either for centre or surround) is less than 0 (negative)
+        aryLgcCtrSur1 = np.logical_or(np.less(aryTmpBetas[..., 0], 0.0),
+                                      np.less(aryTmpBetas[..., 1], 0.0))
         # Get logical that tells us where the beta parameter estimate for the
-        # surround is less than 0 (negative) and less than the center beta
-        aryLgcCtrSur = np.less(aryTmpBetas[..., 1], 0.0)
-#        aryLgcCtrSur = np.logical_and(np.less(aryTmpBetas[..., 1], 0.0),
-#                                      np.less(np.abs(aryTmpBetas[..., 1]),
-#                                              np.abs(aryTmpBetas[..., 0])))
+        # surround is less than beta parameter estimate for the center
+        aryLgcCtrSur2 = np.less(np.abs(aryTmpBetas[..., 1]),
+                                np.abs(aryTmpBetas[..., 0]))
+        # Combine the two logicals
+        aryLgcCtrSur = np.logical_and(aryLgcCtrSur1, aryLgcCtrSur2)
         # Combine logical for winner R2 and center-surround conditions
         aryLgcWnr = np.logical_and(aryLgcWnr, aryLgcCtrSur)
         # Replace values of R2, where current R2 map was greater
@@ -454,7 +458,7 @@ def cmp_res_R2(lstRat, lstNiiNames, strPathOut, strPathMdl, lgcDel=False):
     for indRat in range(len(lstRat)):
         # Get strExpSve
         strExpSve = '_' + str(lstRat[indRat])
-        # If ratio is marked with 0, set empty string to find reults.
+        # If ratio is marked with 0, set empty string to find results.
         # This is the code for fitting without a surround.
         if lstRat[indRat] == 0:
             strExpSve = ''
