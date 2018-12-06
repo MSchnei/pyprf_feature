@@ -109,7 +109,7 @@ cpdef tuple cy_lst_sq_two(
     # Calculate variance of pRF model time course (i.e. variance in the model):
     varNumVols = int(aryPrfTc.shape[0])
 
-    # get the variance for x1
+    # get the variance for predictors
     for idxVol in range(varNumVols):
         varVarX1 += aryPrfTc_view[idxVol, 0] ** 2
         varVarX2 += aryPrfTc_view[idxVol, 1] ** 2
@@ -169,11 +169,24 @@ cdef (float[:], float[:, :]) func_cy_res_two(float[:, :] aryPrfTc_view,
                           * aryPrfTc_view[idxVol, 0])
             varCovX2y += (aryFuncChnk_view[idxVol, idxVox]
                           * aryPrfTc_view[idxVol, 1])
-        # calculate denominator
+
+        # Calculate denominator
         varDen = varVarX1 * varVarX2 - varVarX1X2 ** 2
-        # Obtain the slope of the regression of the model on the data:
-        varSlope1 = (varVarX2 * varCovX1y - varVarX1X2 * varCovX2y) / varDen
-        varSlope2 = (varVarX1 * varCovX2y - varVarX1X2 * varCovX1y) / varDen
+        
+        # Include check for case that denominator is equal to zero
+        if varDen == 0.0:
+            print('Avoid dividion by zero. Set both weights to zero.')
+            # In case the denominator is zero, put both regression weights to
+            # zero to avoid division by zero. This will automatically results
+            # in a very high residual value and the model will not be selected
+            varSlope1 = 0.0
+            varSlope2 = 0.0
+        else:
+            # Obtain the slope of the regression of the model on the data:
+            varSlope1 = ((varVarX2 * varCovX1y - varVarX1X2 * varCovX2y) /
+                         varDen)
+            varSlope2 = ((varVarX1 * varCovX2y - varVarX1X2 * varCovX1y) /
+                         varDen)
 
         # Loop through volumes again in order to calculate the error in the
         # prediction:
@@ -356,13 +369,24 @@ cdef float[:, :] func_cy_res_xval(float[:, :] aryPrfTc_view,
             varVarX2 = vecVarX2_view[idxXval]
             varVarX1X2 = vecVarXY_view[idxXval]
 
-            # calculate denominator
+            # Calculate denominator
             varDen = varVarX1 * varVarX2 - varVarX1X2 ** 2
-            # Obtain the slope of the regression of the model on the data:
-            varSlope1 = ((varVarX2 * varCovX1y - varVarX1X2 * varCovX2y) /
-                         varDen)
-            varSlope2 = ((varVarX1 * varCovX2y - varVarX1X2 * varCovX1y) /
-                         varDen)
+
+            # Include check for case that denominator is equal to zero
+            if varDen == 0.0:
+                print('Avoid dividion by zero. Set both weights to zero.')
+                # In case the denominator is zero, put both regression weights
+                # to zero to avoid division by zero. This will automatically
+                # results in a very high residual value and the model will not
+                #  be selected
+                varSlope1 = 0.0
+                varSlope2 = 0.0
+            else:
+                # Obtain the slope of the regression of the model on the data:
+                varSlope1 = ((varVarX2 * varCovX1y - varVarX1X2 * varCovX2y) /
+                             varDen)
+                varSlope2 = ((varVarX1 * varCovX2y - varVarX1X2 * varCovX1y) /
+                             varDen)
 
             # Loop through test volumes and calculate the predicted time course
             # value and the mismatch between prediction and actual voxel value
