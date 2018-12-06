@@ -29,7 +29,7 @@ from pyprf_feature.analysis.model_creation_utils import crt_mdl_prms
 from pyprf_feature.analysis.prepare import prep_models, prep_func
 
 ###### DEBUGGING ###############
-#strCsvCnfg = "/media/sf_D_DRIVE/MotDepPrf/Analysis/Results/Average/AllSbj_config_motDepPrf_flck_smooth_otw.csv"
+#strCsvCnfg = "/home/marian/Documents/Testing/pyprf_feature_devel/control/S02_config_motDepPrf_flck_smooth_inw.csv"
 #lgcTest = False
 #varRat=None
 ################################
