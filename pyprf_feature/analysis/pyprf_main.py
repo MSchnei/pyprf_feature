@@ -29,7 +29,7 @@ from pyprf_feature.analysis.model_creation_utils import crt_mdl_prms
 from pyprf_feature.analysis.prepare import prep_models, prep_func
 
 ###### DEBUGGING ###############
-#strCsvCnfg = "/home/marian/Documents/Testing/pyprf_feature_devel/control/S02_config_motDepPrf_flck_smooth_inw.csv"
+#strCsvCnfg = "/media/sf_D_DRIVE/MotDepPrf/Analysis/S02/03_motLoc/pRF_results/Supsur/S02_config_MotLoc_supsur.csv"
 #lgcTest = False
 #varRat=None
 ################################
@@ -84,7 +84,8 @@ def pyprf(strCsvCnfg, lgcTest=False, varRat=None, strPathHrf=None):
     # Create model time courses. Also return logical for inclusion of model
     # parameters which will be needed later when we create model parameters
     # in degree.
-    aryPrfTc = model_creation(dicCnfg, varRat=varRat, strPathHrf=strPathHrf)
+    aryPrfTc, lgcMdlInc = model_creation(dicCnfg, varRat=varRat,
+                                         strPathHrf=strPathHrf)
 
     # Deduce the number of features from the pRF time course models array
     cfg.varNumFtr = aryPrfTc.shape[1]
@@ -166,6 +167,8 @@ def pyprf(strCsvCnfg, lgcTest=False, varRat=None, strPathHrf=None):
                                 cfg.varNumPrfSizes, cfg.varPrfStdMin,
                                 cfg.varPrfStdMax, kwUnt='deg',
                                 kwCrd=cfg.strKwCrd)
+    # Exclude models with prf center outside stimulated area
+    aryMdlParams = aryMdlParams[lgcMdlInc, :]
 
     # Empty list for results (parameters of best fitting pRF model):
     lstPrfRes = [None] * cfg.varPar

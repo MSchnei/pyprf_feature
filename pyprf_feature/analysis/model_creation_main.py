@@ -76,6 +76,9 @@ def model_creation(dicCnfg, varRat=None, strPathHrf=None):
         # python axis indexes the scientific y-axis and higher values will
         # move us up.
         arySptExpInf = np.rot90(arySptExpInf, k=3)
+        
+        # Calculate the areas that were stimulated during the experiment
+        aryStimArea = np.sum(arySptExpInf, axis=-1).astype(np.bool)
 
         # *********************************************************************
 
@@ -108,6 +111,22 @@ def model_creation(dicCnfg, varRat=None, strPathHrf=None):
         if varRat is not None:
             aryMdlParamsSur = np.copy(aryMdlParams)
             aryMdlParamsSur[:, 2] = aryMdlParamsSur[:, 2] * varRat
+
+        # Exclude model parameters whose prf center would lie outside the
+        # stimulated area
+        print('------Exclude model params with prf center outside stim area')
+        varNumMdlBfr = aryMdlParams.shape[0]
+        # Get logical for model inclusion
+        lgcMdlInc = aryStimArea[aryMdlParams[:, 0].astype(np.int32),
+                                aryMdlParams[:, 1].astype(np.int32)]
+        # Exclude models with prf center outside stimulated area
+        aryMdlParams = aryMdlParams[lgcMdlInc, :]
+        # Also apply the logical to the surround parameters, if they exist
+        if varRat is not None:
+            aryMdlParamsSur = aryMdlParamsSur[lgcMdlInc, :]
+
+        print('---------Number of models excluded: ' +
+              str(varNumMdlBfr-aryMdlParams.shape[0]))
 
         # *********************************************************************
 
@@ -200,6 +219,9 @@ def model_creation(dicCnfg, varRat=None, strPathHrf=None):
         # Save the corresponding model responses
         np.save(cfg.strPathMdl + strNmeExtRsp, aryMdlRsp)
 
+        # Save logical for parameter exclusion in unstimulated area
+        np.save(cfg.strPathMdl + '_lgcMdlInc', lgcMdlInc)
+
         del(aryMdlParams)
         del(aryMdlRsp)
 
@@ -232,6 +254,9 @@ def model_creation(dicCnfg, varRat=None, strPathHrf=None):
         else:
             assert vecPrfTcShp[1] == cfg.switchHrfSet*2, strErrMsg
 
+        # Load logical for parameter exclusion in unstimulated area
+        lgcMdlInc = np.load(cfg.strPathMdl + '_lgcMdlInc.npy')
+
     # *************************************************************************
 
-    return aryPrfTc
+    return aryPrfTc, lgcMdlInc
