@@ -271,6 +271,13 @@ def save_tc_to_nii(strCsvCnfg, lgcTest=False, lstRat=None, lgcMdlRsp=False,
         np.save(strNpyName, aryFitMdlRsp)
         print('------Done.')
 
+        # Save the mask so we know which voxels these parameters belonged to
+        strNpyMskName = cfg.strPathOut + '_FitMdlRsp_Mask' + '.npy'
+        aryLgcMsk[aryLgcMsk] = aryLgcVar
+        print('---Save mask for fitted model responses')
+        np.save(strNpyMskName, aryLgcMsk)
+        print('------Done.')
+
     # If desired by user, also save RAM-saving version of nii
     if lgcSaveRam:
         strPthRamOut = cfg.strPathOut + '_FitTc_saveRAM' + '.nii.gz'
