@@ -365,7 +365,7 @@ def cmp_res_R2(lstRat, lstNiiNames, strPathOut, strPathMdl, lgcDel=False):
 
     # Initialize winner R2 maps
     aryWnrR2 = load_nii(lstCmpRes[0][indPosR2])[0]
-    aryRatMap = np.zeros(nb.load(lstCmpRes[0][0]).shape)
+    aryRatMap = np.ones(nb.load(lstCmpRes[0][0]).shape)
 
     # Loop over R2 maps to establish which exponents wins
     # Skip the first ratio, since this is the reference ratio (no surround)
@@ -378,12 +378,12 @@ def cmp_res_R2(lstRat, lstNiiNames, strPathOut, strPathMdl, lgcDel=False):
         # Get logical that tells us where current R2 map is greater than
         # previous ones
         aryLgcWnr = np.greater(aryTmpR2, aryWnrR2)
-        # Get logical that tells us where one of the beta parameter estimates
-        # (either for centre or surround) is less than 0 (negative)
-        aryLgcCtrSur1 = np.logical_or(np.less(aryTmpBetas[..., 0], 0.0),
-                                      np.less(aryTmpBetas[..., 1], 0.0))
         # Get logical that tells us where the beta parameter estimate for the
-        # surround is less than beta parameter estimate for the center
+        # centre is positive and the estimate for the surround is negative
+        aryLgcCtrSur1 = np.logical_and(np.greater(aryTmpBetas[..., 0], 0.0),
+                                       np.less(aryTmpBetas[..., 1], 0.0))
+        # Get logical that tells us where the absolute beta parameter estimate
+        # for the surround is less than beta parameter estimate for the center
         aryLgcCtrSur2 = np.less(np.abs(aryTmpBetas[..., 1]),
                                 np.abs(aryTmpBetas[..., 0]))
         # Combine the two logicals
@@ -733,7 +733,8 @@ def crt_2D_gauss(varSizeX, varSizeY, varPosX, varPosY, varSd):
     return aryGauss
 
 
-def cnvl_2D_gauss(idxPrc, aryMdlParamsChnk, arySptExpInf, tplPngSize, queOut):
+def cnvl_2D_gauss(idxPrc, aryMdlParamsChnk, arySptExpInf, tplPngSize, queOut,
+                  strCrd='crt'):
     """Spatially convolve input with 2D Gaussian model.
 
     Parameters
@@ -751,6 +752,9 @@ def cnvl_2D_gauss(idxPrc, aryMdlParamsChnk, arySptExpInf, tplPngSize, queOut):
     queOut : multiprocessing.queues.Queue
         Queue to put the results on. If this is None, the user is not running
         multiprocessing but is just calling the function
+    strCrd, string, either 'crt' or 'pol'
+        Whether model parameters are provided in cartesian or polar coordinates
+
     Returns
     -------
     data : 2d numpy array, shape [n_models, n_conditions]
@@ -772,8 +776,19 @@ def cnvl_2D_gauss(idxPrc, aryMdlParamsChnk, arySptExpInf, tplPngSize, queOut):
     for idxMdl in range(0, varChnkSze):
 
         # Spatial parameters of current model:
-        varTmpX = aryMdlParamsChnk[idxMdl, 0]
-        varTmpY = aryMdlParamsChnk[idxMdl, 1]
+        if strCrd == 'pol':
+            # Position was given in polar coordinates
+            varTmpEcc = aryMdlParamsChnk[idxMdl, 0]
+            varTmpPlrAng = aryMdlParamsChnk[idxMdl, 1]
+            # Convert from polar to to cartesian coordinates
+            varTmpX = varTmpEcc * np.cos(varTmpPlrAng) + tplPngSize[0]/2.
+            varTmpY = varTmpEcc * np.sin(varTmpPlrAng) + tplPngSize[1]/2.
+
+        elif strCrd == 'crt':
+            varTmpX = aryMdlParamsChnk[idxMdl, 0]
+            varTmpY = aryMdlParamsChnk[idxMdl, 1]
+
+        # Standard deviation does not depend on coordinate system
         varTmpSd = aryMdlParamsChnk[idxMdl, 2]
 
         # Create pRF model (2D):
