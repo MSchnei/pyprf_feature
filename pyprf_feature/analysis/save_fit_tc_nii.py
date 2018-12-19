@@ -139,6 +139,10 @@ def save_tc_to_nii(strCsvCnfg, lgcTest=False, lstRat=None, lgcMdlRsp=False,
                                 cfg.varNumPrfSizes, cfg.varPrfStdMin,
                                 cfg.varPrfStdMax, kwUnt='deg',
                                 kwCrd=cfg.strKwCrd)
+    # Load logical for parameter exclusion in unstimulated area
+    lgcMdlInc = np.load(cfg.strPathMdl + '_lgcMdlInc.npy')
+    # Apply logical
+    aryMdlParams = aryMdlParams[lgcMdlInc, :]
 
     # Get corresponding pRF model time courses
     aryPrfTc = np.load(cfg.strPathMdl + '.npy')

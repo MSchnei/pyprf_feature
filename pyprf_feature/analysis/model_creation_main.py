@@ -76,7 +76,7 @@ def model_creation(dicCnfg, varRat=None, strPathHrf=None):
         # python axis indexes the scientific y-axis and higher values will
         # move us up.
         arySptExpInf = np.rot90(arySptExpInf, k=3)
-        
+
         # Calculate the areas that were stimulated during the experiment
         aryStimArea = np.sum(arySptExpInf, axis=-1).astype(np.bool)
 
@@ -199,6 +199,7 @@ def model_creation(dicCnfg, varRat=None, strPathHrf=None):
         strNmeExtMdl = ''
         strNmeExtPrm = '_params'
         strNmeExtRsp = '_mdlRsp'
+        strNmeExtMdlInc = '_lgcMdlInc'
 
         # Check whether extensions need to be modified with ratio name
         if varRat is not None:
@@ -211,6 +212,10 @@ def model_creation(dicCnfg, varRat=None, strPathHrf=None):
                                     axis=1)
             aryMdlRsp = np.stack((aryMdlRsp, aryMdlRspSur),
                                  axis=1)
+            # Append the npy file name for model exlusion in unstimulated area
+            # with general _supsur suffic since it does not depend on specific
+            # surround
+            strNmeExtMdlInc = '_supsur' + strNmeExtMdlInc
 
         # Save pRF time course models
         np.save(cfg.strPathMdl + strNmeExtMdl, aryPrfTc)
@@ -220,7 +225,7 @@ def model_creation(dicCnfg, varRat=None, strPathHrf=None):
         np.save(cfg.strPathMdl + strNmeExtRsp, aryMdlRsp)
 
         # Save logical for parameter exclusion in unstimulated area
-        np.save(cfg.strPathMdl + '_lgcMdlInc', lgcMdlInc)
+        np.save(cfg.strPathMdl + strNmeExtMdlInc, lgcMdlInc)
 
         del(aryMdlParams)
         del(aryMdlRsp)
