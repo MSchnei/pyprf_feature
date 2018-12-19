@@ -139,6 +139,10 @@ def save_tc_to_nii(strCsvCnfg, lgcTest=False, lstRat=None, lgcMdlRsp=False,
                                 cfg.varNumPrfSizes, cfg.varPrfStdMin,
                                 cfg.varPrfStdMax, kwUnt='deg',
                                 kwCrd=cfg.strKwCrd)
+    # Load logical for parameter exclusion in unstimulated area
+    lgcMdlInc = np.load(cfg.strPathMdl + '_lgcMdlInc.npy')
+    # Apply logical
+    aryMdlParams = aryMdlParams[lgcMdlInc, :]
 
     # Get corresponding pRF model time courses
     aryPrfTc = np.load(cfg.strPathMdl + '.npy')
@@ -269,6 +273,13 @@ def save_tc_to_nii(strCsvCnfg, lgcTest=False, lstRat=None, lgcMdlRsp=False,
         # Save aryFitMdlRsp as npy file
         print('---Save fitted model responses')
         np.save(strNpyName, aryFitMdlRsp)
+        print('------Done.')
+
+        # Save the mask so we know which voxels these parameters belonged to
+        strNpyMskName = cfg.strPathOut + '_FitMdlRsp_Mask' + '.npy'
+        aryLgcMsk[aryLgcMsk] = aryLgcVar
+        print('---Save mask for fitted model responses')
+        np.save(strNpyMskName, aryLgcMsk)
         print('------Done.')
 
     # If desired by user, also save RAM-saving version of nii

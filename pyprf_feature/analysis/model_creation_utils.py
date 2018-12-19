@@ -305,7 +305,7 @@ def crt_mdl_prms(tplPngSize, varNum1, varExtXmin,  varExtXmax, varNum2,
     return aryMdlParams
 
 
-def crt_mdl_rsp(arySptExpInf, tplPngSize, aryMdlParams, varPar):
+def crt_mdl_rsp(arySptExpInf, tplPngSize, aryMdlParams, varPar, strCrd='crt'):
     """Create responses of 2D Gauss models to spatial conditions.
 
     Parameters
@@ -318,6 +318,8 @@ def crt_mdl_rsp(arySptExpInf, tplPngSize, aryMdlParams, varPar):
         Model parameters (x, y, sigma) for all models.
     varPar : int, positive
         Number of cores to parallelize over.
+    strCrd, string, either 'crt' or 'pol'
+        Whether model parameters are provided in cartesian or polar coordinates
 
     Returns
     -------
@@ -331,7 +333,7 @@ def crt_mdl_rsp(arySptExpInf, tplPngSize, aryMdlParams, varPar):
         # we save the overhead of multiprocessing by calling aryMdlCndRsp
         # directly
         aryMdlCndRsp = cnvl_2D_gauss(0, aryMdlParams, arySptExpInf,
-                                     tplPngSize, None)
+                                     tplPngSize, None, strCrd=strCrd)
 
     else:
 
@@ -356,7 +358,8 @@ def crt_mdl_rsp(arySptExpInf, tplPngSize, aryMdlParams, varPar):
             lstPrcs[idxPrc] = mp.Process(target=cnvl_2D_gauss,
                                          args=(idxPrc, lstMdlParams[idxPrc],
                                                arySptExpInf, tplPngSize, queOut
-                                               )
+                                               ),
+                                         kwargs={'strCrd': strCrd},
                                          )
             # Daemon (kills processes when exiting):
             lstPrcs[idxPrc].Daemon = True
@@ -389,7 +392,7 @@ def crt_mdl_rsp(arySptExpInf, tplPngSize, aryMdlParams, varPar):
 
 
 def crt_nrl_tc(aryMdlRsp, aryCnd, aryOns, aryDrt, varTr, varNumVol,
-               varTmpOvsmpl):
+               varTmpOvsmpl, lgcPrnt=True):
     """Create temporally upsampled neural time courses.
 
     Parameters
@@ -408,6 +411,8 @@ def crt_nrl_tc(aryMdlRsp, aryCnd, aryOns, aryDrt, varTr, varNumVol,
         Number of data point (volumes) in the (fMRI) data
     varTmpOvsmpl : float, positive
         Factor by which the time courses should be temporally upsampled.
+    lgcPrnt: boolean, default True
+        Should print messages be sent to user?
 
     Returns
     -------
@@ -437,7 +442,8 @@ def crt_nrl_tc(aryMdlRsp, aryCnd, aryOns, aryDrt, varTr, varNumVol,
     # for temporal conditions this is removed automatically below and we need
     # temporal and sptial conditions to maych
     if np.all(aryMdlRsp[:, 0] == 0):
-        print('------------Removed first spatial condition (all zeros)')
+        if lgcPrnt:
+            print('------------Removed first spatial condition (all zeros)')
         aryMdlRsp = aryMdlRsp[:, 1:]
 
     # create boxcar functions in temporally upsampled space
@@ -580,7 +586,8 @@ def crt_prf_tc(aryNrlTc, varNumVol, varTr, varTmpOvsmpl, switchHrfSet,
 
 
 def crt_prf_ftr_tc(aryMdlRsp, aryTmpExpInf, varNumVol, varTr, varTmpOvsmpl,
-                   switchHrfSet, tplPngSize, varPar, dctPrm=None):
+                   switchHrfSet, tplPngSize, varPar, dctPrm=None,
+                   lgcPrnt=True):
     """Create all spatial x feature prf time courses.
 
     Parameters
@@ -604,6 +611,8 @@ def crt_prf_ftr_tc(aryMdlRsp, aryTmpExpInf, varNumVol, varTr, varTmpOvsmpl,
     dctPrm : dictionary, default None
         Dictionary with customized hrf parameters. If this is None, default
         hrf parameters will be used.
+    lgcPrnt: boolean, default True
+        Should print messages be sent to user?
 
     Returns
     -------
@@ -635,7 +644,8 @@ def crt_prf_ftr_tc(aryMdlRsp, aryTmpExpInf, varNumVol, varTr, varTmpOvsmpl,
 
         # Create temporally upsampled neural time courses.
         aryNrlTcTmp = crt_nrl_tc(aryMdlRsp, aryTmpCnd, aryTmpOns, aryTmpDrt,
-                                 varTr, varNumVol, varTmpOvsmpl)
+                                 varTr, varNumVol, varTmpOvsmpl,
+                                 lgcPrnt=lgcPrnt)
         # Convolve with hrf to create model pRF time courses.
         aryPrfTcTmp = crt_prf_tc(aryNrlTcTmp, varNumVol, varTr, varTmpOvsmpl,
                                  switchHrfSet, tplPngSize, varPar,
