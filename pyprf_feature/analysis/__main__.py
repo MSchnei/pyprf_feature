@@ -185,8 +185,8 @@ def main():
                 # based on the results of the comparison and delete in-between
                 # results
 
-                # Replace first entry (None) with 0, so it can be saved to nii
-                lstRat[0] = 0.0
+                # Replace first entry (None) with 1, so it can be saved to nii
+                lstRat[0] = 1.0
                 # Append 'hrf' to cfg.strPathOut, if fitting was done with
                 # custom hrf
                 if objNspc.strPathHrf is not None:
