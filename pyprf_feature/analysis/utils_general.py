@@ -346,14 +346,14 @@ def cmp_res_R2(lstRat, lstNiiNames, strPathOut, strPathMdl, lgcDel=False):
     indPosR2 = indPosR2[0]
     indPosBetas = indPosBetas[0]
 
-    # Get the names of the nii files with inbetween results
+    # Get the names of the nii files with in-between results
     lstCmpRes = []
     for indRat in range(len(lstRat)):
         # Get strExpSve
         strExpSve = '_' + str(lstRat[indRat])
-        # If ratio is marked with 0, set empty string to find reults.
-        # This is the code for fitting without a surround.
-        if lstRat[indRat] == 0:
+        # If ratio is marked with 1.0, set empty string to find results.
+        # 1.0 is the key for fitting without a surround.
+        if lstRat[indRat] == 1.0:
             strExpSve = ''
         # Create full path names from nii file names and output path
         lstPthNames = [strPathOut + strNii + strExpSve + '.nii.gz' for
@@ -363,9 +363,11 @@ def cmp_res_R2(lstRat, lstNiiNames, strPathOut, strPathMdl, lgcDel=False):
 
     print('------Find ratio that yielded highest R2 per voxel')
 
-    # Initialize winner R2 maps
+    # Initialize winner R2 map with R2 values from fit without surround
     aryWnrR2 = load_nii(lstCmpRes[0][indPosR2])[0]
-    aryRatMap = np.ones(nb.load(lstCmpRes[0][0]).shape)
+    # Initialize ratio map with 1 where no-surround model was fit, otherwise 0
+    aryRatMap = np.zeros(nb.load(lstCmpRes[0][0]).shape)
+    aryRatMap[np.nonzero(aryWnrR2)] = 1.0
 
     # Loop over R2 maps to establish which exponents wins
     # Skip the first ratio, since this is the reference ratio (no surround)
@@ -414,7 +416,7 @@ def cmp_res_R2(lstRat, lstNiiNames, strPathOut, strPathMdl, lgcDel=False):
             # In this case we want to make it 2D. In particular, the second
             # set of beta weights should be all zeros, so that later when
             # forming the model time course, the 2nd predictors contributes 0
-            if indRat == 0.0 and indMap == indPosBetas:
+            if indRat == 1.0 and indMap == indPosBetas:
                 aryTmpMap = np.concatenate((aryTmpMap,
                                             np.zeros(aryTmpMap.shape)),
                                            axis=-1)
@@ -460,7 +462,7 @@ def cmp_res_R2(lstRat, lstNiiNames, strPathOut, strPathMdl, lgcDel=False):
         strExpSve = '_' + str(lstRat[indRat])
         # If ratio is marked with 0, set empty string to find results.
         # This is the code for fitting without a surround.
-        if lstRat[indRat] == 0:
+        if lstRat[indRat] == 1.0:
             strExpSve = ''
         # Create full path names from npy file names and output path
         lstPthNames = [strPathMdl + strNpy + strExpSve + '.npy' for
@@ -482,8 +484,8 @@ def cmp_res_R2(lstRat, lstNiiNames, strPathOut, strPathMdl, lgcDel=False):
     aryMdlParamsSur = np.stack(lstMdlParamsSur, axis=2)
     aryMdlRspSur = np.stack(lstMdlRspSur, axis=2)
 
-    # Now handle the "0.0" ratio
-    # Load the tc/parameters/responses of the "0.0" ratio
+    # Now handle the "1.0" ratio
+    # Load the tc/parameters/responses of the "1.0" ratio
     aryPrfTc = np.load(lstCmpMdlRsp[0][0])
     aryMdlParams = np.load(lstCmpMdlRsp[0][1])
     aryMdlRsp = np.load(lstCmpMdlRsp[0][2])
@@ -493,7 +495,7 @@ def cmp_res_R2(lstRat, lstNiiNames, strPathOut, strPathMdl, lgcDel=False):
     aryMdlParams = np.stack((aryMdlParams, aryMdlParams), axis=1)
     # Make 2nd row of responses all zeros so they get no weight in lstsq
     aryMdlRsp = np.stack((aryMdlRsp, np.zeros(aryMdlRsp.shape)), axis=1)
-    # Add the "0.0" ratio to tc/parameters/responses of other ratios
+    # Add the "1.0" ratio to tc/parameters/responses of other ratios
     aryPrfTcSur = np.concatenate((np.expand_dims(aryPrfTc, axis=2),
                                   aryPrfTcSur), axis=2)
     aryMdlParamsSur = np.concatenate((np.expand_dims(aryMdlParams, axis=2),
