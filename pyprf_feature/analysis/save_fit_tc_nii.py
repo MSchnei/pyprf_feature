@@ -28,9 +28,9 @@ from pyprf_feature.analysis.model_creation_utils import (crt_mdl_prms,
                                                          fnd_unq_rws)
 
 ###### DEBUGGING ###############
-#strCsvCnfg = "/media/sf_D_DRIVE/MotionQuartet/Analysis/P3/Prf/Fitting/pRF_results/Testing/P3_config_NoM_sptSmooth_tmpSmooth.csv"
+#strCsvCnfg = "/media/sf_D_DRIVE/MotDepPrf/Analysis/S02/04_motDepPrf/pRF_results/Avg/S02_config_motDepPrf_cntr_smooth_avg.csv"
 #lgcTest = False
-#lstRat = None  # [1.5, 1.8, 2.1]
+#lstRat = [1.1, 1.2, 1.3, 1.4, 1.5, 1.6, 1.7, 1.8, 1.9, 2.0, 2.2, 2.4, 2.6, 2.8, 3.0]
 #lgcMdlRsp = True
 #strPathHrf = None
 ################################
@@ -83,9 +83,9 @@ def save_tc_to_nii(strCsvCnfg, lgcTest=False, lstRat=None, lgcMdlRsp=False,
     if lstRat is not None:
         cfg.strPathOut = cfg.strPathOut + '_supsur'
         cfg.strPathMdl = cfg.strPathMdl + '_supsur'
-        # Append 0.0 as the first entry, which is the key for fitting without
+        # Append 1.0 as the first entry, which is the key for fitting without
         # surround (only centre)
-        lstRat.insert(0, 0.0)
+        lstRat.insert(0, 1.0)
 
     # %% Load previous pRF fitting results
 
