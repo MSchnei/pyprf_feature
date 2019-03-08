@@ -53,6 +53,11 @@ def get_arg_parse():
                            action='store_true', default=False,
                            help='Restrict fitted models to stimulated area.')
 
+    objParser.add_argument('-strPathHrf', default=None, required=False,
+                           metavar='/path/to/custom_hrf_parameter.npy',
+                           help='Path to npy file with custom hrf parameters. \
+                           Ignored if in testing mode.')
+
     # Namespace object containign arguments and values:
     objNspc = objParser.parse_args()
 
@@ -83,8 +88,8 @@ def main():
         lgcTest = False
 
         # Call to main function, to invoke pRF analysis:
-        pyprf_opt_brute(objNspc.config, objNspc, lgcTest=lgcTest)
-
+        pyprf_opt_brute(objNspc.config, objNspc, lgcTest=lgcTest,
+                        strPathHrf=objNspc.strPathHrf)
 
 if __name__ == "__main__":
     main()

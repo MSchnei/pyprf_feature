@@ -24,7 +24,7 @@ from pyprf_feature.analysis.model_creation_utils import (crt_mdl_rsp,
                                                          )
 
 
-def model_creation_opt(dicCnfg, aryMdlParams):
+def model_creation_opt(dicCnfg, aryMdlParams, strPathHrf=None):
     """
     Create or load pRF model time courses.
 
@@ -34,6 +34,9 @@ def model_creation_opt(dicCnfg, aryMdlParams):
         Dictionary containing config parameters.
     aryMdlParams : numpy arrays
         x, y and sigma parameters.
+    strPathHrf : str or None:
+        Path to npy file with custom hrf parameters. If None, default
+        parameters will be used.
 
     Returns
     -------
@@ -96,11 +99,26 @@ def model_creation_opt(dicCnfg, aryMdlParams):
         # *********************************************************************
         # *** Create prf time course models
 
+        # Check whether path to npy file with hrf parameters was provided
+        if strPathHrf is not None:
+            print('---------Load custom hrf parameters')
+            aryCstPrm = np.load(strPathHrf)
+            dctPrm = {}
+            dctPrm['peak_delay'] = aryCstPrm[0]
+            dctPrm['under_delay'] = aryCstPrm[1]
+            dctPrm['peak_disp'] = aryCstPrm[2]
+            dctPrm['under_disp'] = aryCstPrm[3]
+            dctPrm['p_u_ratio'] = aryCstPrm[4]
+        # If not, set dctPrm to None, which will result in default hrf params
+        else:
+            print('---------Use default hrf parameters')
+            dctPrm = None
+
         aryPrfTc = crt_prf_ftr_tc(aryMdlRsp, aryTmpExpInf, cfg.varNumVol,
                                   cfg.varTr, cfg.varTmpOvsmpl,
                                   cfg.switchHrfSet, (int(cfg.varVslSpcSzeX),
                                                      int(cfg.varVslSpcSzeY)),
-                                  cfg.varPar)
+                                  cfg.varPar, dctPrm=dctPrm)
 
         del(aryMdlRsp)
 

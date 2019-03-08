@@ -32,19 +32,20 @@ from pyprf_feature.analysis.prepare import prep_models, prep_func
 
 
 ###### DEBUGGING ###############
-#strCsvCnfg = "/home/marian/Documents/Testing/pyprf_feature_devel/S02_config_motDepPrf_flck_smooth.csv"
+#strCsvCnfg = "/media/sf_D_DRIVE/MotDepPrf/Analysis/S02/04_motDepPrf/pRF_results/Avg/S02_config_motDepPrf_cntr_V1.csv"
 #class Object(object):
 #    pass
 #objNspc = Object()
-#objNspc.strPthPrior = "/media/sf_D_DRIVE/MotDepPrf/Analysis/S02/03_motLoc/pRF_results/pRF_results_tmpSmth"
+#objNspc.strPthPrior = "/media/sf_D_DRIVE/MotDepPrf/Analysis/S02/03_motLoc/pRF_results/Avg_cmpr/pRF_results_avg_cmpr"
 #objNspc.varNumOpt1 = 90
 #objNspc.varNumOpt2 = 64
 #objNspc.varNumOpt3 = 1
 #objNspc.lgcRstrCentre = False
 #lgcTest = False
+#strPathHrf="/media/sf_D_DRIVE/MotDepPrf/Analysis/S02/03_motLoc/pRF_results/Supsur/hrf_opt/hrf_opt_results_supsur_V1_supsur_avgHrfPrm.npy"
 ################################
 
-def pyprf_opt_brute(strCsvCnfg, objNspc, lgcTest=False):  #noqa
+def pyprf_opt_brute(strCsvCnfg, objNspc, lgcTest=False, strPathHrf=None):
     """
     Function for optimizing given pRF paramaters using brute-force grid search.
 
@@ -57,6 +58,10 @@ def pyprf_opt_brute(strCsvCnfg, objNspc, lgcTest=False):  #noqa
     lgcTest : Boolean
         Whether this is a test (pytest). If yes, absolute path of pyprf libary
         will be prepended to config file paths.
+    strPathHrf : str or None:
+        Path to npy file with custom hrf parameters. If None, default
+        parameters will be used.
+
     """
     # *************************************************************************
     # *** Check time
@@ -89,7 +94,7 @@ def pyprf_opt_brute(strCsvCnfg, objNspc, lgcTest=False):  #noqa
 
     # The functional data will be masked and demeaned:
     aryLgcMsk, aryLgcVar, hdrMsk, aryAff, aryFunc, tplNiiShp = prep_func(
-        cfg.strPathNiiMask, cfg.lstPathNiiFunc)
+        cfg.strPathNiiMask, cfg.lstPathNiiFunc, varAvgThr=-100.)
 
     # set the precision of the header to np.float32 so that the prf results
     # will be saved in this precision later
@@ -132,10 +137,10 @@ def pyprf_opt_brute(strCsvCnfg, objNspc, lgcTest=False):  #noqa
     print(objNspc.strPthPrior)
 
     # Load the x, y, sigma winner parameters from pyprf_feature
-    lstWnrPrm = [objNspc.strPthPrior + '_x_pos.nii',
-                 objNspc.strPthPrior + '_y_pos.nii',
-                 objNspc.strPthPrior + '_SD.nii',
-                 objNspc.strPthPrior + '_eccentricity.nii']
+    lstWnrPrm = [objNspc.strPthPrior + '_x_pos.nii.gz',
+                 objNspc.strPthPrior + '_y_pos.nii.gz',
+                 objNspc.strPthPrior + '_SD.nii.gz',
+                 objNspc.strPthPrior + '_eccentricity.nii.gz']
     lstPrmInt, objHdr, aryAff = load_res_prm(lstWnrPrm,
                                              lstFlsMsk=[cfg.strPathNiiMask])
     # Convert list to array
@@ -295,7 +300,8 @@ def pyprf_opt_brute(strCsvCnfg, objNspc, lgcTest=False):  #noqa
             aryMdlParamsPxl = aryMdlParamsPxl[lgcMdlInc, :]
 
         # Create model time courses
-        aryPrfTc = model_creation_opt(dicCnfg, aryMdlParamsPxl)
+        aryPrfTc = model_creation_opt(dicCnfg, aryMdlParamsPxl,
+                                      strPathHrf=strPathHrf)
 
         # The model time courses will be preprocessed such that they are
         # smoothed (temporally) with same factor as the data and that they will
@@ -469,17 +475,21 @@ def pyprf_opt_brute(strCsvCnfg, objNspc, lgcTest=False):  #noqa
 
     print('---------Exporting results')
 
+    # Append 'hrf' to cfg.strPathOut, if fitting was done with custom hrf
+    if strPathHrf is not None:
+        cfg.strPathOut = cfg.strPathOut + '_hrf'
+
     # Xoncatenate all the best voxel maps
     aryBstMaps = np.stack([aryBstXpos, aryBstYpos, aryBstSd, aryBstR2,
                            aryPlrAng, aryEcc], axis=1)
 
     # List with name suffices of output images:
-    lstNiiNames = ['_x_pos_opt',
-                   '_y_pos_opt',
-                   '_SD_opt',
-                   '_R2_opt',
-                   '_polar_angle_opt',
-                   '_eccentricity_opt']
+    lstNiiNames = ['_x_pos_brute',
+                   '_y_pos_brute',
+                   '_SD_brute',
+                   '_R2_brute',
+                   '_polar_angle_brute',
+                   '_eccentricity_brute']
 
     # Create full path names from nii file names and output path
     lstNiiNames = [cfg.strPathOut + strNii + '.nii.gz' for strNii in
@@ -495,7 +505,7 @@ def pyprf_opt_brute(strCsvCnfg, objNspc, lgcTest=False):  #noqa
     # Save beta parameter estimates for every feature:
 
     # List with name suffices of output images:
-    lstNiiNames = ['_Betas_opt']
+    lstNiiNames = ['_Betas_brute']
 
     # Create full path names from nii file names and output path
     lstNiiNames = [cfg.strPathOut + strNii + '.nii.gz' for strNii in
@@ -516,7 +526,7 @@ def pyprf_opt_brute(strCsvCnfg, objNspc, lgcTest=False):  #noqa
         aryBstR2Single[np.where(np.less_equal(aryBstR2Single, -1.0))] = -1.0
 
         # List with name suffices of output images:
-        lstNiiNames = ['_R2_single_opt']
+        lstNiiNames = ['_R2_single_brute']
 
         # Create full path names from nii file names and output path
         lstNiiNames = [cfg.strPathOut + strNii + '.nii.gz' for strNii in
