@@ -43,8 +43,7 @@ def get_arg_parse():
                            )
 
     # Add argument to namespace -varNumOpt3 flag:
-    objParser.add_argument('-varNumOpt3', required=True, type=float,
-                           metavar='N3',
+    objParser.add_argument('-varNumOpt3', default=None, metavar='N3',
                            help='Max displacement in radial direction.'
                            )
 

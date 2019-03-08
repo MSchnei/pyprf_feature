@@ -312,19 +312,26 @@ def pyprf_opt_brute(strCsvCnfg, objNspc, lgcTest=False, strPathHrf=None):
         # *********************************************************************
         # *** Create logical to restrict model fitting in radial direction
 
-        # Calculate eccentricity of currently tested model parameters
-        vecMdlEcc = np.sqrt(np.add(np.square(aryMdlParams[:, 0]),
-                                   np.square(aryMdlParams[:, 1])))
-        # Compare model eccentricity against prior eccentricity
-        vecPrrEccGrd, vecMdlEccGrd = np.meshgrid(vecPrrEcc, vecMdlEcc,
-                                                 indexing='ij')
-        # Consider allowed eccentricity shift as specified by user
-        lgcRstr = np.logical_and(np.less_equal(vecMdlEccGrd,
-                                               np.add(vecPrrEccGrd,
-                                                      objNspc.varNumOpt3)),
-                                 np.greater(vecMdlEccGrd,
-                                            np.subtract(vecPrrEccGrd,
-                                                        objNspc.varNumOpt3)))
+        if objNspc.varNumOpt3 is not None:
+
+            # Calculate eccentricity of currently tested model parameters
+            vecMdlEcc = np.sqrt(np.add(np.square(aryMdlParams[:, 0]),
+                                       np.square(aryMdlParams[:, 1])))
+            # Compare model eccentricity against prior eccentricity
+            vecPrrEccGrd, vecMdlEccGrd = np.meshgrid(vecPrrEcc, vecMdlEcc,
+                                                     indexing='ij')
+            # Consider allowed eccentricity shift as specified by user
+            lgcRstr = np.logical_and(np.less_equal(vecMdlEccGrd,
+                                                   np.add(vecPrrEccGrd,
+                                                          objNspc.varNumOpt3)),
+                                     np.greater(vecMdlEccGrd,
+                                                np.subtract(vecPrrEccGrd,
+                                                            objNspc.varNumOpt3)
+                                                )
+                                     )
+        else:
+            lgcRstr = np.ones((np.sum(lgcUnqPlrAng),
+                               aryMdlParams.shape[0]), dtype=np.bool)
 
         # *********************************************************************
         # *** Check for every voxel there is at least one model being tried
