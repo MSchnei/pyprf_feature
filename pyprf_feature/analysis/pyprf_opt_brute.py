@@ -45,7 +45,8 @@ from pyprf_feature.analysis.prepare import prep_models, prep_func
 #strPathHrf="/media/sf_D_DRIVE/MotDepPrf/Analysis/S02/03_motLoc/pRF_results/Supsur/hrf_opt/hrf_opt_results_supsur_V1_supsur_avgHrfPrm.npy"
 ################################
 
-def pyprf_opt_brute(strCsvCnfg, objNspc, lgcTest=False, strPathHrf=None):
+def pyprf_opt_brute(strCsvCnfg, objNspc, lgcTest=False, strPathHrf=None,
+                    varRat=None):
     """
     Function for optimizing given pRF paramaters using brute-force grid search.
 
@@ -61,6 +62,8 @@ def pyprf_opt_brute(strCsvCnfg, objNspc, lgcTest=False, strPathHrf=None):
     strPathHrf : str or None:
         Path to npy file with custom hrf parameters. If None, default
         parameters will be used.
+    varRat : float, default None
+        Ratio of size suppressive surround to size of center pRF
 
     """
     # *************************************************************************
@@ -207,7 +210,7 @@ def pyprf_opt_brute(strCsvCnfg, objNspc, lgcTest=False, strPathHrf=None):
     aryBstYpos = np.zeros((aryPlrAng.shape[0]))
     aryBstSd = np.zeros((aryPlrAng.shape[0]))
     aryBstR2 = np.zeros((aryPlrAng.shape[0]))
-    aryBstBts = np.zeros((aryPlrAng.shape[0], 1))
+    aryBstBts = np.zeros((aryPlrAng.shape[0], 2))
     if np.greater(cfg.varNumXval, 1):
         aryBstR2Single = np.zeros((aryPlrAng.shape[0],
                                    len(cfg.lstPathNiiFunc)))
@@ -301,7 +304,7 @@ def pyprf_opt_brute(strCsvCnfg, objNspc, lgcTest=False, strPathHrf=None):
 
         # Create model time courses
         aryPrfTc = model_creation_opt(dicCnfg, aryMdlParamsPxl,
-                                      strPathHrf=strPathHrf)
+                                      strPathHrf=strPathHrf, varRat=varRat)
 
         # The model time courses will be preprocessed such that they are
         # smoothed (temporally) with same factor as the data and that they will
@@ -498,6 +501,9 @@ def pyprf_opt_brute(strCsvCnfg, objNspc, lgcTest=False, strPathHrf=None):
                    '_polar_angle_brute',
                    '_eccentricity_brute']
 
+    if varRat is not None:
+        lstNiiNames = [strNii + '_' + str(varRat) for strNii in lstNiiNames]
+
     # Create full path names from nii file names and output path
     lstNiiNames = [cfg.strPathOut + strNii + '.nii.gz' for strNii in
                    lstNiiNames]
@@ -513,6 +519,9 @@ def pyprf_opt_brute(strCsvCnfg, objNspc, lgcTest=False, strPathHrf=None):
 
     # List with name suffices of output images:
     lstNiiNames = ['_Betas_brute']
+
+    if varRat is not None:
+        lstNiiNames = [strNii + '_' + str(varRat) for strNii in lstNiiNames]
 
     # Create full path names from nii file names and output path
     lstNiiNames = [cfg.strPathOut + strNii + '.nii.gz' for strNii in
@@ -534,6 +543,10 @@ def pyprf_opt_brute(strCsvCnfg, objNspc, lgcTest=False, strPathHrf=None):
 
         # List with name suffices of output images:
         lstNiiNames = ['_R2_single_brute']
+
+        if varRat is not None:
+            lstNiiNames = [strNii + '_' + str(varRat) for strNii in
+                           lstNiiNames]
 
         # Create full path names from nii file names and output path
         lstNiiNames = [cfg.strPathOut + strNii + '.nii.gz' for strNii in

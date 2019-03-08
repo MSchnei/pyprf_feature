@@ -24,7 +24,7 @@ from pyprf_feature.analysis.model_creation_utils import (crt_mdl_rsp,
                                                          )
 
 
-def model_creation_opt(dicCnfg, aryMdlParams, strPathHrf=None):
+def model_creation_opt(dicCnfg, aryMdlParams, strPathHrf=None, varRat=None):
     """
     Create or load pRF model time courses.
 
@@ -37,6 +37,8 @@ def model_creation_opt(dicCnfg, aryMdlParams, strPathHrf=None):
     strPathHrf : str or None:
         Path to npy file with custom hrf parameters. If None, default
         parameters will be used.
+    varRat : float, default None
+        Ratio of size suppressive surround to size of center pRF
 
     Returns
     -------
@@ -87,11 +89,27 @@ def model_creation_opt(dicCnfg, aryMdlParams, strPathHrf=None):
         # *********************************************************************
 
         # *********************************************************************
+
+        # If desired by user, also create model parameters for supp surround
+        if varRat is not None:
+            aryMdlParamsSur = np.copy(aryMdlParams)
+            aryMdlParamsSur[:, 2] = aryMdlParamsSur[:, 2] * varRat
+
+        # *********************************************************************
+
+        # *********************************************************************
         # *** Create 2D Gauss model responses to spatial conditions.
 
         aryMdlRsp = crt_mdl_rsp(arySptExpInf, (int(cfg.varVslSpcSzeX),
                                                int(cfg.varVslSpcSzeY)),
                                 aryMdlParams, cfg.varPar)
+                
+        # If desired by user, also create model responses for supp surround
+        if varRat is not None:
+            aryMdlRspSur = crt_mdl_rsp(arySptExpInf, (int(cfg.varVslSpcSzeX),
+                                                      int(cfg.varVslSpcSzeY)),
+                                       aryMdlParamsSur, cfg.varPar)
+
         del(arySptExpInf)
 
         # *********************************************************************
@@ -120,7 +138,21 @@ def model_creation_opt(dicCnfg, aryMdlParams, strPathHrf=None):
                                                      int(cfg.varVslSpcSzeY)),
                                   cfg.varPar, dctPrm=dctPrm)
 
+        # If desired by user, create prf time course models for supp surround
+        if varRat is not None:
+            print('---------Add suppressive surround')
+            aryPrfTcSur = crt_prf_ftr_tc(aryMdlRspSur, aryTmpExpInf,
+                                         cfg.varNumVol, cfg.varTr,
+                                         cfg.varTmpOvsmpl, cfg.switchHrfSet,
+                                         (int(cfg.varVslSpcSzeX),
+                                          int(cfg.varVslSpcSzeY)),
+                                         cfg.varPar, dctPrm=dctPrm)
+            # Concatenate aryPrfTc and aryPrfTcSur
+            aryPrfTc = np.concatenate((aryPrfTc, aryPrfTcSur), axis=1)
+
+
         del(aryMdlRsp)
+        del(aryMdlRspSur)
 
         # *********************************************************************
 
