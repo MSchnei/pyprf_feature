@@ -24,7 +24,8 @@ from pyprf_feature.analysis.model_creation_utils import (crt_mdl_rsp,
                                                          )
 
 
-def model_creation_opt(dicCnfg, aryMdlParams, strPathHrf=None, varRat=None):
+def model_creation_opt(dicCnfg, aryMdlParams, strPathHrf=None, varRat=None,
+                       lgcPrint=True):
     """
     Create or load pRF model time courses.
 
@@ -39,6 +40,8 @@ def model_creation_opt(dicCnfg, aryMdlParams, strPathHrf=None, varRat=None):
         parameters will be used.
     varRat : float, default None
         Ratio of size suppressive surround to size of center pRF
+    lgcPrint : boolean
+        Whether print statements should be executed.
 
     Returns
     -------
@@ -102,13 +105,14 @@ def model_creation_opt(dicCnfg, aryMdlParams, strPathHrf=None, varRat=None):
 
         aryMdlRsp = crt_mdl_rsp(arySptExpInf, (int(cfg.varVslSpcSzeX),
                                                int(cfg.varVslSpcSzeY)),
-                                aryMdlParams, cfg.varPar)
+                                aryMdlParams, cfg.varPar, lgcPrint=lgcPrint)
                 
         # If desired by user, also create model responses for supp surround
         if varRat is not None:
             aryMdlRspSur = crt_mdl_rsp(arySptExpInf, (int(cfg.varVslSpcSzeX),
                                                       int(cfg.varVslSpcSzeY)),
-                                       aryMdlParamsSur, cfg.varPar)
+                                       aryMdlParamsSur, cfg.varPar,
+                                       lgcPrint=lgcPrint)
 
         del(arySptExpInf)
 
@@ -119,7 +123,8 @@ def model_creation_opt(dicCnfg, aryMdlParams, strPathHrf=None, varRat=None):
 
         # Check whether path to npy file with hrf parameters was provided
         if strPathHrf is not None:
-            print('---------Load custom hrf parameters')
+            if lgcPrint:
+                print('---------Load custom hrf parameters')
             aryCstPrm = np.load(strPathHrf)
             dctPrm = {}
             dctPrm['peak_delay'] = aryCstPrm[0]
@@ -129,30 +134,29 @@ def model_creation_opt(dicCnfg, aryMdlParams, strPathHrf=None, varRat=None):
             dctPrm['p_u_ratio'] = aryCstPrm[4]
         # If not, set dctPrm to None, which will result in default hrf params
         else:
-            print('---------Use default hrf parameters')
+            if lgcPrint:
+                print('---------Use default hrf parameters')
             dctPrm = None
 
         aryPrfTc = crt_prf_ftr_tc(aryMdlRsp, aryTmpExpInf, cfg.varNumVol,
                                   cfg.varTr, cfg.varTmpOvsmpl,
                                   cfg.switchHrfSet, (int(cfg.varVslSpcSzeX),
                                                      int(cfg.varVslSpcSzeY)),
-                                  cfg.varPar, dctPrm=dctPrm)
+                                  cfg.varPar, dctPrm=dctPrm, lgcPrint=lgcPrint)
 
         # If desired by user, create prf time course models for supp surround
         if varRat is not None:
-            print('---------Add suppressive surround')
+            if lgcPrint:
+                print('---------Add suppressive surround')
             aryPrfTcSur = crt_prf_ftr_tc(aryMdlRspSur, aryTmpExpInf,
                                          cfg.varNumVol, cfg.varTr,
                                          cfg.varTmpOvsmpl, cfg.switchHrfSet,
                                          (int(cfg.varVslSpcSzeX),
                                           int(cfg.varVslSpcSzeY)),
-                                         cfg.varPar, dctPrm=dctPrm)
+                                         cfg.varPar, dctPrm=dctPrm,
+                                         lgcPrint=lgcPrint)
             # Concatenate aryPrfTc and aryPrfTcSur
             aryPrfTc = np.concatenate((aryPrfTc, aryPrfTcSur), axis=1)
-
-
-        del(aryMdlRsp)
-        del(aryMdlRspSur)
 
         # *********************************************************************
 

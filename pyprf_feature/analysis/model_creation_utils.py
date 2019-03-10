@@ -305,7 +305,8 @@ def crt_mdl_prms(tplPngSize, varNum1, varExtXmin,  varExtXmax, varNum2,
     return aryMdlParams
 
 
-def crt_mdl_rsp(arySptExpInf, tplPngSize, aryMdlParams, varPar, strCrd='crt'):
+def crt_mdl_rsp(arySptExpInf, tplPngSize, aryMdlParams, varPar, strCrd='crt',
+                lgcPrint=True):
     """Create responses of 2D Gauss models to spatial conditions.
 
     Parameters
@@ -320,6 +321,8 @@ def crt_mdl_rsp(arySptExpInf, tplPngSize, aryMdlParams, varPar, strCrd='crt'):
         Number of cores to parallelize over.
     strCrd, string, either 'crt' or 'pol'
         Whether model parameters are provided in cartesian or polar coordinates
+    lgcPrint : boolean
+        Whether print statements should be executed.
 
     Returns
     -------
@@ -350,8 +353,9 @@ def crt_mdl_rsp(arySptExpInf, tplPngSize, aryMdlParams, varPar, strCrd='crt'):
 
         # Empty list for processes:
         lstPrcs = [None] * varPar
-
-        print('---------Running parallel processes')
+        
+        if lgcPrint:
+            print('---------Running parallel processes')
 
         # Create processes:
         for idxPrc in range(0, varPar):
@@ -376,7 +380,8 @@ def crt_mdl_rsp(arySptExpInf, tplPngSize, aryMdlParams, varPar, strCrd='crt'):
         for idxPrc in range(0, varPar):
             lstPrcs[idxPrc].join()
 
-        print('---------Collecting results from parallel processes')
+        if lgcPrint:
+            print('---------Collecting results from parallel processes')
         # Put output arrays from parallel process into one big array
         lstMdlTc = sorted(lstMdlTc)
         aryMdlCndRsp = np.empty((0, arySptExpInf.shape[-1]))
@@ -392,7 +397,7 @@ def crt_mdl_rsp(arySptExpInf, tplPngSize, aryMdlParams, varPar, strCrd='crt'):
 
 
 def crt_nrl_tc(aryMdlRsp, aryCnd, aryOns, aryDrt, varTr, varNumVol,
-               varTmpOvsmpl, lgcPrnt=True):
+               varTmpOvsmpl, lgcPrint=True):
     """Create temporally upsampled neural time courses.
 
     Parameters
@@ -411,7 +416,7 @@ def crt_nrl_tc(aryMdlRsp, aryCnd, aryOns, aryDrt, varTr, varNumVol,
         Number of data point (volumes) in the (fMRI) data
     varTmpOvsmpl : float, positive
         Factor by which the time courses should be temporally upsampled.
-    lgcPrnt: boolean, default True
+    lgcPrint: boolean, default True
         Should print messages be sent to user?
 
     Returns
@@ -442,7 +447,7 @@ def crt_nrl_tc(aryMdlRsp, aryCnd, aryOns, aryDrt, varTr, varNumVol,
     # for temporal conditions this is removed automatically below and we need
     # temporal and sptial conditions to maych
     if np.all(aryMdlRsp[:, 0] == 0):
-        if lgcPrnt:
+        if lgcPrint:
             print('------------Removed first spatial condition (all zeros)')
         aryMdlRsp = aryMdlRsp[:, 1:]
 
@@ -472,7 +477,7 @@ def crt_nrl_tc(aryMdlRsp, aryCnd, aryOns, aryDrt, varTr, varNumVol,
 
 
 def crt_prf_tc(aryNrlTc, varNumVol, varTr, varTmpOvsmpl, switchHrfSet,
-               tplPngSize, varPar, dctPrm=None):
+               tplPngSize, varPar, dctPrm=None, lgcPrint=True):
     """Convolve every neural time course with HRF function.
 
     Parameters
@@ -494,7 +499,8 @@ def crt_prf_tc(aryNrlTc, varNumVol, varTr, varTmpOvsmpl, switchHrfSet,
     dctPrm : dictionary, default None
         Dictionary with customized hrf parameters. If this is None, default
         hrf parameters will be used.
-
+    lgcPrint: boolean, default True
+        Should print messages be sent to user?
 
     Returns
     -------
@@ -535,8 +541,8 @@ def crt_prf_tc(aryNrlTc, varNumVol, varTr, varTmpOvsmpl, switchHrfSet,
 
         # Empty list for results of parallel processes:
         lstConv = [None] * varPar
-
-        print('------------Running parallel processes')
+        if lgcPrint:
+            print('------------Running parallel processes')
 
         # Create processes:
         for idxPrc in range(0, varPar):
@@ -565,8 +571,8 @@ def crt_prf_tc(aryNrlTc, varNumVol, varTr, varTmpOvsmpl, switchHrfSet,
         # Join processes:
         for idxPrc in range(0, varPar):
             lstPrcs[idxPrc].join()
-
-        print('------------Collecting results from parallel processes')
+        if lgcPrint:
+            print('------------Collecting results from parallel processes')
         # Put output into correct order:
         lstConv = sorted(lstConv)
         # Concatenate convolved pixel time courses (into the same order
@@ -587,7 +593,7 @@ def crt_prf_tc(aryNrlTc, varNumVol, varTr, varTmpOvsmpl, switchHrfSet,
 
 def crt_prf_ftr_tc(aryMdlRsp, aryTmpExpInf, varNumVol, varTr, varTmpOvsmpl,
                    switchHrfSet, tplPngSize, varPar, dctPrm=None,
-                   lgcPrnt=True):
+                   lgcPrint=True):
     """Create all spatial x feature prf time courses.
 
     Parameters
@@ -611,7 +617,7 @@ def crt_prf_ftr_tc(aryMdlRsp, aryTmpExpInf, varNumVol, varTr, varTmpOvsmpl,
     dctPrm : dictionary, default None
         Dictionary with customized hrf parameters. If this is None, default
         hrf parameters will be used.
-    lgcPrnt: boolean, default True
+    lgcPrint: boolean, default True
         Should print messages be sent to user?
 
     Returns
@@ -633,7 +639,7 @@ def crt_prf_ftr_tc(aryMdlRsp, aryTmpExpInf, varNumVol, varTr, varTmpOvsmpl,
     # Loop over unique features
     for indFtr, ftr in enumerate(vecFeat):
 
-        if varPar > 1:
+        if lgcPrint:
             print('---------Create prf time course model for feature ' +
                   str(ftr))
         # Derive sptial conditions, onsets and durations for this specific
@@ -645,11 +651,11 @@ def crt_prf_ftr_tc(aryMdlRsp, aryTmpExpInf, varNumVol, varTr, varTmpOvsmpl,
         # Create temporally upsampled neural time courses.
         aryNrlTcTmp = crt_nrl_tc(aryMdlRsp, aryTmpCnd, aryTmpOns, aryTmpDrt,
                                  varTr, varNumVol, varTmpOvsmpl,
-                                 lgcPrnt=lgcPrnt)
+                                 lgcPrint=lgcPrint)
         # Convolve with hrf to create model pRF time courses.
         aryPrfTcTmp = crt_prf_tc(aryNrlTcTmp, varNumVol, varTr, varTmpOvsmpl,
                                  switchHrfSet, tplPngSize, varPar,
-                                 dctPrm=dctPrm)
+                                 dctPrm=dctPrm, lgcPrint=lgcPrint)
         # Add temporal time course to time course that will be returned
         aryPrfTc = np.concatenate((aryPrfTc, aryPrfTcTmp), axis=1)
 
