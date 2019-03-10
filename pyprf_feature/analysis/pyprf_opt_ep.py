@@ -147,13 +147,13 @@ def main():
                                 strPathHrf=objNspc.strPathHrf, varRat=varRat)
 
             # List with name suffices of output images:
-            lstNiiNames = ['_x_pos_brute',
-                           '_y_pos_brute',
-                           '_SD_brute',
-                           '_R2_brute',
-                           '_polar_angle_brute',
-                           '_eccentricity_brute',
-                           '_Betas_brute']
+            lstNiiNames = ['_x_pos',
+                           '_y_pos',
+                           '_SD',
+                           '_R2',
+                           '_polar_angle',
+                           '_eccentricity',
+                           '_Betas']
 
             # Compare results for the different ratios, export nii files
             # based on the results of the comparison and delete in-between
@@ -168,7 +168,7 @@ def main():
                 cfg.strPathOut = cfg.strPathOut + '_hrf'
 
             cmp_res_R2(lstRat, lstNiiNames, cfg.strPathOut, cfg.strPathMdl,
-                       lgcDel=True)
+                       lgcDel=True, lgcSveMdlTc=False, strNmeExt='_brute')
 
 
 if __name__ == "__main__":

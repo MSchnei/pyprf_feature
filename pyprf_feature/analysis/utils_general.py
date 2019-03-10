@@ -309,7 +309,8 @@ def joinRes(lstPrfRes, varPar, idxPos, inFormat='1D'):
     return aryOut
 
 
-def cmp_res_R2(lstRat, lstNiiNames, strPathOut, strPathMdl, lgcDel=False):
+def cmp_res_R2(lstRat, lstNiiNames, strPathOut, strPathMdl, lgcSveMdlTc=True,
+               lgcDel=False, strNmeExt=''):
     """"Compare results for different exponents and create winner nii.
 
     Parameters
@@ -324,7 +325,12 @@ def cmp_res_R2(lstRat, lstNiiNames, strPathOut, strPathMdl, lgcDel=False):
     strPathMdl : string
         Path to the parent directory where pRF models should be saved.
     lgcDel : boolean
+        Should model time courses be saved as npy file?
+    lgcDel : boolean
         Should inbetween results (in form of nii files) be deleted?
+    strNmeExt : string
+        Extra name appendix to denominate experiment name. If undesidered,
+        provide empty string.
 
     Notes
     -----
@@ -356,8 +362,8 @@ def cmp_res_R2(lstRat, lstNiiNames, strPathOut, strPathMdl, lgcDel=False):
         if lstRat[indRat] == 1.0:
             strExpSve = ''
         # Create full path names from nii file names and output path
-        lstPthNames = [strPathOut + strNii + strExpSve + '.nii.gz' for
-                       strNii in lstNiiNames]
+        lstPthNames = [strPathOut + strNii + strNmeExt + strExpSve + '.nii.gz'
+                       for strNii in lstNiiNames]
         # Append list to list that contains nii names for all exponents
         lstCmpRes.append(lstPthNames)
 
@@ -366,7 +372,7 @@ def cmp_res_R2(lstRat, lstNiiNames, strPathOut, strPathMdl, lgcDel=False):
     # Initialize winner R2 map with R2 values from fit without surround
     aryWnrR2 = load_nii(lstCmpRes[0][indPosR2])[0]
     # Initialize ratio map with 1 where no-surround model was fit, otherwise 0
-    aryRatMap = np.zeros(nb.load(lstCmpRes[0][0]).shape)
+    aryRatMap = np.zeros(aryWnrR2.shape)
     aryRatMap[np.nonzero(aryWnrR2)] = 1.0
 
     # Loop over R2 maps to establish which exponents wins
@@ -412,7 +418,7 @@ def cmp_res_R2(lstRat, lstNiiNames, strPathOut, strPathMdl, lgcDel=False):
         for indMap, _ in enumerate(lstMaps):
             # Load map for this particular ratio
             aryTmpMap = load_nii(lstMaps[indMap])[0]
-            # Handle exception: beta map will be 1D, if from ratio 0.0
+            # Handle exception: beta map will be 1D, if from ratio 1.0
             # In this case we want to make it 2D. In particular, the second
             # set of beta weights should be all zeros, so that later when
             # forming the model time course, the 2nd predictors contributes 0
@@ -440,7 +446,8 @@ def cmp_res_R2(lstRat, lstNiiNames, strPathOut, strPathMdl, lgcDel=False):
                                 header=hdrMsk
                                 )
         # Save nii:
-        strTmp = strPathOut + '_supsur' + lstNiiNames[indMap] + '.nii.gz'
+        strTmp = strPathOut + '_supsur' + lstNiiNames[indMap] + strNmeExt + \
+            '.nii.gz'
         nb.save(niiOut, strTmp)
 
     # Save map with best ratios as nii
@@ -449,64 +456,65 @@ def cmp_res_R2(lstRat, lstNiiNames, strPathOut, strPathMdl, lgcDel=False):
                             header=hdrMsk
                             )
     # Save nii:
-    strTmp = strPathOut + '_supsur' + '_Ratios' + '.nii.gz'
+    strTmp = strPathOut + '_supsur' + '_Ratios' + strNmeExt + '.nii.gz'
     nb.save(niiOut, strTmp)
 
-    print('------Save model time courses/parameters/responses for centre ' +
-          'and surround, across all ratios')
-
-    # Get the names of the npy files with inbetween model responses
-    lstCmpMdlRsp = []
-    for indRat in range(len(lstRat)):
-        # Get strExpSve
-        strExpSve = '_' + str(lstRat[indRat])
-        # If ratio is marked with 0, set empty string to find results.
-        # This is the code for fitting without a surround.
-        if lstRat[indRat] == 1.0:
-            strExpSve = ''
-        # Create full path names from npy file names and output path
-        lstPthNames = [strPathMdl + strNpy + strExpSve + '.npy' for
-                       strNpy in ['', '_params', '_mdlRsp']]
-        # Append list to list that contains nii names for all exponents
-        lstCmpMdlRsp.append(lstPthNames)
-
-    # Load tc/parameters/responses for different ratios, for now skip "0.0"
-    # ratio because its tc/parameters/responses differs in shape
-    lstPrfTcSur = []
-    lstMdlParamsSur = []
-    lstMdlRspSur = []
-    for indNpy, lstNpy in enumerate(lstCmpMdlRsp[1:]):
-        lstPrfTcSur.append(np.load(lstNpy[0]))
-        lstMdlParamsSur.append(np.load(lstNpy[1]))
-        lstMdlRspSur.append(np.load(lstNpy[2]))
-    # Turn into arrays
-    aryPrfTcSur = np.stack(lstPrfTcSur, axis=2)
-    aryMdlParamsSur = np.stack(lstMdlParamsSur, axis=2)
-    aryMdlRspSur = np.stack(lstMdlRspSur, axis=2)
-
-    # Now handle the "1.0" ratio
-    # Load the tc/parameters/responses of the "1.0" ratio
-    aryPrfTc = np.load(lstCmpMdlRsp[0][0])
-    aryMdlParams = np.load(lstCmpMdlRsp[0][1])
-    aryMdlRsp = np.load(lstCmpMdlRsp[0][2])
-    # Make 2nd row of time courses all zeros so they get no weight in lstsq
-    aryPrfTc = np.concatenate((aryPrfTc, np.zeros(aryPrfTc.shape)), axis=1)
-    # Make 2nd row of parameters the same as first row
-    aryMdlParams = np.stack((aryMdlParams, aryMdlParams), axis=1)
-    # Make 2nd row of responses all zeros so they get no weight in lstsq
-    aryMdlRsp = np.stack((aryMdlRsp, np.zeros(aryMdlRsp.shape)), axis=1)
-    # Add the "1.0" ratio to tc/parameters/responses of other ratios
-    aryPrfTcSur = np.concatenate((np.expand_dims(aryPrfTc, axis=2),
-                                  aryPrfTcSur), axis=2)
-    aryMdlParamsSur = np.concatenate((np.expand_dims(aryMdlParams, axis=2),
-                                     aryMdlParamsSur), axis=2)
-    aryMdlRspSur = np.concatenate((np.expand_dims(aryMdlRsp, axis=2),
-                                  aryMdlRspSur), axis=2)
-
-    # Save parameters/response for centre and surround, for all ratios
-    np.save(strPathMdl + '_supsur' + '', aryPrfTcSur)
-    np.save(strPathMdl + '_supsur' + '_params', aryMdlParamsSur)
-    np.save(strPathMdl + '_supsur' + '_mdlRsp', aryMdlRspSur)
+    if lgcSveMdlTc:
+        print('------Save model time courses/parameters/responses for ' +
+              'centre and surround, across all ratios')
+    
+        # Get the names of the npy files with inbetween model responses
+        lstCmpMdlRsp = []
+        for indRat in range(len(lstRat)):
+            # Get strExpSve
+            strExpSve = '_' + str(lstRat[indRat])
+            # If ratio is marked with 0, set empty string to find results.
+            # This is the code for fitting without a surround.
+            if lstRat[indRat] == 1.0:
+                strExpSve = ''
+            # Create full path names from npy file names and output path
+            lstPthNames = [strPathMdl + strNpy + strNmeExt + strExpSve + '.npy'
+                           for strNpy in ['', '_params', '_mdlRsp']]
+            # Append list to list that contains nii names for all exponents
+            lstCmpMdlRsp.append(lstPthNames)
+    
+        # Load tc/parameters/responses for different ratios, for now skip "0.0"
+        # ratio because its tc/parameters/responses differs in shape
+        lstPrfTcSur = []
+        lstMdlParamsSur = []
+        lstMdlRspSur = []
+        for indNpy, lstNpy in enumerate(lstCmpMdlRsp[1:]):
+            lstPrfTcSur.append(np.load(lstNpy[0]))
+            lstMdlParamsSur.append(np.load(lstNpy[1]))
+            lstMdlRspSur.append(np.load(lstNpy[2]))
+        # Turn into arrays
+        aryPrfTcSur = np.stack(lstPrfTcSur, axis=2)
+        aryMdlParamsSur = np.stack(lstMdlParamsSur, axis=2)
+        aryMdlRspSur = np.stack(lstMdlRspSur, axis=2)
+    
+        # Now handle the "1.0" ratio
+        # Load the tc/parameters/responses of the "1.0" ratio
+        aryPrfTc = np.load(lstCmpMdlRsp[0][0])
+        aryMdlParams = np.load(lstCmpMdlRsp[0][1])
+        aryMdlRsp = np.load(lstCmpMdlRsp[0][2])
+        # Make 2nd row of time courses all zeros so they get no weight in lstsq
+        aryPrfTc = np.concatenate((aryPrfTc, np.zeros(aryPrfTc.shape)), axis=1)
+        # Make 2nd row of parameters the same as first row
+        aryMdlParams = np.stack((aryMdlParams, aryMdlParams), axis=1)
+        # Make 2nd row of responses all zeros so they get no weight in lstsq
+        aryMdlRsp = np.stack((aryMdlRsp, np.zeros(aryMdlRsp.shape)), axis=1)
+        # Add the "1.0" ratio to tc/parameters/responses of other ratios
+        aryPrfTcSur = np.concatenate((np.expand_dims(aryPrfTc, axis=2),
+                                      aryPrfTcSur), axis=2)
+        aryMdlParamsSur = np.concatenate((np.expand_dims(aryMdlParams, axis=2),
+                                         aryMdlParamsSur), axis=2)
+        aryMdlRspSur = np.concatenate((np.expand_dims(aryMdlRsp, axis=2),
+                                      aryMdlRspSur), axis=2)
+    
+        # Save parameters/response for centre and surround, for all ratios
+        np.save(strPathMdl + '_supsur' + '', aryPrfTcSur)
+        np.save(strPathMdl + '_supsur' + '_params', aryMdlParamsSur)
+        np.save(strPathMdl + '_supsur' + '_mdlRsp', aryMdlRspSur)
 
     # Delete all the inbetween results, if desired by user, skip "0.0" ratio
     if lgcDel:
@@ -514,10 +522,11 @@ def cmp_res_R2(lstRat, lstNiiNames, strPathOut, strPathMdl, lgcDel=False):
         print('------Delete in-between results')
         for strMap in lstCmpRes[:]:
             os.remove(strMap)
-        lstCmpMdlRsp = [item for sublist in lstCmpMdlRsp[1:] for item in
-                        sublist]
-        for strMap in lstCmpMdlRsp[:]:
-            os.remove(strMap)
+        if lgcSveMdlTc:
+            lstCmpMdlRsp = [item for sublist in lstCmpMdlRsp[1:] for item in
+                            sublist]
+            for strMap in lstCmpMdlRsp[:]:
+                os.remove(strMap)
 
 
 def map_crt_to_pol(aryXCrds, aryYrds):
