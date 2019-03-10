@@ -132,6 +132,15 @@ def pyprf_opt_brute(strCsvCnfg, objNspc, lgcTest=False, strPathHrf=None,
     strErrMsg = 'Stopping program. ' + \
         'Set numXval (number of crossvalidation folds) to 1 or higher'
     assert np.greater_equal(cfg.varNumXval, 1), strErrMsg
+    
+    # derive number of feature for fitting
+    if varRat is not None:
+        # since there will be a beta parameter estimate both for the center and
+        # the surround, we multiply by 2
+        varNumFtr = int(2*cfg.switchHrfSet)    
+    else:
+        varNumFtr = cfg.switchHrfSet
+
     # *************************************************************************
 
     # *************************************************************************
@@ -210,7 +219,7 @@ def pyprf_opt_brute(strCsvCnfg, objNspc, lgcTest=False, strPathHrf=None,
     aryBstYpos = np.zeros((aryPlrAng.shape[0]))
     aryBstSd = np.zeros((aryPlrAng.shape[0]))
     aryBstR2 = np.zeros((aryPlrAng.shape[0]))
-    aryBstBts = np.zeros((aryPlrAng.shape[0], 2))
+    aryBstBts = np.zeros((aryPlrAng.shape[0], varNumFtr))
     if np.greater(cfg.varNumXval, 1):
         aryBstR2Single = np.zeros((aryPlrAng.shape[0],
                                    len(cfg.lstPathNiiFunc)))
@@ -304,7 +313,8 @@ def pyprf_opt_brute(strCsvCnfg, objNspc, lgcTest=False, strPathHrf=None,
 
         # Create model time courses
         aryPrfTc = model_creation_opt(dicCnfg, aryMdlParamsPxl,
-                                      strPathHrf=strPathHrf, varRat=varRat)
+                                      strPathHrf=strPathHrf, varRat=varRat,
+                                      lgcPrint=False)
 
         # The model time courses will be preprocessed such that they are
         # smoothed (temporally) with same factor as the data and that they will
