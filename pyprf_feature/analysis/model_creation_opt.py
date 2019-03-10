@@ -24,7 +24,8 @@ from pyprf_feature.analysis.model_creation_utils import (crt_mdl_rsp,
                                                          )
 
 
-def model_creation_opt(dicCnfg, aryMdlParams):
+def model_creation_opt(dicCnfg, aryMdlParams, strPathHrf=None, varRat=None,
+                       lgcPrint=True):
     """
     Create or load pRF model time courses.
 
@@ -34,6 +35,13 @@ def model_creation_opt(dicCnfg, aryMdlParams):
         Dictionary containing config parameters.
     aryMdlParams : numpy arrays
         x, y and sigma parameters.
+    strPathHrf : str or None:
+        Path to npy file with custom hrf parameters. If None, default
+        parameters will be used.
+    varRat : float, default None
+        Ratio of size suppressive surround to size of center pRF
+    lgcPrint : boolean
+        Whether print statements should be executed.
 
     Returns
     -------
@@ -84,11 +92,28 @@ def model_creation_opt(dicCnfg, aryMdlParams):
         # *********************************************************************
 
         # *********************************************************************
+
+        # If desired by user, also create model parameters for supp surround
+        if varRat is not None:
+            aryMdlParamsSur = np.copy(aryMdlParams)
+            aryMdlParamsSur[:, 2] = aryMdlParamsSur[:, 2] * varRat
+
+        # *********************************************************************
+
+        # *********************************************************************
         # *** Create 2D Gauss model responses to spatial conditions.
 
         aryMdlRsp = crt_mdl_rsp(arySptExpInf, (int(cfg.varVslSpcSzeX),
                                                int(cfg.varVslSpcSzeY)),
-                                aryMdlParams, cfg.varPar)
+                                aryMdlParams, cfg.varPar, lgcPrint=lgcPrint)
+                
+        # If desired by user, also create model responses for supp surround
+        if varRat is not None:
+            aryMdlRspSur = crt_mdl_rsp(arySptExpInf, (int(cfg.varVslSpcSzeX),
+                                                      int(cfg.varVslSpcSzeY)),
+                                       aryMdlParamsSur, cfg.varPar,
+                                       lgcPrint=lgcPrint)
+
         del(arySptExpInf)
 
         # *********************************************************************
@@ -96,13 +121,42 @@ def model_creation_opt(dicCnfg, aryMdlParams):
         # *********************************************************************
         # *** Create prf time course models
 
+        # Check whether path to npy file with hrf parameters was provided
+        if strPathHrf is not None:
+            if lgcPrint:
+                print('---------Load custom hrf parameters')
+            aryCstPrm = np.load(strPathHrf)
+            dctPrm = {}
+            dctPrm['peak_delay'] = aryCstPrm[0]
+            dctPrm['under_delay'] = aryCstPrm[1]
+            dctPrm['peak_disp'] = aryCstPrm[2]
+            dctPrm['under_disp'] = aryCstPrm[3]
+            dctPrm['p_u_ratio'] = aryCstPrm[4]
+        # If not, set dctPrm to None, which will result in default hrf params
+        else:
+            if lgcPrint:
+                print('---------Use default hrf parameters')
+            dctPrm = None
+
         aryPrfTc = crt_prf_ftr_tc(aryMdlRsp, aryTmpExpInf, cfg.varNumVol,
                                   cfg.varTr, cfg.varTmpOvsmpl,
                                   cfg.switchHrfSet, (int(cfg.varVslSpcSzeX),
                                                      int(cfg.varVslSpcSzeY)),
-                                  cfg.varPar)
+                                  cfg.varPar, dctPrm=dctPrm, lgcPrint=lgcPrint)
 
-        del(aryMdlRsp)
+        # If desired by user, create prf time course models for supp surround
+        if varRat is not None:
+            if lgcPrint:
+                print('---------Add suppressive surround')
+            aryPrfTcSur = crt_prf_ftr_tc(aryMdlRspSur, aryTmpExpInf,
+                                         cfg.varNumVol, cfg.varTr,
+                                         cfg.varTmpOvsmpl, cfg.switchHrfSet,
+                                         (int(cfg.varVslSpcSzeX),
+                                          int(cfg.varVslSpcSzeY)),
+                                         cfg.varPar, dctPrm=dctPrm,
+                                         lgcPrint=lgcPrint)
+            # Concatenate aryPrfTc and aryPrfTcSur
+            aryPrfTc = np.concatenate((aryPrfTc, aryPrfTcSur), axis=1)
 
         # *********************************************************************
 
