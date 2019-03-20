@@ -342,7 +342,7 @@ def prep_func(strPathNiiMask, lstPathNiiFunc, varAvgThr=100.,
                             )
     # Save nii:
     if strPathMskOut is None:
-        strTmp = '{}_incl.nii.gz'.format(
+        strTmp = '{}_inclVxls.nii.gz'.format(
             strPathNiiMask.split(os.extsep, 1)[0])
     else:
         strTmp = '{}_{}_inclVxls.nii.gz'.format(strPathMskOut,
