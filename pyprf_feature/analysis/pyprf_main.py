@@ -32,6 +32,7 @@ from pyprf_feature.analysis.prepare import prep_models, prep_func
 #strCsvCnfg = "/media/sf_D_DRIVE/MotDepPrf/Analysis/S02/03_motLoc/pRF_results/Supsur/S02_config_MotLoc_supsur.csv"
 #lgcTest = False
 #varRat=None
+#strPathHrf=None
 ################################
 
 def pyprf(strCsvCnfg, lgcTest=False, varRat=None, strPathHrf=None):
@@ -101,7 +102,8 @@ def pyprf(strCsvCnfg, lgcTest=False, varRat=None, strPathHrf=None):
 
     # The functional data will be masked and demeaned:
     aryLgcMsk, aryLgcVar, hdrMsk, aryAff, aryFunc, tplNiiShp = prep_func(
-        cfg.strPathNiiMask, cfg.lstPathNiiFunc, varAvgThr=-100)
+        cfg.strPathNiiMask, cfg.lstPathNiiFunc, varAvgThr=-100,
+        strPathMskOut=cfg.strPathOut)
 
     # set the precision of the header to np.float32 so that the prf results
     # will be saved in this precision later

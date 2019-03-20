@@ -17,7 +17,9 @@
 # You should have received a copy of the GNU General Public License along with
 # this program.  If not, see <http://www.gnu.org/licenses/>.
 
+import os
 import numpy as np
+import nibabel as nb
 from scipy.ndimage.filters import gaussian_filter1d
 from pyprf_feature.analysis.utils_general import load_nii
 
@@ -120,7 +122,7 @@ def prep_models(aryPrfTc, varSdSmthTmp=2.0, lgcPrint=True):
 
 
 def prep_func(strPathNiiMask, lstPathNiiFunc, varAvgThr=100.,
-              varVarThr=0.0001, strPrePro='demean'):
+              varVarThr=0.0001, strPrePro='demean', strPathMskOut=None):
     """
     Load & prepare functional data.
 
@@ -140,6 +142,10 @@ def prep_func(strPathNiiMask, lstPathNiiFunc, varAvgThr=100.,
     strPrePro : string, default 'demean'
         Preprocessing that will be applied to the data.
         By default they are demeaned.
+    strPathMskOut : str, default None
+        Path to directory where nii mask of voxels included in the analysis
+        should be saved. If None is selected (default), strPathMskOut will be
+        set equal to strPathNiiMask
 
     Returns
     -------
@@ -188,10 +194,10 @@ def prep_func(strPathNiiMask, lstPathNiiFunc, varAvgThr=100.,
     # varNumVoxMsk = int(np.count_nonzero(aryMask))
 
     # Dimensions of nii data:
-    tplNiiShp = aryMask.shape
+    tplNiiShpMsk = aryMask.shape
 
     # Total number of voxels:
-    varNumVoxTlt = (tplNiiShp[0] * tplNiiShp[1] * tplNiiShp[2])
+    varNumVoxTlt = (tplNiiShpMsk[0] * tplNiiShpMsk[1] * tplNiiShpMsk[2])
 
     # Reshape mask:
     aryMask = np.reshape(aryMask, varNumVoxTlt)
@@ -306,23 +312,41 @@ def prep_func(strPathNiiMask, lstPathNiiFunc, varAvgThr=100.,
     # Are there any nan values in the functional time series?
     vecLgcNan = np.invert(np.any(np.isnan(aryFunc), axis=1))
 
-    # combine the logical vectors for exclusion resulting from low variance and
+    # Combine the logical vectors for exclusion resulting from low variance and
     # low mean signal time course
     vecLgcIncl = np.logical_and(vecLgcAvg, vecLgcVar)
 
-    # combine logical vectors for mean/variance with vector for nan exclsion
+    # Combine logical vectors for mean/variance with vector for nan exclsion
     vecLgcIncl = np.logical_and(vecLgcIncl, vecLgcNan)
 
     # Array with functional data for which conditions (mask inclusion and
     # cutoff value) are fullfilled:
     aryFunc = aryFunc[vecLgcIncl, :]
 
-    # print info about the exclusion of voxels
+    # Print info about the exclusion of voxels
     print('---------Minimum mean threshold for voxels applied at: ' +
           str(varAvgThr))
     print('---------Minimum variance threshold for voxels applied at:  ' +
           str(varVarThr))
     print('---------Number of voxels excluded due to low mean or variance: ' +
           str(np.sum(np.invert(vecLgcIncl))))
+
+    # Save mask with voxels included in the analysis as nii file to disk
+    aryInclVxl = np.copy(aryLgcMsk)
+    aryInclVxl[aryInclVxl] = vecLgcIncl
+    aryInclVxl = aryInclVxl.reshape(tplNiiShpMsk)
+    # Create nii object for results:
+    niiOut = nb.Nifti1Image(aryInclVxl,
+                            aryAff,
+                            header=hdrMsk
+                            )
+    # Save nii:
+    if strPathMskOut is None:
+        strTmp = '{}_incl.nii.gz'.format(
+            strPathNiiMask.split(os.extsep, 1)[0])
+    else:
+        strTmp = '{}_{}_inclVxls.nii.gz'.format(strPathMskOut,
+            os.path.basename(strPathNiiMask.split(os.extsep, 1)[0]))    
+    nb.save(niiOut, strTmp)
 
     return aryLgcMsk, vecLgcIncl, hdrMsk, aryAff, aryFunc, tplNiiShp
